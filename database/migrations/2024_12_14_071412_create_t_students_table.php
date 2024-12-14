@@ -31,7 +31,7 @@ return new class extends Migration
             $table->float('st_deposit');
             $table->text('st_gmail_address')->nullable();
             // $table->text('st_email')->nullable();
-            $table->text('st_email_otp')->nullable();
+            // $table->text('st_email_otp')->nullable();
             // $table->float('st_mobile_no')->nullable();
             $table->enum('st_external', ['0', '1']);
             $table->enum('st_on_roll', ['0', '1']);
