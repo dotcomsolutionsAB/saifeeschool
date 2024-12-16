@@ -13,13 +13,16 @@ return new class extends Migration
     {
         Schema::create('t_teachers', function (Blueprint $table) {
             $table->id();
-            $table->integer('teacher_id');
+            // $table->integer('teacher_id');
             $table->string('name');
             $table->text('address')->nullable();
+            $table->string('email');
             $table->enum('gender', ['M', 'F'])->nullable();
             $table->date('dob')->nullable();
             $table->enum('blood_group', ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Rare'])->nullable();
             $table->enum('is_class_teacher', ['0', '1']);
+            $table->string('degree');
+            $table->string('quallification');
             $table->timestamps();
         });
     }

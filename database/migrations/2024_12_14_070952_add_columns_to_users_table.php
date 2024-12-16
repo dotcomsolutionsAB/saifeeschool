@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             //
-            $table->string('username')->after('password');
+            $table->enum('role', ['admin', 'student', 'teacher'])->after('password')->unique();
+            $table->string('username')->after('role')->unique();
         });
     }
 
@@ -24,6 +25,8 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             //
+            $table->dropUnique(['username']); // Remove the unique constraint during rollback
+            $table->dropColumn('username');  // Remove the column
         });
     }
 };
