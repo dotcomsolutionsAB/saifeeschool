@@ -32,6 +32,21 @@ class StudentController extends Controller
             'st_admitted' => 'required|string|max:255',
             'st_admitted_class' => 'required|string|max:255',
             'st_flag' => 'required|string|max:255',
+            'aadhaar_no' => 'required|numeric',
+            'residential_address1' => 'required|string|max:1000', // Text field, required
+            'residential_address2' => 'nullable|string|max:1000', // Optional text field
+            'residential_address3' => 'nullable|string|max:1000', // Optional text field
+            'city' => 'required|string|max:255',                 // String, required
+            'state' => 'required|string|max:255',                // String, required
+            'country' => 'required|string|max:255',              // String, required
+            'pincode' => 'required|integer|min:1',               // Integer, required
+            'class_group' => 'required|integer|min:1',           // Integer, required
+            'f_name' => 'required|string|max:255',
+            'f_email' => 'required|email|max:255',
+            'f_contact' => 'required|string|max:20',
+            'm_name' => 'required|string|max:255',
+            'm_email' => 'required|email|max:255',
+            'm_contact' => 'required|string|max:20',
             'f_occupation' => 'required|in:employed,self-employed,none',
             'm_occupation' => 'required|in:employed,self-employed,home-maker',
             // Validate father business fields
@@ -168,9 +183,10 @@ class StudentController extends Controller
                 'st_flag' => $validated['st_flag'],
             ]);
 
+            // dd($validated);
             // Create student details
             $studentDetails  = StudentDetailsModel::create([
-                'st_roll_no' => $register_student->id,
+                'st_id' => $register_student->id,
                 'aadhaar_no' => $validated['aadhaar_no'] ?? null,
                 'residential_address1' => $validated['residential_address1'] ?? null,
                 'residential_address2' => $validated['residential_address2'] ?? null,
@@ -201,6 +217,7 @@ class StudentController extends Controller
                 'f_work_country' => $validated['f_work_country'] ?? null,
                 'f_work_pincode' => $validated['f_work_pincode'] ?? null,
                 'm_name' => $validated['m_name'] ?? null,
+                'm_email' => $validated['m_email'] ?? null,
                 'm_contact' => $validated['m_contact'] ?? null,
                 'm_occupation' => $validated['m_occupation'] ?? null,
                 'm_business_name' => $validated['m_business_name'] ?? null,
@@ -223,8 +240,8 @@ class StudentController extends Controller
 
             return response()->json([
                 'message' => 'Student registered successfully',
-                'student' => $student,
-                'studentDetails' => $studentDetails,
+                'student' => $register_student->makeHidden(['id', 'created_at', 'updated_at']),
+                'studentDetails' => $studentDetails->makeHidden(['id', 'created_at', 'updated_at']),
             ], 201);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Registration failed', 'error' => $e->getMessage()], 500);
@@ -410,30 +427,45 @@ class StudentController extends Controller
     {
         if ($id) {
             // Fetch a specific student with details
-            $student = Student::with(['details' => function ($query) {
-                $query->makeHidden(['id', 'created_at', 'updated_at']);
-            }])
-                ->find($id);
-
+            $student = StudentModel::with('details')->find($id);
+        
             if ($student) {
+                // Hide fields in the main student model
                 $student->makeHidden(['id', 'created_at', 'updated_at']);
+        
+                // Hide fields in the details relation
+                if ($student->details) {
+                    $student->details->makeHidden(['id', 'created_at', 'updated_at']);
+                }
+        
+                return response()->json([
+                    'message' => 'Student fetched successfully!',
+                    'data' => $student
+                ], 200);
             }
-
-            return $student
-                ? response()->json(['message' => 'Student fetched successfully!', 'data' => $student], 200)
-                : response()->json(['message' => 'Student not found.'], 404);
+        
+            return response()->json(['message' => 'Student not found.'], 404);
+        
         } else {
             // Fetch all students with details
-            $students = Student::with(['details' => function ($query) {
-                $query->makeHidden(['id', 'created_at', 'updated_at']);
-            }])
-                ->get();
-
-            $students->makeHidden(['id', 'created_at', 'updated_at']);
-
+            $students = StudentModel::with('details')->get();
+        
+            // Hide fields in each student model and its details
+            $students->each(function ($student) {
+                $student->makeHidden(['id', 'created_at', 'updated_at']);
+        
+                if ($student->details) {
+                    $student->details->makeHidden(['id', 'created_at', 'updated_at']);
+                }
+            });
+        
             return $students->isNotEmpty()
-                ? response()->json(['message' => 'Students fetched successfully!', 'data' => $students, 'count' => $students->count()], 200)
+                ? response()->json([
+                    'message' => 'Students fetched successfully!',
+                    'data' => $students,
+                    'count' => $students->count()
+                ], 200)
                 : response()->json(['message' => 'No students available.'], 400);
-        }
+        }        
     }
 }

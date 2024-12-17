@@ -21,13 +21,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Student Routes
     Route::prefix('student')->group(function () {
-    Route::get('/register', [StudentController::class, 'index']);          // List all products
-    Route::get('/{id}', [StudentController::class, 'index']);     // Get details of a single product
-    Route::post('/', [StudentController::class, 'register']);         // Add a new product (Admin only)
-    Route::post('/{id}', [StudentController::class, 'update']);     // Update a product (Admin only)
-    Route::delete('/{id}', [StudentController::class, 'destroy']); // Delete a product (Admin only)
+    Route::get('/', [StudentController::class, 'index']);          // List all students
+    Route::get('/{id}', [StudentController::class, 'index']);     // Get details of a single student
+    Route::post('/', [StudentController::class, 'register']);         // Add a new student (Admin only)
+    Route::post('/{id}', [StudentController::class, 'update']);     // Update a student (Admin only)
+    Route::delete('/{id}', [StudentController::class, 'destroy']); // Delete a student (Admin only)
 
-    Route::post('/import', [ProductController::class, 'importProductsFromCsv']);
+    // Route::post('/import', [ProductController::class, 'importProductsFromCsv']);
 });
+
+    Route::prefix('teacher')->group(function () {
+        Route::post('/', [StudentController::class, 'create']);         // Add a new teacher (Admin only)
+        Route::post('/{id}', [StudentController::class, 'update']);     // Update a teacher (Admin only)
+        Route::get('/{id?}', [TeacherController::class, 'index']);  // Fetch all or specific teacher
+        Route::delete('/{id}', [TeacherController::class, 'destroy']); // Delete a teacher
+    });
 
 });
