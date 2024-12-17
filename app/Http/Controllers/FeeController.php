@@ -36,7 +36,7 @@ class FeeController extends Controller
      }
  
      // Create a new record
-     public function store(Request $request)
+     public function register(Request $request)
      {
          $validated = $request->validate([
              'st_id' => 'nullable|integer',

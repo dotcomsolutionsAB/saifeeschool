@@ -5,6 +5,12 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\AcademicYearController;
+use App\Http\Controllers\ClassGroupController;
+use App\Http\Controllers\StudentClassController;
+use App\Http\Controllers\FeeController;
+use App\Http\Controllers\FeePlanPeriodController;
+use App\Http\Controllers\FeePlanController;
 use App\Http\Controllers\Auth\AuthController;
 
 // Route::get('/user', function (Request $request) {
@@ -37,18 +43,47 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', [TeacherController::class, 'destroy']); // Delete a teacher
     });
 
-    Route::prefix('fee')->group(function () {
-        Route::get('/{id?}', [StudentFeeController::class, 'index']); // Fetch all or one record
-        Route::post('/', [StudentFeeController::class, 'register']); // Create a new record
-        Route::post('/{id}', [StudentFeeController::class, 'update']); // Update a record
-        Route::delete('/{id}', [StudentFeeController::class, 'destroy']); // Delete a record
+    Route::prefix('academic_year')->group(function () {
+        Route::post('/', [AcademicYearController::class, 'create']);         // Add a new teacher (Admin only)
+        Route::post('/{id}', [AcademicYearController::class, 'update']);     // Update a teacher (Admin only)
+        Route::get('/{id?}', [AcademicYearController::class, 'index']);  // Fetch all or specific teacher
+        Route::delete('/{id}', [AcademicYearController::class, 'destroy']); // Delete a teacher
     });
 
-    Route::prefix('fee-plan-particular')->group(function () {
-        Route::get('/{id?}', [FeePlanParticularController::class, 'index']); // Fetch all or one record
-        Route::post('/', [FeePlanParticularController::class, 'register']); // Create a new record
-        Route::post('/{id}', [FeePlanParticularController::class, 'update']); // Update a record
-        Route::delete('/{id}', [FeePlanParticularController::class, 'destroy']); // Delete a record
+    Route::prefix('class_group')->group(function () {
+        Route::post('/', [ClassGroupController::class, 'create']);         // Add a new teacher (Admin only)
+        Route::post('/{id}', [ClassGroupController::class, 'update']);     // Update a teacher (Admin only)
+        Route::get('/{id?}', [ClassGroupController::class, 'index']);  // Fetch all or specific teacher
+        Route::delete('/{id}', [ClassGroupController::class, 'destroy']); // Delete a teacher
+    });
+
+    
+    Route::prefix('student_class')->group(function () {
+        Route::post('/', [StudentClassController::class, 'create']);         // Add a new teacher (Admin only)
+        Route::post('/{id}', [StudentClassController::class, 'update']);     // Update a teacher (Admin only)
+        Route::get('/{id?}', [StudentClassController::class, 'index']);  // Fetch all or specific teacher
+        Route::delete('/{id}', [StudentClassController::class, 'destroy']); // Delete a teacher
+    });
+
+    Route::prefix('fee')->group(function () {
+        Route::get('/{id?}', [FeeController::class, 'index']); // Fetch all or one record
+        Route::post('/', [FeeController::class, 'register']); // Create a new record
+        Route::post('/{id}', [FeeController::class, 'update']); // Update a record
+        Route::delete('/{id}', [FeeController::class, 'destroy']); // Delete a record
+    });
+
+    Route::prefix('fee_plan_period')->group(function () {
+        Route::get('/{id?}', [FeePlanPeriodController::class, 'index']); // Fetch all or one record
+        Route::post('/', [FeePlanPeriodController::class, 'register']); // Create a new record
+        Route::post('/{id}', [FeePlanPeriodController::class, 'update']); // Update a record
+        Route::delete('/{id}', [FeePlanPeriodController::class, 'destroy']); // Delete a record
+    });
+
+    Route::prefix('fee_plan')->group(function () {
+        Route::get('/{id?}', [FeePlanController::class, 'index']); // Fetch all or one record
+        Route::post('/', [FeePlanController::class, 'register']); // Create a new record
+        Route::post('/{id}', [FeePlanController::class, 'update']); // Update a record
+        Route::delete('/{id}', [FeePlanController::class, 'destroy']); // Delete a record
     });
 
 });
