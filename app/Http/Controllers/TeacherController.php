@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\TeacherModel;
 
 class TeacherController extends Controller
 {
@@ -20,17 +21,27 @@ class TeacherController extends Controller
             'blood_group' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-,Rare',
             'is_class_teacher' => 'required|in:0,1',
             'degree' => 'required|string|max:255',
-            'quallification' => 'required|string|max:255',
+            'qualification' => 'required|string|max:255',
         ]);
 
         try {
             // Create the teacher
-            $teacher = TeacherModel::create($validated);
+            $register_teacher = TeacherModel::create([
+                'name' => $validated['name'],
+                'address' => $validated['address'] ?? null,
+                'email' => $validated['email'],
+                'gender' => $validated['gender'] ?? null,
+                'dob' => $validated['dob'] ?? null,
+                'blood_group' => $validated['blood_group'] ?? null,
+                'is_class_teacher' => $validated['is_class_teacher'],
+                'degree' => $validated['degree'],
+                'qualification' => $validated['qualification'],
+            ]);
 
             // Return success response
             return response()->json([
                 'message' => 'Teacher created successfully',
-                'data' => $teacher->makeHidden(['id', 'created_at', 'updated_at'])
+                'data' => $register_teacher->makeHidden(['id', 'created_at', 'updated_at'])
             ], 201);
 
         } catch (\Exception $e) {
@@ -49,13 +60,13 @@ class TeacherController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'address' => 'nullable|string|max:1000',
-            'email' => 'sometimes|email|unique:teachers,email,' . $id, // Unique email except for the current teacher
+            'email' => 'sometimes|email|unique:t_teachers,email,' . $id, // Unique email except for the current teacher
             'gender' => 'nullable|in:M,F',
             'dob' => 'nullable|date',
             'blood_group' => 'nullable|in:A+,A-,B+,B-,AB+,AB-,O+,O-,Rare',
             'is_class_teacher' => 'nullable|in:0,1',
             'degree' => 'sometimes|string|max:255',
-            'quallification' => 'sometimes|string|max:255',
+            'qualification' => 'sometimes|string|max:255',
         ]);
 
         try {
@@ -70,7 +81,17 @@ class TeacherController extends Controller
             }
 
             // Update the teacher record with the validated fields
-            $teacher->update($validated);
+            $teacher->update([
+                'name' => $validated['name'] ?? $teacher->name,
+                'address' => $validated['address'] ?? $teacher->address,
+                'email' => $validated['email'] ?? $teacher->email,
+                'gender' => $validated['gender'] ?? $teacher->gender,
+                'dob' => $validated['dob'] ?? $teacher->dob,
+                'blood_group' => $validated['blood_group'] ?? $teacher->blood_group,
+                'is_class_teacher' => $validated['is_class_teacher'] ?? $teacher->is_class_teacher,
+                'degree' => $validated['degree'] ?? $teacher->degree,
+                'qualification' => $validated['qualification'] ?? $teacher->qualification,
+            ]);
 
             // Return success response
             return response()->json([
@@ -129,23 +150,24 @@ class TeacherController extends Controller
     {
         try {
             // Attempt to find the teacher
-            $teacher = TeacherModel::findOrFail($id);
-
-            // Delete the teacher
+            $teacher = TeacherModel::find($id);
+    
+            // Check if the teacher exists
+            if (!$teacher) {
+                return response()->json([
+                    'message' => 'Teacher not present.'
+                ], 404);
+            }
+    
+            // Perform delete
             $teacher->delete();
-
+    
             return response()->json([
                 'message' => 'Teacher deleted successfully!'
             ], 200);
-
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            // If teacher not found, return a 404 error
-            return response()->json([
-                'message' => 'Teacher not present.',
-                'error' => $e->getMessage()
-            ], 404);
+    
         } catch (\Exception $e) {
-            // Handle other exceptions
+            // Handle unexpected exceptions
             return response()->json([
                 'message' => 'Failed to delete teacher.',
                 'error' => $e->getMessage()

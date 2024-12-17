@@ -22,7 +22,7 @@ return new class extends Migration
             $table->enum('blood_group', ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Rare'])->nullable();
             $table->enum('is_class_teacher', ['0', '1']);
             $table->string('degree');
-            $table->string('quallification');
+            $table->string('qualification');
             $table->timestamps();
         });
     }

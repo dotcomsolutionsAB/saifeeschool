@@ -31,10 +31,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
     Route::prefix('teacher')->group(function () {
-        Route::post('/', [StudentController::class, 'create']);         // Add a new teacher (Admin only)
-        Route::post('/{id}', [StudentController::class, 'update']);     // Update a teacher (Admin only)
+        Route::post('/', [TeacherController::class, 'create']);         // Add a new teacher (Admin only)
+        Route::post('/{id}', [TeacherController::class, 'update']);     // Update a teacher (Admin only)
         Route::get('/{id?}', [TeacherController::class, 'index']);  // Fetch all or specific teacher
         Route::delete('/{id}', [TeacherController::class, 'destroy']); // Delete a teacher
+    });
+
+    Route::prefix('fee')->group(function () {
+        Route::get('/{id?}', [StudentFeeController::class, 'index']); // Fetch all or one record
+        Route::post('/', [StudentFeeController::class, 'register']); // Create a new record
+        Route::post('/{id}', [StudentFeeController::class, 'update']); // Update a record
+        Route::delete('/{id}', [StudentFeeController::class, 'destroy']); // Delete a record
+    });
+
+    Route::prefix('fee-plan-particular')->group(function () {
+        Route::get('/{id?}', [FeePlanParticularController::class, 'index']); // Fetch all or one record
+        Route::post('/', [FeePlanParticularController::class, 'register']); // Create a new record
+        Route::post('/{id}', [FeePlanParticularController::class, 'update']); // Update a record
+        Route::delete('/{id}', [FeePlanParticularController::class, 'destroy']); // Delete a record
     });
 
 });

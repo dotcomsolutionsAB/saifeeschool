@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('t_fee_plans', function (Blueprint $table) {
             $table->id();
             $table->integer('ay_id')->nullable();
-            $table->integer('sch_id');
+            // $table->integer('sch_id');
             $table->text('fp_name')->nullable();
             $table->enum('fp_recurring', ['0', '1'])->default('1');
             $table->enum('fp_main_monthly_fee', ['0', '1'])->default('1');
             $table->enum('fp_main_admission_fee', ['0', '1'])->default('0');
-            $table->integer('fp_id_new')->nullable();
+            // $table->integer('fp_id_new')->nullable();
             $table->string('cg_id', 100)->default('');
             $table->timestamps();
         });

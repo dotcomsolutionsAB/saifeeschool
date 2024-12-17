@@ -183,7 +183,6 @@ class StudentController extends Controller
                 'st_flag' => $validated['st_flag'],
             ]);
 
-            // dd($validated);
             // Create student details
             $studentDetails  = StudentDetailsModel::create([
                 'st_id' => $register_student->id,
@@ -264,7 +263,7 @@ class StudentController extends Controller
             'st_dob' => 'required|date|before:today',
             'st_blood_group' => 'required|in:A+,A-,B+,B-,AB+,AB-,O+,O-,Rare',
             'st_bohra' => 'required|in:0,1',
-            'st_its_id' => 'required|string|max:255|unique:students,st_its_id,' . $student->id,
+            'st_its_id' => 'required|string|max:255|unique:t_students,st_its_id,' . $student->id,
             'st_house' => 'required|in:red,blue,green,gold',
             'st_wallet' => 'required|numeric|min:0',
             'st_deposit' => 'required|numeric|min:0',
@@ -276,7 +275,7 @@ class StudentController extends Controller
             'st_admitted' => 'required|string|max:255',
             'st_admitted_class' => 'required|string|max:255',
             'st_flag' => 'required|string|max:255',
-            'aadhaar_no' => 'nullable|digits:12|unique:student_details,aadhaar_no,' . $studentDetails->id,
+            'aadhaar_no' => 'nullable|digits:12|unique:t_student_details,aadhaar_no,' . $studentDetails->id,
             'residential_address1' => 'required|string|max:255',
             'residential_address2' => 'nullable|string|max:255',
             'residential_address3' => 'nullable|string|max:255',
@@ -415,11 +414,35 @@ class StudentController extends Controller
     // Delete a student and their details
     public function destroy($id)
     {
-        $student = Student::findOrFail($id);
-        $student->details()->delete();
-        $student->delete();
-
-        return response()->json(['message' => 'Student deleted successfully'], 200);
+        try {
+            // Attempt to find the student
+            $student = StudentModel::with('details')->find($id);
+    
+            // Check if the student exists
+            if (!$student) {
+                return response()->json([
+                    'message' => 'Student not present.'
+                ], 404);
+            }
+    
+            // Check and delete related details
+            if ($student->details) {
+                $student->details()->delete();
+            }
+    
+            // Delete the student
+            $student->delete();
+    
+            return response()->json([
+                'message' => 'Student and their details deleted successfully!'
+            ], 200);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to delete student.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     // Fetch all students with their details

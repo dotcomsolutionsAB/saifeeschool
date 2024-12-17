@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('ay_end_year', 10)->default('');
             $table->string('ay_end_month', 10)->default('');
             $table->string('ay_current', 10)->default('0');
-            $table->string('cash_in_hand', 100)->default('0');
+            // $table->string('cash_in_hand', 100)->default('0');
             $table->timestamps();
         });
     }
