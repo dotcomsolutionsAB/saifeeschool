@@ -175,7 +175,7 @@ class StudentController extends Controller
                 'st_house' => $validated['st_house'],
                 'st_wallet' => $validated['st_wallet'],
                 'st_deposit' => $validated['st_deposit'],
-                'st_gmail_address' => $validated['st_gmail_address'],
+                'st_gmail_address' => strtolower($validated['st_gmail_address']),
                 'st_mobile' => $validated['st_mobile'],
                 'st_external' => $validated['st_external'],
                 'st_on_roll' => $validated['st_on_roll'],
@@ -184,6 +184,14 @@ class StudentController extends Controller
                 'st_admitted_class' => $validated['st_admitted_class'],
                 'st_flag' => $validated['st_flag'],
             ]);
+
+            // $register_user = User::create([
+            //     'name' => trim(($validated['st_first_name'] ?? '') . ' ' . ($validated['st_last_name'] ?? '')),
+            //     'email' => strtolower($validated['st_gmail_address']),
+            //     'password' => bcrypt($validated['st_roll_no']),
+            //     'role' => "student",
+            //     'username' => $validated['st_gmail_address'],
+            // ]);
 
             // Create student details
             $studentDetails  = StudentDetailsModel::create([
