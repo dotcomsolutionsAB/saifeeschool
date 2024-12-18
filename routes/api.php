@@ -21,20 +21,20 @@ Route::post('/register', [UserController::class, 'register']);
 
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::post('/logout', [AuthController::class, 'logout']);
-
 Route::middleware(['auth:sanctum'])->group(function () {
+
+    Route::get('/logout', [AuthController::class, 'logout']);
 
     // Student Routes
     Route::prefix('student')->group(function () {
-    Route::get('/', [StudentController::class, 'index']);          // List all students
-    Route::get('/{id}', [StudentController::class, 'index']);     // Get details of a single student
-    Route::post('/', [StudentController::class, 'register']);         // Add a new student (Admin only)
-    Route::post('/{id}', [StudentController::class, 'update']);     // Update a student (Admin only)
-    Route::delete('/{id}', [StudentController::class, 'destroy']); // Delete a student (Admin only)
+        Route::get('/', [StudentController::class, 'index']);          // List all students
+        Route::get('/{id}', [StudentController::class, 'index']);     // Get details of a single student
+        Route::post('/', [StudentController::class, 'register']);         // Add a new student (Admin only)
+        Route::post('/{id}', [StudentController::class, 'update']);     // Update a student (Admin only)
+        Route::delete('/{id}', [StudentController::class, 'destroy']); // Delete a student (Admin only)
 
-    // Route::post('/import', [ProductController::class, 'importProductsFromCsv']);
-});
+        // Route::post('/import', [StudentController::class, 'importStudentsFromCsv']);
+    });
 
     Route::prefix('teacher')->group(function () {
         Route::post('/', [TeacherController::class, 'create']);         // Add a new teacher (Admin only)

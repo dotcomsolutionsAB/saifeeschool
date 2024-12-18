@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\FeePlanParticularModel;
+use App\Models\FeePlanPeriodModel;
 
 class FeePlanPeriodController extends Controller
 {
@@ -12,7 +12,7 @@ class FeePlanPeriodController extends Controller
      public function index($id = null)
      {
          if ($id) {
-             $feePlanParticular = FeePlanParticularModel::find($id);
+             $feePlanParticular = FeePlanPeriodModel::find($id);
  
              if ($feePlanParticular) {
                  return response()->json([
@@ -24,7 +24,7 @@ class FeePlanPeriodController extends Controller
              return response()->json(['message' => 'Fee plan particular not found.'], 404);
          }
  
-         $feePlanParticulars = FeePlanParticularModel::all()->makeHidden(['created_at', 'updated_at']);
+         $feePlanParticulars = FeePlanPeriodModel::all()->makeHidden(['created_at', 'updated_at']);
  
          return $feePlanParticulars->isNotEmpty()
              ? response()->json([
@@ -39,7 +39,7 @@ class FeePlanPeriodController extends Controller
      public function register(Request $request)
      {
          $validated = $request->validate([
-             'fp_id' => 'required|integer',
+             'fp_id' => 'required|integer|exists:t_fee_plans,id',
              'ay_id' => 'required|integer',
              'fpp_name' => 'required|string|max:255',
              'fpp_amount' => 'required|numeric|min:0',
@@ -51,7 +51,7 @@ class FeePlanPeriodController extends Controller
          ]);
  
          try {
-             $feePlanParticular = FeePlanParticularModel::create($validated);
+             $feePlanParticular = FeePlanPeriodModel::create($validated);
  
              return response()->json([
                  'message' => 'Fee plan particular created successfully!',
@@ -68,7 +68,7 @@ class FeePlanPeriodController extends Controller
      // Update a specific record
      public function update(Request $request, $id)
      {
-         $feePlanParticular = FeePlanParticularModel::find($id);
+         $feePlanParticular = FeePlanPeriodModel::find($id);
  
          if (!$feePlanParticular) {
              return response()->json(['message' => 'Fee plan particular not found.'], 404);
@@ -104,7 +104,7 @@ class FeePlanPeriodController extends Controller
      // Delete a specific record
      public function destroy($id)
      {
-         $feePlanParticular = FeePlanParticularModel::find($id);
+         $feePlanParticular = FeePlanPeriodModel::find($id);
  
          if (!$feePlanParticular) {
              return response()->json(['message' => 'Fee plan particular not found.'], 404);

@@ -13,7 +13,7 @@ class ClassGroupController extends Controller
     {
         // Validation rules
         $validated = $request->validate([
-            'ay_id' => 'required|integer|min:1',
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
             'cg_name' => 'required|string|max:255', // e.g., "Nursery", "Class 1"
             'cg_order' => 'required|integer|min:1', // Numeric order of classes
         ]);

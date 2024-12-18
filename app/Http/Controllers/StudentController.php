@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\StudentModel;
 use App\Models\StudentDetailsModel;
+use App\Models\AcademicYearModel;
+// use App\Models\StudentDetailsModel;
 
 class StudentController extends Controller
 {
@@ -446,49 +448,118 @@ class StudentController extends Controller
     }
 
     // Fetch all students with their details
+    // public function index($id = null)
+    // {
+    //     if ($id) {
+    //         // Fetch a specific student with details
+    //         $student = StudentModel::with('details')->find($id);
+        
+    //         if ($student) {
+    //             // Hide fields in the main student model
+    //             $student->makeHidden(['id', 'created_at', 'updated_at']);
+        
+    //             // Hide fields in the details relation
+    //             if ($student->details) {
+    //                 $student->details->makeHidden(['id', 'created_at', 'updated_at']);
+    //             }
+        
+    //             return response()->json([
+    //                 'message' => 'Student fetched successfully!',
+    //                 'data' => $student
+    //             ], 200);
+    //         }
+        
+    //         return response()->json(['message' => 'Student not found.'], 404);
+        
+    //     } else {
+    //         // Fetch all students with details
+    //         $students = StudentModel::with('details')->get();
+        
+    //         // Hide fields in each student model and its details
+    //         $students->each(function ($student) {
+    //             $student->makeHidden(['id', 'created_at', 'updated_at']);
+        
+    //             if ($student->details) {
+    //                 $student->details->makeHidden(['id', 'created_at', 'updated_at']);
+    //             }
+    //         });
+        
+    //         return $students->isNotEmpty()
+    //             ? response()->json([
+    //                 'message' => 'Students fetched successfully!',
+    //                 'data' => $students,
+    //                 'count' => $students->count()
+    //             ], 200)
+    //             : response()->json(['message' => 'No students available.'], 400);
+    //     }        
+    // }
+
     public function index($id = null)
     {
-        if ($id) {
-            // Fetch a specific student with details
-            $student = StudentModel::with('details')->find($id);
-        
-            if ($student) {
-                // Hide fields in the main student model
-                $student->makeHidden(['id', 'created_at', 'updated_at']);
-        
-                // Hide fields in the details relation
-                if ($student->details) {
-                    $student->details->makeHidden(['id', 'created_at', 'updated_at']);
+        try {
+            // Step 1: Get the current academic year
+            $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+                ->where('ay_current', '1')
+                ->first();
+
+            if (!$currentAcademicYear) {
+                $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+                    ->orderBy('id', 'desc')
+                    ->first();
+            }
+
+            if (!$currentAcademicYear) {
+                return response()->json(['message' => 'No academic year records found.'], 404);
+            }
+
+            if ($id) {
+                // Fetch a specific student's class details in the current academic year
+                $studentClass = $currentAcademicYear->studentClasses()
+                    ->where('st_id', $id)
+                    ->with(['student', 'classGroup'])
+                    ->first();
+
+                if (!$studentClass) {
+                    return response()->json(['message' => 'Student is not enrolled in the determined academic year.'], 404);
                 }
-        
+
                 return response()->json([
-                    'message' => 'Student fetched successfully!',
-                    'data' => $student
+                    'message' => 'Student class name fetched successfully.',
+                    'data' => [
+                        'student_record' => $studentClass->student->makeHidden(['id', 'created_at', 'updated_at']),
+                        'academic_year' => $currentAcademicYear->ay_name,
+                        'class_name' => $studentClass->classGroup->cg_name ?? 'Class group not found',
+                    ],
+                ], 200);
+            } else {
+                // Fetch all student-class records for the determined academic year
+                $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
+
+                if ($studentClasses->isEmpty()) {
+                    return response()->json(['message' => 'No students enrolled in the determined academic year.'], 404);
+                }
+
+                // Map the data to include student details and class names
+                $data = $studentClasses->map(function ($studentClass) use ($currentAcademicYear) {
+                    return [
+                        'student_record' => $studentClass->student ? $studentClass->student->makeHidden(['id', 'created_at', 'updated_at']) : 'Student not found',
+                        'academic_year' => $currentAcademicYear->ay_name,
+                        'class_name' => $studentClass->classGroup->cg_name ?? 'Class group not found',
+                    ];
+                });
+
+                return response()->json([
+                    'message' => 'Student class names fetched successfully.',
+                    'academic_year' => $currentAcademicYear->ay_name,
+                    'data' => $data,
                 ], 200);
             }
-        
-            return response()->json(['message' => 'Student not found.'], 404);
-        
-        } else {
-            // Fetch all students with details
-            $students = StudentModel::with('details')->get();
-        
-            // Hide fields in each student model and its details
-            $students->each(function ($student) {
-                $student->makeHidden(['id', 'created_at', 'updated_at']);
-        
-                if ($student->details) {
-                    $student->details->makeHidden(['id', 'created_at', 'updated_at']);
-                }
-            });
-        
-            return $students->isNotEmpty()
-                ? response()->json([
-                    'message' => 'Students fetched successfully!',
-                    'data' => $students,
-                    'count' => $students->count()
-                ], 200)
-                : response()->json(['message' => 'No students available.'], 400);
-        }        
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An error occurred while fetching student class names.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
+
 }

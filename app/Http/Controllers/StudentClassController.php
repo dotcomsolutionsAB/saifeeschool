@@ -12,9 +12,9 @@ class StudentClassController extends Controller
     public function create(Request $request)
     {
         $validated = $request->validate([
-            'ay_id' => 'required|integer|min:1',
-            'st_id' => 'required|integer|min:1',
-            'cg_id' => 'required|integer|min:1',
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+            'st_id' => 'required|integer|exists:t_students,id',
+            'cg_id' => 'required|integer|exists:t_class_groups,id',
         ]);
 
         try {

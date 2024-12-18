@@ -11,4 +11,19 @@ class StudentClassModel extends Model
 
     protected $fillable = [
         'ay_id', 'st_id', 'cg_id'];
+
+    public function academicYear()
+    {
+        return $this->belongsTo(AcademicYearModel::class, 'ay_id', 'id');
+    }
+
+    public function classGroup()
+    {
+        return $this->belongsTo(ClassGroupModel::class, 'cg_id', 'id');
+    }
+
+    public function student()
+    {
+        return $this->belongsTo(StudentModel::class, 'st_id', 'id');
+    }
 }

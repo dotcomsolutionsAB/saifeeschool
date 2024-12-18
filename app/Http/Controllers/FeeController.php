@@ -39,11 +39,11 @@ class FeeController extends Controller
      public function register(Request $request)
      {
          $validated = $request->validate([
-             'st_id' => 'nullable|integer',
+             'st_id' => 'nullable|integer|exists:t_students,id',
              'st_roll_no' => 'required|string|max:100',
-             'fpp_id' => 'nullable|integer',
-             'cg_id' => 'required|string|max:10',
-             'ay_id' => 'nullable|integer',
+             'fpp_id' => 'nullable|integer|exists:t_fee_plan_periods,id',
+             'cg_id' => 'required|integer|exists:t_class_groups,id',
+             'ay_id' => 'nullable|integer|exists:t_academic_years,id',
              'fpp_name' => 'nullable|string',
              'fpp_due_date' => 'nullable|integer',
              'fpp_month_no' => 'nullable|integer|min:1|max:12',

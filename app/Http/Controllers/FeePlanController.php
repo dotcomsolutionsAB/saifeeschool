@@ -38,7 +38,7 @@ class FeePlanController extends Controller
     public function register(Request $request)
     {
         $validated = $request->validate([
-            'ay_id' => 'nullable|integer',
+            'ay_id' => 'nullable|integer|exists:t_academic_years,id',
             'fp_name' => 'nullable|string|max:1000',
             'fp_recurring' => 'required|in:0,1',
             'fp_main_monthly_fee' => 'required|in:0,1',
