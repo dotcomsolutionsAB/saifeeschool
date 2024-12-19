@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\AcademicYearModel;
+use League\Csv\Reader;
+use League\Csv\Statement;
 
 class AcademicYearController extends Controller
 {
@@ -132,6 +134,65 @@ class AcademicYearController extends Controller
             return response()->json([
                 'message' => 'Failed to delete academic year.',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    // csv
+    public function importCsv()
+    {
+        try {
+            // Define the path to the CSV file
+            $csvFilePath = storage_path('app/public/academic_year.csv');
+    
+            // Check if the file exists
+            if (!file_exists($csvFilePath)) {
+                return response()->json([
+                    'message' => 'CSV file not found at the specified path.',
+                ], 404);
+            }
+    
+            // **Truncate the table at the beginning**
+            AcademicYearModel::truncate();
+
+            // Fetch the CSV content
+            $csvContent = file_get_contents($csvFilePath);
+    
+            // Parse the CSV content using League\Csv
+            $csvReader = Reader::createFromString($csvContent);
+    
+            // Set the header offset (first row as headers)
+            $csvReader->setHeaderOffset(0);
+    
+            // Process the CSV records
+            $records = (new Statement())->process($csvReader);
+    
+            foreach ($records as $row) {
+                // Map old table columns to new table fields
+                AcademicYearModel::updateOrCreate(
+                    ['id' => $row['ay_id']], // Match by primary key (id)
+                    [
+                        'sch_id' => $row['sch_id'],
+                        'ay_name' => $row['ay_name'],
+                        'ay_start_year' => $row['ay_start_year'],
+                        'ay_start_month' => $row['ay_start_month'],
+                        'ay_end_year' => $row['ay_end_year'],
+                        'ay_end_month' => $row['ay_end_month'],
+                        'ay_current' => $row['ay_current'],
+                    ]
+                );
+            }
+    
+            return response()->json([
+                'message' => 'Academic Year CSV imported successfully!',
+            ], 200);
+    
+        } catch (\Exception $e) {
+            // Handle exceptions
+            return response()->json([
+                'message' => 'Failed to import CSV.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

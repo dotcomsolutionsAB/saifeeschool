@@ -27,13 +27,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Student Routes
     Route::prefix('student')->group(function () {
-        Route::get('/', [StudentController::class, 'index']);          // List all students
-        Route::get('/{id}', [StudentController::class, 'index']);     // Get details of a single student
+        Route::get('/view', [StudentController::class, 'index']);          // List all students
+        Route::get('/view/{id}', [StudentController::class, 'index']);     // Get details of a single student
         Route::post('/', [StudentController::class, 'register']);         // Add a new student (Admin only)
         Route::post('/{id}', [StudentController::class, 'update']);     // Update a student (Admin only)
         Route::delete('/{id}', [StudentController::class, 'destroy']); // Delete a student (Admin only)
 
-        // Route::post('/import', [StudentController::class, 'importStudentsFromCsv']);
+        Route::get('/import', [StudentController::class, 'importCsv']); 
     });
 
     Route::prefix('teacher')->group(function () {
@@ -45,16 +45,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::prefix('academic_year')->group(function () {
         Route::post('/', [AcademicYearController::class, 'create']);         // Add a new teacher (Admin only)
-        Route::post('/{id}', [AcademicYearController::class, 'update']);     // Update a teacher (Admin only)
-        Route::get('/{id?}', [AcademicYearController::class, 'index']);  // Fetch all or specific teacher
+        Route::get('/view/{id}', [AcademicYearController::class, 'update']);     // Update a teacher (Admin only)
+        Route::get('/view/{id?}', [AcademicYearController::class, 'index']);  // Fetch all or specific teacher
         Route::delete('/{id}', [AcademicYearController::class, 'destroy']); // Delete a teacher
+
+        Route::get('/import', [AcademicYearController::class, 'importCsv']); 
     });
 
     Route::prefix('class_group')->group(function () {
         Route::post('/', [ClassGroupController::class, 'create']);         // Add a new teacher (Admin only)
         Route::post('/{id}', [ClassGroupController::class, 'update']);     // Update a teacher (Admin only)
-        Route::get('/{id?}', [ClassGroupController::class, 'index']);  // Fetch all or specific teacher
+        Route::get('/view/{id?}', [ClassGroupController::class, 'index']);  // Fetch all or specific teacher
         Route::delete('/{id}', [ClassGroupController::class, 'destroy']); // Delete a teacher
+
+        Route::get('/import', [ClassGroupController::class, 'importCsv']); 
     });
 
     

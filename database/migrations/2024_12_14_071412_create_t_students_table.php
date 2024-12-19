@@ -26,7 +26,7 @@ return new class extends Migration
             $table->enum('st_blood_group', ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Rare'])->nullable();
             $table->enum('st_bohra', ['0', '1'])->nullable();
             $table->string('st_its_id');
-            $table->enum('st_house', ['red', 'blue', 'green', 'gold']);
+            $table->enum('st_house', ['red', 'blue', 'green', 'gold'])->nullable();
             $table->float('st_wallet');
             $table->float('st_deposit');
             $table->text('st_gmail_address')->nullable();

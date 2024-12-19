@@ -6,7 +6,11 @@ use Illuminate\Http\Request;
 use App\Models\StudentModel;
 use App\Models\StudentDetailsModel;
 use App\Models\AcademicYearModel;
-// use App\Models\StudentDetailsModel;
+use App\Models\ClassGroupModel;
+use App\Models\StudentClassModel;
+use App\Models\User;
+use League\Csv\Reader;
+use League\Csv\Statement;
 
 class StudentController extends Controller
 {
@@ -565,6 +569,132 @@ class StudentController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'An error occurred while fetching student class names.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // csv
+    public function importCsv(Request $request)
+    {
+        try {
+            // Define the path to the CSV file
+            $csvFilePath = storage_path('app/public/student.csv');
+
+            // Check if the file exists
+            if (!file_exists($csvFilePath)) {
+                return response()->json([
+                    'message' => 'CSV file not found at the specified path.',
+                ], 404);
+            }
+
+            // Truncate the table before import
+            ClassGroupModel::truncate();
+
+            StudentModel::truncate();
+
+            // Fetch the `ay_id` where `ay_current = 1` from the `academic_years` table
+            $currentAcademicYear = AcademicYearModel::where('ay_current', '1')->first();
+
+            if (!$currentAcademicYear) {
+                return response()->json([
+                    'message' => 'No current academic year found in the database.',
+                ], 404);
+            }
+    
+            // Fetch the CSV content using file_get_contents
+            $csvContentStudent = file_get_contents($csvFilePath);
+
+            // Parse the CSV content using League\Csv
+            $csvStudent = Reader::createFromString($csvContentStudent);
+
+            // Set the header offset (first row as headers)
+            $csvStudent->setHeaderOffset(0);
+
+            // Process the CSV records
+            $recordsCsv = (new Statement())->process($csvStudent);
+
+            foreach ($recordsCsv as $row) {
+
+            // Define the allowed ENUM values for st_house
+            $allowedStHouseValues = ['red', 'blue', 'green', 'gold'];
+
+            // Validate st_house
+            if (!in_array($row['st_house'], $allowedStHouseValues)) {
+                $row['st_house'] = null; // Set to null if the value is invalid
+            }
+
+            // Define the allowed ENUM values for st_gender
+            $allowedStGenderValues = ['M', 'F'];
+
+            // Validate st_gender
+            if (!in_array($row['st_gender'], $allowedStGenderValues)) {
+                $row['st_gender'] = null; // Set to null if the value is invalid
+            }
+
+                // Add or update student
+                $student = StudentModel::updateOrCreate(
+                    ['id' => $row['st_id']], // Match by student ID
+                    [
+                        'st_roll_no' => $row['st_roll_no'] ?? 'NULL',
+                        'st_first_name' => $row['st_first_name'] ?? 'NULL',
+                        'st_last_name' => $row['st_last_name'] ?? 'NULL',
+                        'st_gender' => $row['st_gender'],
+                        'st_dob' => $row['dob'] ?? 'NULL',
+                        'st_bohra' => $row['st_bohra'] ?? 'NULL',
+                        'st_its_id' => $row['st_its_id'] ?? 'NULL',
+                        'st_house' => $row['st_house'], // Either valid ENUM value or null
+                        'st_wallet' => $row['st_wallet'] ?? 'NULL',
+                        'st_deposit' => $row['st_deposit'] ?? 'NULL',
+                        'st_gmail_address' => $row['st_gmail_address'] ?? 'NULL',
+                        'st_mobile' => $row['st_mobile_no'] ?? 'NULL',
+                        'st_external' => $row['st_external'] ?? 'NULL',
+                        'st_on_roll' => $row['st_on_roll'] ?? 'NULL',
+                        'st_year_of_admission' => $row['st_year_of_admission'] ?? 'NULL',
+                        'st_admitted' => $row['st_admitted'] ?? 'NULL',
+                        'st_admitted_class' => $row['st_admitted_class'] ?? 'NULL',
+                        'st_flag' => $row['flag'] ?? 'NULL',
+                    ]
+                );
+
+                $email = $row['st_gmail_address'] ?? ''; // Default to empty string if key is missing
+                $email = trim($email);
+                if (empty($email) || strtolower($email) === 'null') {
+                    $email = $row['st_roll_no'] 
+                    ? $row['st_roll_no'] . ".dummy." . rand(1000, 9999) . time() . "@gmail.com" 
+                    : "default.dummy." . rand(1000, 9999) . time() . "@gmail.com"; // Generate a dummy email
+                }
+
+                // Add password to the users table if it does not exist
+                // if (!User::where('email', $row['st_gmail_address'])->exists()) {
+                    User::create([
+                        'name' => $row['st_first_name'] . ' ' . $row['st_last_name'],
+                        'email' => $email,
+                        'password' => $row['st_password_hash'],
+                        'role' => "student",
+                        'username' => $row['st_roll_no'],
+                    ]);
+                // }
+
+                // Insert into the `student_class` table
+                StudentClassModel::updateOrCreate(
+                    [
+                        'st_id' => $student->id, // Match by `st_id`
+                        'ay_id' => $currentAcademicYear->id, // Match by `ay_id`
+                    ],
+                    [
+                        'cg_id' => $row['cg_id'], // Add class group id
+                    ]
+                );
+            }
+
+            return response()->json([
+                'message' => 'CSV imported successfully!',
+            ], 200);
+        } catch (\Exception $e) {
+            // Handle any exceptions
+            return response()->json([
+                'message' => 'Failed to import CSV.',
                 'error' => $e->getMessage(),
             ], 500);
         }

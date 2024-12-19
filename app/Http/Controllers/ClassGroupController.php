@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\ClassGroupModel;
+use League\Csv\Reader;
+use League\Csv\Statement;
 
 class ClassGroupController extends Controller
 {
@@ -123,6 +125,58 @@ class ClassGroupController extends Controller
             return response()->json([
                 'message' => 'Failed to delete class group',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // csv
+    public function importCsv()
+    {
+        try {
+            // Define the path to the CSV file
+            $csvFilePath = storage_path('app/public/class_group.csv');
+    
+            // Check if the file exists
+            if (!file_exists($csvFilePath)) {
+                return response()->json([
+                    'message' => 'CSV file not found at the specified path.',
+                ], 404);
+            }
+    
+            // Truncate the table before import
+            ClassGroupModel::truncate();
+    
+            // Fetch the CSV content
+            $csvContent = file_get_contents($csvFilePath);
+    
+            // Parse the CSV content using League\Csv
+            $csvReader = Reader::createFromString($csvContent);
+    
+            // Set the header offset (first row as headers)
+            $csvReader->setHeaderOffset(0);
+    
+            // Process the CSV records
+            $records = (new Statement())->process($csvReader);
+    
+            foreach ($records as $row) {
+                // Insert records into the table
+                ClassGroupModel::create([
+                    'id' => $row['cg_id'],
+                    'ay_id' => $row['ay_id'],
+                    'cg_name' => $row['cg_name'],
+                    'cg_order' => $row['cg_order'],
+                ]);
+            }
+    
+            return response()->json([
+                'message' => 'Class Groups CSV imported successfully!',
+            ], 200);
+    
+        } catch (\Exception $e) {
+            // Handle exceptions
+            return response()->json([
+                'message' => 'Failed to import Class Groups CSV.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
