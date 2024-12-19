@@ -577,6 +577,8 @@ class StudentController extends Controller
     // csv
     public function importCsv(Request $request)
     {
+        // Set the execution time to 2 minutes (120 seconds)
+        ini_set('max_execution_time', 120);
         try {
             // Define the path to the CSV file
             $csvFilePath = storage_path('app/public/student.csv');
