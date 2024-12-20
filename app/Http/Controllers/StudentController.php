@@ -575,7 +575,7 @@ class StudentController extends Controller
     }
 
     // csv
-    public function importCsv(Request $request)
+    public function importStudentCsv(Request $request)
     {
         // Set the execution time to 2 minutes (120 seconds)
         ini_set('max_execution_time', 120);
@@ -697,6 +697,126 @@ class StudentController extends Controller
             // Handle any exceptions
             return response()->json([
                 'message' => 'Failed to import CSV.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function importDetailsCsv(Request $request)
+    {
+        // Set the execution time to 2 minutes (120 seconds)
+        ini_set('max_execution_time', 120);
+
+        try {
+            // Define the path to the CSV file
+            $csvFilePath = storage_path('app/public/student_detail.csv');
+
+            // Check if the file exists
+            if (!file_exists($csvFilePath)) {
+                return response()->json([
+                    'message' => 'CSV file not found at the specified path.',
+                ], 404);
+            }
+
+            // Truncate the table before import
+            StudentDetailsModel::truncate();
+
+            // Fetch the CSV content using file_get_contents
+            $csvContentDetails = file_get_contents($csvFilePath);
+
+            // Parse the CSV content using League\Csv
+            $csvDetails = Reader::createFromString($csvContentDetails);
+            $csvDetails->setHeaderOffset(0); // Set the header offset (first row as headers)
+            $recordsCsv = (new Statement())->process($csvDetails);
+
+            foreach ($recordsCsv as $row) {
+                // Get `cg_id` from StudentClassModel for the given `st_id`
+                $classGroupId = StudentClassModel::where('st_id', $row['st_id'])->value('cg_id');
+
+                // Insert or update the student details, matched by `sd_id`
+                StudentDetailsModel::updateOrCreate(
+                    ['id' => $row['sd_id']], // Match by `id`
+                    [
+                        'st_id' => $row['st_id'],
+                        // 'sch_id' => $row['sch_id'],
+                        'aadhaar_no' => is_numeric($row['sd_aadhaar']) && !empty($row['sd_aadhaar']) ? $row['sd_aadhaar'] : 0,
+                        'residential_address1' => $row['sd_residential_address_1'] ?? null,
+                        'residential_address2' => $row['sd_residential_address_2'] ?? null,
+                        'city' => $row['sd_residential_city'] ?? null,
+                        'state' => $row['sd_residential_state'] ?? null,
+                        'country' => $row['sd_residential_country_id'] ?? null,
+                        // 'pincode' => isset($row['sd_residential_pincode']) && $row['sd_residential_pincode'] !== 'NULL' ? $row['sd_residential_pincode'] : '00',
+                        'pincode' => is_numeric($row['sd_residential_pincode']) && !empty($row['sd_residential_pincode']) ? $row['sd_residential_pincode'] : 0,
+                        'class_group' => $classGroupId ?? 0,
+                        'f_name' => $row['sd_father_first_name'] . ' ' . $row['sd_father_last_name'],
+                        'f_email' => $row['sd_father_email'] ?? null,
+                        'f_contact' => $row['sd_father_mobile'] ?? null,
+
+                        'f_occupation' => in_array($row['sd_father_occupation_status'], ['employed', 'self-employed', 'none']) 
+                        ? $row['sd_father_occupation_status'] 
+                        : null,
+
+                        // 'f_occupation' => $row['sd_father_occupation_status'] ?? null,
+                        'f_business_name' => $row['sd_father_business_name'] ?? null,
+                        'f_business_nature' => $row['sd_father_business_nature'] ?? null,
+                        'f_business_address1' => $row['sd_father_business_address_1'] ?? null,
+                        'f_business_address2' => $row['sd_father_business_address_2'] ?? null,
+                        'f_business_city' => $row['sd_father_business_city'] ?? null,
+                        'f_business_state' => $row['sd_father_business_state'] ?? null,
+                        'f_business_country' => $row['sd_father_business_country_id'] ?? null,
+                        'f_business_pincode' => $row['sd_father_business_pincode'] ?? null,
+                        'f_employer_name' => $row['sd_father_employment_employer'] ?? null,
+                        'f_designation' => $row['sd_father_employment_nature_work_designation'] ?? null,
+                        'f_work_address1' => $row['sd_father_employment_address_1'] ?? null,
+                        'f_work_address2' => $row['sd_father_employment_address_2'] ?? null,
+                        'f_work_city' => $row['sd_father_employment_city'] ?? null,
+                        'f_work_state' => $row['sd_father_employment_state'] ?? null,
+                        'f_work_country' => $row['sd_father_employment_country_id'] ?? null,
+                        'f_work_pincode' => $row['sd_father_employment_pincode'] ?? null,
+                        'm_name' => $row['sd_mother_first_name'] . ' ' . $row['sd_mother_last_name'],
+                        'm_email' => $row['sd_mother_email'] ?? null,
+                        'm_contact' => $row['sd_mother_mobile'] ?? null,
+
+                        'm_occupation' => (function ($occupation) {
+                            if ($occupation === 'homemaker') {
+                                $occupation = 'home-maker';
+                            }
+                            return in_array($occupation, ['employed', 'self-employed', 'home-maker']) 
+                                ? $occupation 
+                                : null;
+                        })($row['sd_mother_occupation_status']),
+
+                        // 'm_occupation' => $row['sd_mother_occupation_status'] ?? null,
+                        'm_business_name' => $row['sd_mother_business_name'] ?? null,
+                        'm_business_nature' => $row['sd_mother_business_nature'] ?? null,
+                        'm_business_address1' => $row['sd_mother_business_address_1'] ?? null,
+                        'm_business_address2' => $row['sd_mother_business_address_2'] ?? null,
+                        'm_business_city' => $row['sd_mother_business_city'] ?? null,
+                        'm_business_state' => $row['sd_mother_business_state'] ?? null,
+                        'm_business_country' => $row['sd_mother_business_country_id'] ?? null,
+                        'm_business_pincode' => $row['sd_mother_business_pincode'] ?? null,
+                        'm_employer_name' => $row['sd_mother_employment_employer'] ?? null,
+                        'm_designation' => $row['sd_mother_employment_nature_work_designation'] ?? null,
+                        'm_work_address1' => $row['sd_mother_employment_address_1'] ?? null,
+                        'm_work_address2' => $row['sd_mother_employment_address_2'] ?? null,
+                        'm_work_city' => $row['sd_mother_employment_city'] ?? null,
+                        'm_work_state' => $row['sd_mother_employment_state'] ?? null,
+                        'm_work_country' => $row['sd_mother_employment_country_id'] ?? null,
+                        'm_work_pincode' => $row['sd_mother_employment_pincode'] ?? null,
+                        'sd_mobile_primary' => $row['sd_mobile_primary'] ?? null,
+                        'sd_email_primary' => $row['sd_email_primary'] ?? null,
+                        'sd_blood_group' => $row['sd_blood_group'] ?? null,
+                    ]
+                );
+            }
+
+            return response()->json([
+                'message' => 'Student details imported successfully!',
+            ], 200);
+        } catch (\Exception $e) {
+            // Handle any exceptions
+            return response()->json([
+                'message' => 'Failed to import student details CSV.',
                 'error' => $e->getMessage(),
             ], 500);
         }

@@ -33,7 +33,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/{id}', [StudentController::class, 'update']);     // Update a student (Admin only)
         Route::delete('/{id}', [StudentController::class, 'destroy']); // Delete a student (Admin only)
 
-        Route::get('/import', [StudentController::class, 'importCsv']); 
+        Route::get('/import_basic', [StudentController::class, 'importStudentCsv']); 
+        Route::get('/import_details', [StudentController::class, 'importDetailsCsv']); 
     });
 
     Route::prefix('teacher')->group(function () {
