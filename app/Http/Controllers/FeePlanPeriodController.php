@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\FeePlanPeriodModel;
+use Illuminate\Support\Facades\Log;
+use League\Csv\Reader;
+use League\Csv\Statement;
 
 class FeePlanPeriodController extends Controller
 {
@@ -101,24 +104,103 @@ class FeePlanPeriodController extends Controller
          }
      }
  
-     // Delete a specific record
-     public function destroy($id)
-     {
-         $feePlanParticular = FeePlanPeriodModel::find($id);
- 
-         if (!$feePlanParticular) {
-             return response()->json(['message' => 'Fee plan particular not found.'], 404);
-         }
- 
-         try {
-             $feePlanParticular->delete();
- 
-             return response()->json(['message' => 'Fee plan particular deleted successfully!'], 200);
-         } catch (\Exception $e) {
-             return response()->json([
-                 'message' => 'Failed to delete fee plan particular.',
-                 'error' => $e->getMessage()
-             ], 500);
-         }
-     }
+    // Delete a specific record
+    public function destroy($id)
+    {
+        $feePlanParticular = FeePlanPeriodModel::find($id);
+
+        if (!$feePlanParticular) {
+            return response()->json(['message' => 'Fee plan particular not found.'], 404);
+        }
+
+        try {
+            $feePlanParticular->delete();
+
+            return response()->json(['message' => 'Fee plan particular deleted successfully!'], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to delete fee plan particular.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // csv import
+    public function importCsv(Request $request)
+    {
+        try {
+            // Define the path to the CSV file
+            $csvFilePath = storage_path('app/public/fee_plan_period.csv');
+    
+            // Check if the file exists
+            if (!file_exists($csvFilePath)) {
+                return response()->json([
+                    'message' => 'CSV file not found at the specified path.',
+                ], 404);
+            }
+    
+            // Truncate the table before import
+            FeePlanPeriodModel::truncate();
+    
+            // Fetch the CSV content
+            $csvContent = file_get_contents($csvFilePath);
+    
+            // Parse the CSV content using League\Csv
+            $csv = Reader::createFromString($csvContent);
+    
+            // Set the header offset (first row as headers)
+            $csv->setHeaderOffset(0);
+    
+            // Process the CSV records
+            $records = (new Statement())->process($csv);
+    
+            // Debug: Log the number of records
+            Log::info('Number of records found: ' . iterator_count($records));
+    
+            foreach ($records as $row) {
+                try {
+                    // Log each row
+                    Log::info('Processing row: ' . json_encode($row));
+    
+                    // Convert UNIX timestamp to MySQL DATE format
+                    $fppDueDate = !empty($row['fpp_due_date']) ? date('Y-m-d', $row['fpp_due_date']) : null;
+
+                    // Handle `NULL` or empty values
+                    $fppMonthNo = (!empty($row['fpp_month_no']) && strtolower($row['fpp_month_no']) !== 'null') ? $row['fpp_month_no'] : null;
+                    $fppYearNo = (!empty($row['fpp_year_no']) && strtolower($row['fpp_year_no']) !== 'null') ? $row['fpp_year_no'] : null;
+                    $fppOrderNo = (!empty($row['fpp_order_no']) && strtolower($row['fpp_order_no']) !== 'null') ? $row['fpp_order_no'] : null;
+
+                    // Insert the record
+                    FeePlanPeriodModel::create([
+                        'id' => $row['fpp_id'],
+                        'fp_id' => $row['fp_id'] ?? null,
+                        'ay_id' => $row['ay_id'] ?? null,
+                        'fpp_name' => $row['fpp_name'] ?? null,
+                        'fpp_amount' => $row['fpp_amount'] ?? 0.0,
+                        'fpp_late_fee' => $row['fpp_late_fee'] ?? 0.0,
+                        'fpp_due_date' => $fppDueDate,
+                        'fpp_month_no' => $fppMonthNo,
+                        'fpp_year_no' => $fppYearNo,
+                        'fpp_order_no' => $fppOrderNo,
+                    ]);
+                } catch (\Exception $e) {
+                    // Log individual row errors
+                    Log::error('Error processing row: ' . json_encode($row) . ' | Error: ' . $e->getMessage());
+                }
+            }
+    
+            return response()->json([
+                'message' => 'CSV imported successfully!',
+            ], 200);
+    
+        } catch (\Exception $e) {
+            // Handle general exceptions
+            Log::error('Failed to import CSV: ' . $e->getMessage());
+    
+            return response()->json([
+                'message' => 'Failed to import CSV.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

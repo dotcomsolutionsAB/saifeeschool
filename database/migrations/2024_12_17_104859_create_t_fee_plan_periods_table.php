@@ -19,9 +19,9 @@ return new class extends Migration
             $table->float('fpp_amount');
             $table->string('fpp_late_fee');
             $table->date('fpp_due_date');
-            $table->integer('fpp_month_no');
-            $table->integer('fpp_year_no');
-            $table->string('fpp_order_no');
+            $table->integer('fpp_month_no')->nullable();
+            $table->integer('fpp_year_no')->nullable();
+            $table->string('fpp_order_no')->nullable();
             $table->timestamps();
         });
     }

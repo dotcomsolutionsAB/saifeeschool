@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\FeePlanModel;
+use League\Csv\Reader;
+use League\Csv\Statement;
 
 class FeePlanController extends Controller
 {
@@ -121,4 +123,73 @@ class FeePlanController extends Controller
             ], 500);
         }
     }    
+
+    // csv import
+    public function importCsv(Request $request)
+    {
+        try {
+            // Define the path to the CSV file
+            $csvFilePath = storage_path('app/public/fee_plan.csv');
+    
+            // Check if the file exists
+            if (!file_exists($csvFilePath)) {
+                return response()->json([
+                    'message' => 'CSV file not found at the specified path.',
+                ], 404);
+            }
+    
+            // Truncate the table before import
+            FeePlanModel::truncate();
+    
+            // Fetch the CSV content
+            $csvContent = file_get_contents($csvFilePath);
+    
+            // Parse the CSV content using League\Csv
+            $csv = Reader::createFromString($csvContent);
+    
+            // Set the header offset (first row as headers)
+            $csv->setHeaderOffset(0);
+    
+            // Process the CSV records
+            $records = (new Statement())->process($csv);
+    
+            foreach ($records as $row) {
+                try {
+                    // Validate and transform data
+                    $fpName = $row['fp_name'] ?? null;
+                    $fpRecurring = in_array($row['fp_recurring'], ['0', '1']) ? $row['fp_recurring'] : '1';
+                    $fpMainMonthlyFee = in_array($row['fp_main_monthly_fee'], ['0', '1']) ? $row['fp_main_monthly_fee'] : '1';
+                    $fpMainAdmissionFee = in_array($row['fp_main_admission_fee'], ['0', '1']) ? $row['fp_main_admission_fee'] : '0';
+                    $cgId = $row['cg_id'] ?? null;
+    
+                    // Insert the record
+                    FeePlanModel::create([
+                        'id' => $row['fp_id'],
+                        'ay_id' => $row['ay_id'] ?? null,
+                        'fp_name' => $fpName,
+                        'fp_recurring' => $fpRecurring,
+                        'fp_main_monthly_fee' => $fpMainMonthlyFee,
+                        'fp_main_admission_fee' => $fpMainAdmissionFee,
+                        'cg_id' => $cgId,
+                    ]);
+                } catch (\Exception $e) {
+                    // Log individual row errors
+                    Log::error('Error processing row: ' . json_encode($row) . ' | Error: ' . $e->getMessage());
+                }
+            }
+    
+            return response()->json([
+                'message' => 'CSV imported successfully!',
+            ], 200);
+    
+        } catch (\Exception $e) {
+            // Handle general exceptions
+            Log::error('Failed to import CSV: ' . $e->getMessage());
+    
+            return response()->json([
+                'message' => 'Failed to import CSV.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

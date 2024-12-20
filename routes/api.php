@@ -71,24 +71,30 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     Route::prefix('fee')->group(function () {
-        Route::get('/{id?}', [FeeController::class, 'index']); // Fetch all or one record
+        Route::get('/view/{id?}', [FeeController::class, 'index']); // Fetch all or one record
         Route::post('/', [FeeController::class, 'register']); // Create a new record
         Route::post('/{id}', [FeeController::class, 'update']); // Update a record
         Route::delete('/{id}', [FeeController::class, 'destroy']); // Delete a record
+
+        Route::get('/import', [FeeController::class, 'importCsv']); 
     });
 
     Route::prefix('fee_plan_period')->group(function () {
-        Route::get('/{id?}', [FeePlanPeriodController::class, 'index']); // Fetch all or one record
+        Route::get('/view/{id?}', [FeePlanPeriodController::class, 'index']); // Fetch all or one record
         Route::post('/', [FeePlanPeriodController::class, 'register']); // Create a new record
         Route::post('/{id}', [FeePlanPeriodController::class, 'update']); // Update a record
         Route::delete('/{id}', [FeePlanPeriodController::class, 'destroy']); // Delete a record
+
+        Route::get('/import', [FeePlanPeriodController::class, 'importCsv']); 
     });
 
     Route::prefix('fee_plan')->group(function () {
-        Route::get('/{id?}', [FeePlanController::class, 'index']); // Fetch all or one record
+        Route::get('/view/{id?}', [FeePlanController::class, 'index']); // Fetch all or one record
         Route::post('/', [FeePlanController::class, 'register']); // Create a new record
         Route::post('/{id}', [FeePlanController::class, 'update']); // Update a record
         Route::delete('/{id}', [FeePlanController::class, 'destroy']); // Delete a record
+
+        Route::get('/import', [FeePlanController::class, 'importCsv']); 
     });
 
 });

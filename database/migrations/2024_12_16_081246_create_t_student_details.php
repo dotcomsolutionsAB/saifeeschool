@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('t_student_details', function (Blueprint $table) {
             $table->id();
             $table->integer('st_id');
-            $table->unsignedBigInteger('aadhaar_no');
+            $table->unsignedBigInteger('aadhaar_no')->nullable();
             $table->text('residential_address1');
             $table->text('residential_address2')->nullable();
             $table->text('residential_address3')->nullable();
@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('f_name');
             $table->string('f_email');
             $table->string('f_contact');
-            $table->enum('f_occupation', ['employed', 'self-employed', 'none']);
+            $table->enum('f_occupation', ['employed', 'self-employed', 'none'])->nullable();
             $table->string('f_business_name')->nullable();
             $table->string('f_business_nature')->nullable();
             $table->string('f_business_address1')->nullable();
@@ -46,7 +46,7 @@ return new class extends Migration
             $table->string('m_name');
             $table->string('m_email');
             $table->string('m_contact');
-            $table->enum('m_occupation', ['employed', 'self-employed', 'home-maker']);
+            $table->enum('m_occupation', ['employed', 'self-employed', 'home-maker'])->nullable();
             $table->string('m_business_name')->nullable();
             $table->string('m_business_nature')->nullable();
             $table->string('m_business_address1')->nullable();

@@ -10,6 +10,7 @@ class FeeModel extends Model
     protected $table = 't_fees';
 
     protected $fillable = [
+        'id',
         'st_id', 
         'st_roll_no', 
         'fpp_id', 

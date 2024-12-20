@@ -659,19 +659,20 @@ class StudentController extends Controller
                     ]
                 );
 
-                $email = $row['st_gmail_address'] ?? ''; // Default to empty string if key is missing
-                $email = trim($email);
-                if (empty($email) || strtolower($email) === 'null') {
-                    $email = $row['st_roll_no'] 
-                    ? $row['st_roll_no'] . ".dummy." . rand(1000, 9999) . time() . "@gmail.com" 
-                    : "default.dummy." . rand(1000, 9999) . time() . "@gmail.com"; // Generate a dummy email
-                }
+                // $email = $row['st_gmail_address'] ?? ''; // Default to empty string if key is missing
+                // $email = trim($email);
+                // if (empty($email) || strtolower($email) === 'null') {
+                //     $email = $row['st_roll_no'] 
+                //     ? $row['st_roll_no'] . ".dummy." . rand(1000, 9999) . time() . "@gmail.com" 
+                //     : "default.dummy." . rand(1000, 9999) . time() . "@gmail.com"; // Generate a dummy email
+                // }
 
                 // Add password to the users table if it does not exist
                 // if (!User::where('email', $row['st_gmail_address'])->exists()) {
                     User::create([
                         'name' => $row['st_first_name'] . ' ' . $row['st_last_name'],
-                        'email' => $email,
+                        // 'email' => $email,
+                        'email' => $row['st_gmail_address'] ?? 'NULL',
                         'password' => $row['st_password_hash'],
                         'role' => "student",
                         'username' => $row['st_roll_no'],
@@ -733,13 +734,16 @@ class StudentController extends Controller
                 // Get `cg_id` from StudentClassModel for the given `st_id`
                 $classGroupId = StudentClassModel::where('st_id', $row['st_id'])->value('cg_id');
 
+                $aadhaarNo = is_numeric($row['sd_aadhaar']) ? $row['sd_aadhaar'] : null;
+
                 // Insert or update the student details, matched by `sd_id`
                 StudentDetailsModel::updateOrCreate(
                     ['id' => $row['sd_id']], // Match by `id`
                     [
                         'st_id' => $row['st_id'],
                         // 'sch_id' => $row['sch_id'],
-                        'aadhaar_no' => is_numeric($row['sd_aadhaar']) && !empty($row['sd_aadhaar']) ? $row['sd_aadhaar'] : 0,
+                        // 'aadhaar_no' => is_numeric($row['sd_aadhaar']) && !empty($row['sd_aadhaar']) ? $row['sd_aadhaar'] : 0,
+                        'aadhaar_no' => $aadhaarNo,
                         'residential_address1' => $row['sd_residential_address_1'] ?? null,
                         'residential_address2' => $row['sd_residential_address_2'] ?? null,
                         'city' => $row['sd_residential_city'] ?? null,
