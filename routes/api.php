@@ -37,6 +37,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/import_details', [StudentController::class, 'importDetailsCsv']); 
     });
 
+    // Teacher Routes
     Route::prefix('teacher')->group(function () {
         Route::post('/', [TeacherController::class, 'create']);         // Add a new teacher (Admin only)
         Route::post('/{id}', [TeacherController::class, 'update']);     // Update a teacher (Admin only)
@@ -44,6 +45,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', [TeacherController::class, 'destroy']); // Delete a teacher
     });
 
+    // Academic Year Routes
     Route::prefix('academic_year')->group(function () {
         Route::post('/', [AcademicYearController::class, 'create']);         // Add a new teacher (Admin only)
         Route::get('/view/{id}', [AcademicYearController::class, 'update']);     // Update a teacher (Admin only)
@@ -53,6 +55,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/import', [AcademicYearController::class, 'importCsv']); 
     });
 
+    // Class-group Routes
     Route::prefix('class_group')->group(function () {
         Route::post('/', [ClassGroupController::class, 'create']);         // Add a new teacher (Admin only)
         Route::post('/{id}', [ClassGroupController::class, 'update']);     // Update a teacher (Admin only)
@@ -62,7 +65,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/import', [ClassGroupController::class, 'importCsv']); 
     });
 
-    
+    // Student-class Routes
     Route::prefix('student_class')->group(function () {
         Route::post('/', [StudentClassController::class, 'create']);         // Add a new teacher (Admin only)
         Route::post('/{id}', [StudentClassController::class, 'update']);     // Update a teacher (Admin only)
@@ -70,6 +73,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', [StudentClassController::class, 'destroy']); // Delete a teacher
     });
 
+    // Fee Routes
     Route::prefix('fee')->group(function () {
         Route::get('/view/{id?}', [FeeController::class, 'index']); // Fetch all or one record
         Route::post('/', [FeeController::class, 'register']); // Create a new record
@@ -79,6 +83,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/import', [FeeController::class, 'importCsv']); 
     });
 
+    // Fee-plan-period Routes
     Route::prefix('fee_plan_period')->group(function () {
         Route::get('/view/{id?}', [FeePlanPeriodController::class, 'index']); // Fetch all or one record
         Route::post('/', [FeePlanPeriodController::class, 'register']); // Create a new record
@@ -88,6 +93,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/import', [FeePlanPeriodController::class, 'importCsv']); 
     });
 
+    // Fee-plan Routes
     Route::prefix('fee_plan')->group(function () {
         Route::get('/view/{id?}', [FeePlanController::class, 'index']); // Fetch all or one record
         Route::post('/', [FeePlanController::class, 'register']); // Create a new record
