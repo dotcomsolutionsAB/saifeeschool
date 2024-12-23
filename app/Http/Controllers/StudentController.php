@@ -591,7 +591,7 @@ class StudentController extends Controller
             }
 
             // Truncate the table before import
-            ClassGroupModel::truncate();
+            StudentClassModel::truncate();
 
             StudentModel::truncate();
 
