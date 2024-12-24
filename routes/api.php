@@ -11,6 +11,10 @@ use App\Http\Controllers\StudentClassController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\FeePlanPeriodController;
 use App\Http\Controllers\FeePlanController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\ItemController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\AuthController;
 
 // Route::get('/user', function (Request $request) {
@@ -103,4 +107,46 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/import', [FeePlanController::class, 'importCsv']); 
     });
 
+    // Suppliers Routes
+    Route::prefix('supplier')->group(function () {
+        Route::get('/view', [SupplierController::class, 'index']);          // List all Suppliers
+        Route::get('/view/{id}', [SupplierController::class, 'index']);     // Get details of a single Suppliers
+        Route::post('/', [SupplierController::class, 'register']);         // Add a new Suppliers (Admin only)
+        Route::post('/{id}', [SupplierController::class, 'update']);     // Update a Suppliers (Admin only)
+        Route::delete('/{id}', [SupplierController::class, 'destroy']); // Delete a Suppliers (Admin only)
+
+        // Route::get('/import', [FeePlanController::class, 'importCsv']); 
+    });
+
+    // Items Routes
+    Route::prefix('item')->group(function () {
+        Route::get('/view', [ItemController::class, 'index']);          // List all Items
+        Route::get('/view/{id}', [ItemController::class, 'index']);     // Get details of a single Items
+        Route::post('/', [ItemController::class, 'register']);         // Add a new Items (Admin only)
+        Route::post('/{id}', [ItemController::class, 'update']);     // Update a Items (Admin only)
+        Route::delete('/{id}', [ItemController::class, 'destroy']); // Delete a Items (Admin only)
+
+        Route::get('/import', [ItemController::class, 'importCsv']); 
+    });
+
+     // Purchase Routes
+     Route::prefix('attendance')->group(function () {
+        // Route::get('/view', [PurchaseController::class, 'index']);          // List all Purchase
+        // Route::get('/view/{id}', [PurchaseController::class, 'index']);     // Get details of a single Purchase
+        // Route::post('/', [PurchaseController::class, 'register']);         // Add a new Purchase (Admin only)
+        // Route::post('/{id}', [PurchaseController::class, 'update']);     // Update a Purchase (Admin only)
+        // Route::delete('/{id}', [PurchaseController::class, 'destroy']); // Delete a Purchase (Admin only)
+    
+        Route::get('/import', [AttendanceController::class, 'importCsv']); 
+    });
+    // Purchase Routes
+    Route::prefix('purchase')->group(function () {
+        Route::get('/view', [PurchaseController::class, 'index']);          // List all Purchase
+        Route::get('/view/{id}', [PurchaseController::class, 'index']);     // Get details of a single Purchase
+        Route::post('/', [PurchaseController::class, 'register']);         // Add a new Purchase (Admin only)
+        Route::post('/{id}', [PurchaseController::class, 'update']);     // Update a Purchase (Admin only)
+        Route::delete('/{id}', [PurchaseController::class, 'destroy']); // Delete a Purchase (Admin only)
+    
+        Route::get('/import', [PurchaseController::class, 'importCsv']); 
+    });
 });
