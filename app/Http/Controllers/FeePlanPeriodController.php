@@ -54,7 +54,18 @@ class FeePlanPeriodController extends Controller
          ]);
  
          try {
-             $feePlanParticular = FeePlanPeriodModel::create($validated);
+            //  $feePlanParticular = FeePlanPeriodModel::create($validated);
+            $feePlanParticular = FeePlanPeriodModel::create([
+                'fp_id' => $validated['fp_id'],
+                'ay_id' => $validated['ay_id'],
+                'fpp_name' => $validated['fpp_name'],
+                'fpp_amount' => $validated['fpp_amount'],
+                'fpp_late_fee' => $validated['fpp_late_fee'],
+                'fpp_due_date' => $validated['fpp_due_date'],
+                'fpp_month_no' => $validated['fpp_month_no'],
+                'fpp_year_no' => $validated['fpp_year_no'],
+                'fpp_order_no' => $validated['fpp_order_no'],
+            ]);
  
              return response()->json([
                  'message' => 'Fee plan particular created successfully!',
@@ -78,8 +89,8 @@ class FeePlanPeriodController extends Controller
          }
  
          $validated = $request->validate([
-             'fp_id' => 'sometimes|integer',
-             'ay_id' => 'sometimes|integer',
+             'fp_id' => 'sometimes|integer|exists:t_fee_plans,id',
+             'ay_id' => 'sometimes|integer|exists:t_academic_years,id',
              'fpp_name' => 'sometimes|string|max:255',
              'fpp_amount' => 'sometimes|numeric|min:0',
              'fpp_late_fee' => 'sometimes|string|max:100',
@@ -90,17 +101,28 @@ class FeePlanPeriodController extends Controller
          ]);
  
          try {
-             $feePlanParticular->update($validated);
+            //  $feePlanParticular->update($validated);
+            $feePlanParticular->update([
+                'fp_id' => $validated['fp_id'] ?? $feePlanParticular->fp_id,
+                'ay_id' => $validated['ay_id'] ?? $feePlanParticular->ay_id,
+                'fpp_name' => $validated['fpp_name'] ?? $feePlanParticular->fpp_name,
+                'fpp_amount' => $validated['fpp_amount'] ?? $feePlanParticular->fpp_amount,
+                'fpp_late_fee' => $validated['fpp_late_fee'] ?? $feePlanParticular->fpp_late_fee,
+                'fpp_due_date' => $validated['fpp_due_date'] ?? $feePlanParticular->fpp_due_date,
+                'fpp_month_no' => $validated['fpp_month_no'] ?? $feePlanParticular->fpp_month_no,
+                'fpp_year_no' => $validated['fpp_year_no'] ?? $feePlanParticular->fpp_year_no,
+                'fpp_order_no' => $validated['fpp_order_no'] ?? $feePlanParticular->fpp_order_no,
+            ]);
  
-             return response()->json([
-                 'message' => 'Fee plan particular updated successfully!',
-                 'data' => $feePlanParticular->makeHidden(['created_at', 'updated_at'])
-             ], 200);
-         } catch (\Exception $e) {
-             return response()->json([
-                 'message' => 'Failed to update fee plan particular.',
-                 'error' => $e->getMessage()
-             ], 500);
+            return response()->json([
+                'message' => 'Fee plan particular updated successfully!',
+                'data' => $feePlanParticular->makeHidden(['created_at', 'updated_at'])
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to update fee plan particular.',
+                'error' => $e->getMessage()
+            ], 500);
          }
      }
  

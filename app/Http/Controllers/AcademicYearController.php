@@ -26,7 +26,16 @@ class AcademicYearController extends Controller
 
         try {
             // Create a new academic year
-            $academicYear = AcademicYearModel::create($validated);
+            // $academicYear = AcademicYearModel::create($validated);
+            $academicYear = AcademicYearModel::create([
+                'sch_id' => $validated['sch_id'],
+                'ay_name' => $validated['ay_name'],
+                'ay_start_year' => $validated['ay_start_year'],
+                'ay_start_month' => $validated['ay_start_month'],
+                'ay_end_year' => $validated['ay_end_year'],
+                'ay_end_month' => $validated['ay_end_month'],
+                'ay_current' => $validated['ay_current'],
+            ]);
 
             return response()->json([
                 'message' => 'Academic year created successfully',

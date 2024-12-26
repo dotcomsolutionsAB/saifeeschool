@@ -67,7 +67,30 @@ class FeeController extends Controller
         ]);
 
         try {
-            $studentFee = FeeModel::create($validated);
+            // $studentFee = FeeModel::create($validated);
+            $studentFee = FeeModel::create([
+                'st_id' => $validated['st_id'] ?? null,
+                'st_roll_no' => $validated['st_roll_no'],
+                'fpp_id' => $validated['fpp_id'] ?? null,
+                'cg_id' => $validated['cg_id'],
+                'ay_id' => $validated['ay_id'] ?? null,
+                'fpp_name' => $validated['fpp_name'] ?? null,
+                'fpp_due_date' => $validated['fpp_due_date'] ?? null,
+                'fpp_month_no' => $validated['fpp_month_no'] ?? null,
+                'fpp_year_no' => $validated['fpp_year_no'] ?? null,
+                'fpp_amount' => $validated['fpp_amount'],
+                'f_concession' => $validated['f_concession'] ?? 0,
+                'fpp_late_fee' => $validated['fpp_late_fee'] ?? 0,
+                'f_late_fee_applicable' => $validated['f_late_fee_applicable'] ?? '0',
+                'f_late_fee_paid' => $validated['f_late_fee_paid'] ?? 0,
+                'f_total_paid' => $validated['f_total_paid'] ?? 0,
+                'f_paid' => $validated['f_paid'] ?? '0',
+                'f_paid_date' => $validated['f_paid_date'] ?? null,
+                'f_active' => $validated['f_active'] ?? '1',
+                'fp_recurring' => $validated['fp_recurring'] ?? '1',
+                'fp_main_monthly_fee' => $validated['fp_main_monthly_fee'] ?? '1',
+                'fp_main_admission_fee' => $validated['fp_main_admission_fee'] ?? '0',
+            ]);
 
             return response()->json([
                 'message' => 'Student fee record created successfully!',
@@ -115,7 +138,30 @@ class FeeController extends Controller
         ]);
 
         try {
-            $studentFee->update($validated);
+            // $studentFee->update($validated);
+            $studentFee->update([
+                'st_id' => $validated['st_id'] ?? $studentFee->st_id,
+                'st_roll_no' => $validated['st_roll_no'] ?? $studentFee->st_roll_no,
+                'fpp_id' => $validated['fpp_id'] ?? $studentFee->fpp_id,
+                'cg_id' => $validated['cg_id'] ?? $studentFee->cg_id,
+                'ay_id' => $validated['ay_id'] ?? $studentFee->ay_id,
+                'fpp_name' => $validated['fpp_name'] ?? $studentFee->fpp_name,
+                'fpp_due_date' => $validated['fpp_due_date'] ?? $studentFee->fpp_due_date,
+                'fpp_month_no' => $validated['fpp_month_no'] ?? $studentFee->fpp_month_no,
+                'fpp_year_no' => $validated['fpp_year_no'] ?? $studentFee->fpp_year_no,
+                'fpp_amount' => $validated['fpp_amount'] ?? $studentFee->fpp_amount,
+                'f_concession' => $validated['f_concession'] ?? $studentFee->f_concession,
+                'fpp_late_fee' => $validated['fpp_late_fee'] ?? $studentFee->fpp_late_fee,
+                'f_late_fee_applicable' => $validated['f_late_fee_applicable'] ?? $studentFee->f_late_fee_applicable,
+                'f_late_fee_paid' => $validated['f_late_fee_paid'] ?? $studentFee->f_late_fee_paid,
+                'f_total_paid' => $validated['f_total_paid'] ?? $studentFee->f_total_paid,
+                'f_paid' => $validated['f_paid'] ?? $studentFee->f_paid,
+                'f_paid_date' => $validated['f_paid_date'] ?? $studentFee->f_paid_date,
+                'f_active' => $validated['f_active'] ?? $studentFee->f_active,
+                'fp_recurring' => $validated['fp_recurring'] ?? $studentFee->fp_recurring,
+                'fp_main_monthly_fee' => $validated['fp_main_monthly_fee'] ?? $studentFee->fp_main_monthly_fee,
+                'fp_main_admission_fee' => $validated['fp_main_admission_fee'] ?? $studentFee->fp_main_admission_fee,
+            ]);
 
             return response()->json([
                 'message' => 'Student fee record updated successfully!',

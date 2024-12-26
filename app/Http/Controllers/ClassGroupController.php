@@ -22,7 +22,12 @@ class ClassGroupController extends Controller
 
         try {
             // Create the class group
-            $classGroup = ClassGroupModel::create($validated);
+            // $classGroup = ClassGroupModel::create($validated);
+            $classGroup = ClassGroupModel::create([
+                'ay_id' => $validated['ay_id'],
+                'cg_name' => $validated['cg_name'],
+                'cg_order' => $validated['cg_order'],
+            ]);
 
             return response()->json([
                 'message' => 'Class group created successfully',

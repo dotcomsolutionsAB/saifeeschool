@@ -18,7 +18,12 @@ class StudentClassController extends Controller
         ]);
 
         try {
-            $studentClass = StudentClassModel::create($validated);
+            //$studentClass = StudentClassModel::create($validated);
+            $studentClass = StudentClassModel::create([
+                'ay_id' => $validated['ay_id'],
+                'st_id' => $validated['st_id'],
+                'cg_id' => $validated['cg_id'],
+            ]);
 
             return response()->json([
                 'message' => 'Student-Class record created successfully',

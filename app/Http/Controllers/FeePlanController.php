@@ -49,7 +49,15 @@ class FeePlanController extends Controller
         ]);
 
         try {
-            $feePlan = FeePlanModel::create($validated);
+            // $feePlan = FeePlanModel::create($validated);
+            $feePlan = FeePlanModel::create([
+                'ay_id' => $validated['ay_id'] ?? null,
+                'fp_name' => $validated['fp_name'] ?? null,
+                'fp_recurring' => $validated['fp_recurring'],
+                'fp_main_monthly_fee' => $validated['fp_main_monthly_fee'],
+                'fp_main_admission_fee' => $validated['fp_main_admission_fee'],
+                'cg_id' => $validated['cg_id'],
+            ]);
 
             return response()->json([
                 'message' => 'Fee plan created successfully!',
