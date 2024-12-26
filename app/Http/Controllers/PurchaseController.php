@@ -667,208 +667,208 @@ class PurchaseController extends Controller
     // }
     
     public function importCsv(Request $request)
-{
-    ini_set('max_execution_time', 300); // Extend execution time
-    ini_set('memory_limit', '1024M');   // Increase memory limit
+    {
+        ini_set('max_execution_time', 300); // Extend execution time
+        ini_set('memory_limit', '1024M');   // Increase memory limit
 
-    try {
-        // Define the path to the CSV file
-        $csvFilePath = storage_path('app/public/purchase_invoice.csv');
+        try {
+            // Define the path to the CSV file
+            $csvFilePath = storage_path('app/public/purchase_invoice.csv');
 
-        // Check if the file exists
-        if (!file_exists($csvFilePath)) {
-            return response()->json(['message' => 'CSV file not found.'], 404);
-        }
+            // Check if the file exists
+            if (!file_exists($csvFilePath)) {
+                return response()->json(['message' => 'CSV file not found.'], 404);
+            }
 
-        // Read and parse the CSV file
-        $csvContent = file_get_contents($csvFilePath);
-        $csv = Reader::createFromString($csvContent);
-        $csv->setHeaderOffset(0); // Use the first row as the header
-        $records = (new Statement())->process($csv);
+            // Read and parse the CSV file
+            $csvContent = file_get_contents($csvFilePath);
+            $csv = Reader::createFromString($csvContent);
+            $csv->setHeaderOffset(0); // Use the first row as the header
+            $records = (new Statement())->process($csv);
 
-        $batchSize = 500; // Number of records to process in one batch
-        $purchaseData = [];
-        $itemsData = [];
-        $addonsData = [];
-        $lastPurchaseId = null;
+            $batchSize = 500; // Number of records to process in one batch
+            $purchaseData = [];
+            $itemsData = [];
+            $addonsData = [];
+            $lastPurchaseId = null;
 
-        // Truncate tables before import
-        Log::info('Truncating tables before import...');
-        PurchaseModel::truncate();
-        ItemProductModel::truncate();
-        AddonsModel::truncate();
+            // Truncate tables before import
+            Log::info('Truncating tables before import...');
+            PurchaseModel::truncate();
+            ItemProductModel::truncate();
+            AddonsModel::truncate();
 
-        Log::info('Starting CSV processing...');
-        DB::beginTransaction();
-        foreach ($records as $index => $row) {
-            try {
-                // Log the row being processed
-                Log::info('Processing row:', $row);
+            Log::info('Starting CSV processing...');
+            DB::beginTransaction();
+            foreach ($records as $index => $row) {
+                try {
+                    // Log the row being processed
+                    Log::info('Processing row:', $row);
 
-                // Parse the tax field
-                $tax = json_decode($row['tax'], true);
-                $cgst = $tax['cgst'] ?? 0;
-                $sgst = $tax['sgst'] ?? 0;
-                $igst = $tax['igst'] ?? 0;
+                    // Parse the tax field
+                    $tax = json_decode($row['tax'], true);
+                    $cgst = $tax['cgst'] ?? 0;
+                    $sgst = $tax['sgst'] ?? 0;
+                    $igst = $tax['igst'] ?? 0;
 
-                // Create the purchase data
-                $purchase = [
-                    'id' => $row['id'],
-                    'supplier' => $row['supplier'],
-                    'purchase_invoice_no' => $row['purchase_invoice_no'],
-                    'purchase_invoice_date' => $row['purchase_invoice_date'],
-                    'series' => $row['series'],
-                    'currency' => $row['currency'],
-                    'total' => $row['total'],
-                    'paid' => $row['paid'],
-                    'cgst' => $cgst,
-                    'sgst' => $sgst,
-                    'igst' => $igst,
-                    'status' => $row['status'],
-                    'log_user' => $row['log_user'],
-                    'log_date' => $row['log_date'],
-                    // 'created_at' => now(),
-                    // 'updated_at' => now(),
-                ];
-
-                // Log purchase data
-                Log::info('Prepared purchase data:', $purchase);
-
-                $createdPurchase = PurchaseModel::create($purchase);
-                $lastPurchaseId = $createdPurchase->id;
-
-                // Log the purchase ID
-                Log::info("Inserted purchase record with ID: $lastPurchaseId");
-
-                // Parse and insert items
-                // if (!empty($row['items'])) {
-                //     $items = json_decode($row['items'], true);
-                //     foreach ($items['product'] as $key => $product) {
-                //         $item = [
-                //             'purchase_id' => $lastPurchaseId,
-                //             'product' => $product,
-                //             'description' => $items['desc'][$key] ?? null,
-                //             'quantity' => $items['quantity'][$key],
-                //             'unit' => $items['unit'][$key],
-                //             'price' => $items['price'][$key],
-                //             'discount' => $items['discount'][$key] ?? 0,
-                //             'hsn' => $items['hsn'][$key] ?? null,
-                //             'tax' => $items['tax'][$key] ?? 0,
-                //             'igst' => $items['igst'][$key] ?? 0,
-                //             'created_at' => now(),
-                //             'updated_at' => now(),
-                //         ];
-
-                //         // Log item data
-                //         Log::info('Prepared item data:', $item);
-
-                //         $itemsData[] = $item;
-                //     }
-                // }
-                // Parse and insert items
-                if (!empty($row['items'])) {
-                    $items = json_decode($row['items'], true);
-                    foreach ($items['product'] as $key => $product) {
-                        $item = [
-                            'purchase_id' => $lastPurchaseId,
-                            'product' => $product,
-                            'description' => $items['desc'][$key] ?? null,
-                            'quantity' => (int)$items['quantity'][$key],
-                            'unit' => $items['unit'][$key],
-                            'price' => (float)$items['price'][$key],
-                            'discount' => isset($items['discount'][$key]) ? (float)$items['discount'][$key] : 0,
-                            'hsn' => $items['hsn'][$key] ?? null,
-                            'tax' => isset($items['tax'][$key]) && is_numeric($items['tax'][$key]) ? (float)$items['tax'][$key] : 0, // Default to 0
-                            'igst' => isset($items['igst'][$key]) && is_numeric($items['igst'][$key]) ? (float)$items['igst'][$key] : 0, // Default to 0
-                            // 'created_at' => now(),
-                            // 'updated_at' => now(),
-                        ];
-
-                        // Log item data
-                        Log::info('Prepared item data:', $item);
-
-                        $itemsData[] = $item;
-                    }
-                }
-
-
-                // Insert items
-                if (count($itemsData) > 0) {
-                    ItemProductModel::insert($itemsData);
-                    Log::info('Inserted items for purchase ID:', ['purchase_id' => $lastPurchaseId]);
-                    $itemsData = []; // Reset the batch
-                }
-
-                // Parse and insert addons
-                // if (!empty($row['addons'])) {
-                //     $addons = json_decode($row['addons'], true)['freight'] ?? [];
-                //     $addon = [
-                //         'purchase_id' => $lastPurchaseId,
-                //         'freight_value' => $addons['value'] ?? 0,
-                //         'freight_cgst' => $addons['cgst'] ?? null,
-                //         'freight_sgst' => $addons['sgst'] ?? null,
-                //         'freight_igst' => $addons['igst'] ?? 0,
-                //         'roundoff' => json_decode($row['addons'], true)['roundoff'] ?? 0,
-                //         'created_at' => now(),
-                //         'updated_at' => now(),
-                //     ];
-
-                //     // Log addon data
-                //     Log::info('Prepared addon data:', $addon);
-
-                //     $addonsData[] = $addon;
-                // }
-
-                // Parse and insert addons
-                if (!empty($row['addons'])) {
-                    $addons = json_decode($row['addons'], true)['freight'] ?? [];
-                    $addon = [
-                        'purchase_id' => $lastPurchaseId,
-                        'freight_value' => isset($addons['value']) && is_numeric($addons['value']) ? (float)$addons['value'] : 0, // Default to 0
-                        'freight_cgst' => isset($addons['cgst']) && is_numeric($addons['cgst']) ? (float)$addons['cgst'] : 0, // Default to 0
-                        'freight_sgst' => isset($addons['sgst']) && is_numeric($addons['sgst']) ? (float)$addons['sgst'] : 0, // Default to 0
-                        'freight_igst' => isset($addons['igst']) && is_numeric($addons['igst']) ? (float)$addons['igst'] : 0, // Default to 0
-                        'roundoff' => isset($row['addons']['roundoff']) && is_numeric($row['addons']['roundoff']) ? (float)$row['addons']['roundoff'] : 0, // Default to 0
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                    // Create the purchase data
+                    $purchase = [
+                        'id' => $row['id'],
+                        'supplier' => $row['supplier'],
+                        'purchase_invoice_no' => $row['purchase_invoice_no'],
+                        'purchase_invoice_date' => $row['purchase_invoice_date'],
+                        'series' => $row['series'],
+                        'currency' => $row['currency'],
+                        'total' => $row['total'],
+                        'paid' => $row['paid'],
+                        'cgst' => $cgst,
+                        'sgst' => $sgst,
+                        'igst' => $igst,
+                        'status' => $row['status'],
+                        'log_user' => $row['log_user'],
+                        'log_date' => $row['log_date'],
+                        // 'created_at' => now(),
+                        // 'updated_at' => now(),
                     ];
 
-                    // Log addon data
-                    Log::info('Prepared addon data:', $addon);
+                    // Log purchase data
+                    Log::info('Prepared purchase data:', $purchase);
 
-                    $addonsData[] = $addon;
+                    $createdPurchase = PurchaseModel::create($purchase);
+                    $lastPurchaseId = $createdPurchase->id;
+
+                    // Log the purchase ID
+                    Log::info("Inserted purchase record with ID: $lastPurchaseId");
+
+                    // Parse and insert items
+                    // if (!empty($row['items'])) {
+                    //     $items = json_decode($row['items'], true);
+                    //     foreach ($items['product'] as $key => $product) {
+                    //         $item = [
+                    //             'purchase_id' => $lastPurchaseId,
+                    //             'product' => $product,
+                    //             'description' => $items['desc'][$key] ?? null,
+                    //             'quantity' => $items['quantity'][$key],
+                    //             'unit' => $items['unit'][$key],
+                    //             'price' => $items['price'][$key],
+                    //             'discount' => $items['discount'][$key] ?? 0,
+                    //             'hsn' => $items['hsn'][$key] ?? null,
+                    //             'tax' => $items['tax'][$key] ?? 0,
+                    //             'igst' => $items['igst'][$key] ?? 0,
+                    //             'created_at' => now(),
+                    //             'updated_at' => now(),
+                    //         ];
+
+                    //         // Log item data
+                    //         Log::info('Prepared item data:', $item);
+
+                    //         $itemsData[] = $item;
+                    //     }
+                    // }
+                    // Parse and insert items
+                    if (!empty($row['items'])) {
+                        $items = json_decode($row['items'], true);
+                        foreach ($items['product'] as $key => $product) {
+                            $item = [
+                                'purchase_id' => $lastPurchaseId,
+                                'product' => $product,
+                                'description' => $items['desc'][$key] ?? null,
+                                'quantity' => (int)$items['quantity'][$key],
+                                'unit' => $items['unit'][$key],
+                                'price' => (float)$items['price'][$key],
+                                'discount' => isset($items['discount'][$key]) ? (float)$items['discount'][$key] : 0,
+                                'hsn' => $items['hsn'][$key] ?? null,
+                                'tax' => isset($items['tax'][$key]) && is_numeric($items['tax'][$key]) ? (float)$items['tax'][$key] : 0, // Default to 0
+                                'igst' => isset($items['igst'][$key]) && is_numeric($items['igst'][$key]) ? (float)$items['igst'][$key] : 0, // Default to 0
+                                // 'created_at' => now(),
+                                // 'updated_at' => now(),
+                            ];
+
+                            // Log item data
+                            Log::info('Prepared item data:', $item);
+
+                            $itemsData[] = $item;
+                        }
+                    }
+
+
+                    // Insert items
+                    if (count($itemsData) > 0) {
+                        ItemProductModel::insert($itemsData);
+                        Log::info('Inserted items for purchase ID:', ['purchase_id' => $lastPurchaseId]);
+                        $itemsData = []; // Reset the batch
+                    }
+
+                    // Parse and insert addons
+                    // if (!empty($row['addons'])) {
+                    //     $addons = json_decode($row['addons'], true)['freight'] ?? [];
+                    //     $addon = [
+                    //         'purchase_id' => $lastPurchaseId,
+                    //         'freight_value' => $addons['value'] ?? 0,
+                    //         'freight_cgst' => $addons['cgst'] ?? null,
+                    //         'freight_sgst' => $addons['sgst'] ?? null,
+                    //         'freight_igst' => $addons['igst'] ?? 0,
+                    //         'roundoff' => json_decode($row['addons'], true)['roundoff'] ?? 0,
+                    //         'created_at' => now(),
+                    //         'updated_at' => now(),
+                    //     ];
+
+                    //     // Log addon data
+                    //     Log::info('Prepared addon data:', $addon);
+
+                    //     $addonsData[] = $addon;
+                    // }
+
+                    // Parse and insert addons
+                    if (!empty($row['addons'])) {
+                        $addons = json_decode($row['addons'], true)['freight'] ?? [];
+                        $addon = [
+                            'purchase_id' => $lastPurchaseId,
+                            'freight_value' => isset($addons['value']) && is_numeric($addons['value']) ? (float)$addons['value'] : 0, // Default to 0
+                            'freight_cgst' => isset($addons['cgst']) && is_numeric($addons['cgst']) ? (float)$addons['cgst'] : 0, // Default to 0
+                            'freight_sgst' => isset($addons['sgst']) && is_numeric($addons['sgst']) ? (float)$addons['sgst'] : 0, // Default to 0
+                            'freight_igst' => isset($addons['igst']) && is_numeric($addons['igst']) ? (float)$addons['igst'] : 0, // Default to 0
+                            'roundoff' => isset($row['addons']['roundoff']) && is_numeric($row['addons']['roundoff']) ? (float)$row['addons']['roundoff'] : 0, // Default to 0
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+
+                        // Log addon data
+                        Log::info('Prepared addon data:', $addon);
+
+                        $addonsData[] = $addon;
+                    }
+
+                    // Insert addons
+                    if (count($addonsData) > 0) {
+                        AddonsModel::insert($addonsData);
+                        Log::info('Inserted addons for purchase ID:', ['purchase_id' => $lastPurchaseId]);
+                        $addonsData = []; // Reset the batch
+                    }
+
+
+                    // Insert addons
+                    if (count($addonsData) > 0) {
+                        AddonsModel::insert($addonsData);
+                        Log::info('Inserted addons for purchase ID:', ['purchase_id' => $lastPurchaseId]);
+                        $addonsData = []; // Reset the batch
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Error processing row: ' . json_encode($row) . ' | Error: ' . $e->getMessage());
                 }
-
-                // Insert addons
-                if (count($addonsData) > 0) {
-                    AddonsModel::insert($addonsData);
-                    Log::info('Inserted addons for purchase ID:', ['purchase_id' => $lastPurchaseId]);
-                    $addonsData = []; // Reset the batch
-                }
-
-
-                // Insert addons
-                if (count($addonsData) > 0) {
-                    AddonsModel::insert($addonsData);
-                    Log::info('Inserted addons for purchase ID:', ['purchase_id' => $lastPurchaseId]);
-                    $addonsData = []; // Reset the batch
-                }
-            } catch (\Exception $e) {
-                Log::error('Error processing row: ' . json_encode($row) . ' | Error: ' . $e->getMessage());
             }
+
+            DB::commit();
+
+            Log::info('CSV imported successfully!');
+            return response()->json(['message' => 'CSV imported successfully!'], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to import CSV: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to import CSV.', 'error' => $e->getMessage()], 500);
         }
-
-        DB::commit();
-
-        Log::info('CSV imported successfully!');
-        return response()->json(['message' => 'CSV imported successfully!'], 200);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Failed to import CSV: ' . $e->getMessage());
-        return response()->json(['message' => 'Failed to import CSV.', 'error' => $e->getMessage()], 500);
     }
-}
 
     
 }

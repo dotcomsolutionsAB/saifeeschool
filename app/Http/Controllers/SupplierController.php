@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 use App\Models\SuppliersModel;
 use Illuminate\Http\Request;
+use League\Csv\Reader;
+use League\Csv\Statement;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SupplierController extends Controller
 {
@@ -130,6 +134,91 @@ class SupplierController extends Controller
             return response()->json(['message' => 'Supplier deleted successfully.']);
         } else {
             return response()->json(['message' => 'Supplier not found.'], 404);
+        }
+    }
+
+    public function importCsv(Request $request)
+    {
+        ini_set('max_execution_time', 300); // Extend execution time
+        ini_set('memory_limit', '1024M');   // Increase memory limit
+
+        try {
+            // Path to the uploaded CSV file
+            // $csvFilePath = $request->file('file')->getRealPath();
+            $csvFilePath = storage_path('app/public/suppliers.csv');
+
+            // Check if the file exists
+            if (!file_exists($csvFilePath)) {
+                return response()->json(['message' => 'CSV file not found.'], 404);
+            }
+
+            // Read the CSV file
+            $csvContent = file_get_contents($csvFilePath);
+            $csv = Reader::createFromString($csvContent);
+            $csv->setHeaderOffset(0); // Use the first row as the header
+            $records = (new Statement())->process($csv);
+
+            $batchSize = 500; // Number of records to process in one batch
+            $data = [];
+
+            // Truncate the table before import (optional)
+            SuppliersModel::truncate();
+
+            DB::beginTransaction();
+
+            foreach ($records as $index => $row) {
+                try {
+                    // Parse address JSON
+                    $address = json_decode($row['address'], true);
+
+                    $data[] = [
+                        'id' => $row['id'],
+                        'company' => $row['company'] ?? '',
+                        'name' => $row['name'] ?? '',
+                        'address1' => $address['address1'] ?? '',
+                        'address2' => $address['address2'] ?? null,
+                        'city' => $address['city'] ?? '',
+                        'pincode' => is_numeric($address['pincode']) ? $address['pincode'] : null,
+                        'state' => $row['state'] ?? '',
+                        'country' => $row['country'] ?? '',
+                        'mobile' => $row['mobile'] ?? '',
+                        'email' => $row['email'] ?? '',
+                        'documents' => $row['documents'] ?? null,
+                        'notes' => $row['notes'] ?? null,
+                        'gstin' => $row['gstin'] ?? '',
+                        'gstin_type' => $row['gstin_type'] ?? '',
+                        'notification' => $row['notification'] ?? null,
+                        'log_user' => $row['log_user'] ?? '',
+                        'log_date' => isset($row['log_date']) && strtotime($row['log_date']) ? $row['log_date'] : now()->toDateString(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+
+                    // Insert in batches
+                    if (count($data) >= $batchSize) {
+                        SuppliersModel::insert($data);
+                        Log::info("Inserted a batch of suppliers.");
+                        $data = []; // Reset the batch
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Error processing row: ' . json_encode($row) . ' | Error: ' . $e->getMessage());
+                }
+            }
+
+            // Insert remaining records
+            if (count($data) > 0) {
+                SuppliersModel::insert($data);
+                Log::info("Inserted the remaining suppliers.");
+            }
+
+            DB::commit();
+
+            return response()->json(['message' => 'CSV imported successfully!'], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to import CSV: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to import CSV.', 'error' => $e->getMessage()], 500);
         }
     }
 }

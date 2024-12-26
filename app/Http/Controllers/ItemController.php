@@ -3,6 +3,11 @@
 namespace App\Http\Controllers;
 use App\Models\ItemModel;
 use Illuminate\Http\Request;
+use League\Csv\Reader;
+use League\Csv\Statement;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
 
 class ItemController extends Controller
 {
@@ -117,4 +122,81 @@ class ItemController extends Controller
         }
     }
 
+    // csv import
+    public function importCsv(Request $request)
+    {
+        ini_set('max_execution_time', 300); // Extend execution time
+        ini_set('memory_limit', '1024M');   // Increase memory limit
+
+        try {
+            // Path to the uploaded CSV file
+            // $csvFilePath = $request->file('file')->getRealPath();
+            $csvFilePath = storage_path('app/public/products.csv');
+
+            // Check if the file exists
+            if (!file_exists($csvFilePath)) {
+                return response()->json(['message' => 'CSV file not found.'], 404);
+            }
+
+            // Read the CSV file
+            $csvContent = file_get_contents($csvFilePath);
+            $csv = Reader::createFromString($csvContent);
+            $csv->setHeaderOffset(0); // Use the first row as the header
+            $records = (new Statement())->process($csv);
+
+            $batchSize = 500; // Number of records to process in one batch
+            $data = [];
+
+            // Truncate the table before import (optional)
+            ItemModel::truncate();
+
+            DB::beginTransaction();
+
+            foreach ($records as $index => $row) {
+                try {
+                    // Prepare the product data
+                    $data[] = [
+                        'id' => $row['id'],
+                        'name' => $row['name'] ?? '',
+                        'description' => $row['description'] ?? '',
+                        'category' => $row['category'] ?? '',
+                        'sub_category' => $row['sub_category'] ?? '',
+                        'unit' => $row['unit'] ?? '',
+                        'price' => $row['price'] ?? '0',
+                        'discount' => $row['discount'] ?? '0',
+                        'tax' => $row['tax'] ?? '0',
+                        'hsn' => $row['hsn'] ?? '',
+                        'log_user' => $row['log_user'] ?? '',
+                        'log_date' => isset($row['log_date']) && strtotime($row['log_date']) ? $row['log_date'] : now()->toDateString(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+
+                    // Insert in batches
+                    if (count($data) >= $batchSize) {
+                        ItemModel::insert($data);
+                        Log::info("Inserted a batch of products.");
+                        $data = []; // Reset the batch
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Error processing row: ' . json_encode($row) . ' | Error: ' . $e->getMessage());
+                }
+            }
+
+            // Insert remaining records
+            if (count($data) > 0) {
+                ItemModel::insert($data);
+                Log::info("Inserted the remaining products.");
+            }
+
+            DB::commit();
+
+            return response()->json(['message' => 'CSV imported successfully!'], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to import CSV: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to import CSV.', 'error' => $e->getMessage()], 500);
+        }
+    }
 }
