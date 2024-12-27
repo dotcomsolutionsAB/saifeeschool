@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('t_subjects', function (Blueprint $table) {
             $table->id();
             $table->string('subject', 256)->default(''); // Subject name
-            $table->string('SubInit', 10)->default(''); // Subject initials
+            // $table->string('SubInit', 10)->default(''); // Subject initials
             $table->integer('cg_group')->default(0); // Class group
             $table->string('type', 10)->default(''); // Subject type
             $table->string('marks', 100)->default(''); // Marks

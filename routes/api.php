@@ -15,6 +15,8 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\MarksController;
 use App\Http\Controllers\Auth\AuthController;
 
 // Route::get('/user', function (Request $request) {
@@ -148,5 +150,27 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', [PurchaseController::class, 'destroy']); // Delete a Purchase (Admin only)
     
         Route::get('/import', [PurchaseController::class, 'importCsv']); 
+    });
+
+     // Purchase Routes
+     Route::prefix('subject')->group(function () {
+        // Route::get('/view', [MarksController::class, 'index']);          // List all Purchase
+        // Route::get('/view/{id}', [MarksController::class, 'index']);     // Get details of a single Purchase
+        // Route::post('/', [MarksController::class, 'registerandUpdate']);         // Add a new Purchase (Admin only)
+        // Route::post('/{id}', [PurchaseController::class, 'update']);     // Update a Purchase (Admin only)
+        // Route::delete('/{id}', [PurchaseController::class, 'destroy']); // Delete a Purchase (Admin only)
+    
+        Route::get('/import', [SubjectController::class, 'importCsv']); 
+    });
+
+    // Purchase Routes
+    Route::prefix('marks')->group(function () {
+        Route::get('/view', [MarksController::class, 'index']);          // List all Purchase
+        Route::get('/view/{id}', [MarksController::class, 'index']);     // Get details of a single Purchase
+        Route::post('/', [MarksController::class, 'registerandUpdate']);         // Add a new Purchase (Admin only)
+        // Route::post('/{id}', [PurchaseController::class, 'update']);     // Update a Purchase (Admin only)
+        // Route::delete('/{id}', [PurchaseController::class, 'destroy']); // Delete a Purchase (Admin only)
+    
+        Route::get('/import', [MarksController::class, 'importCsv']); 
     });
 });
