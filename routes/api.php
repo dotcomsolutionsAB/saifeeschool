@@ -17,6 +17,9 @@ use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\MarksController;
+use App\Http\Controllers\CharacterCertificateController;
+use App\Http\Controllers\TransferCertificateController;
+use App\Http\Controllers\CounterController;
 use App\Http\Controllers\Auth\AuthController;
 
 // Route::get('/user', function (Request $request) {
@@ -173,4 +176,32 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
         Route::get('/import', [MarksController::class, 'importCsv']); 
     });
+
+    Route::prefix('counter')->group(function () {
+        Route::get('/view', [CounterController::class, 'index']); // List all counters
+        Route::post('/', [CounterController::class, 'store']); // Create a new counter
+        Route::get('/view/{id?}', [CounterController::class, 'index']); // Get a specific counter
+        Route::post('/update/{id}', [CounterController::class, 'update']); // Update a specific counter
+        Route::delete('/{id}', [CounterController::class, 'destroy']); // Delete a specific counter
+        Route::post('/increment', [CounterController::class, 'increment']); // Increment a counter
+    });
+
+    // Character Certificate Routes
+    Route::prefix('character_certificate')->group(function () {
+        Route::get('/view', [CharacterCertificateController::class, 'index']);          // List all Purchase
+        Route::post('/{id?}', [CharacterCertificateController::class, 'storeOrUpdate']);         // Add a new Purchase (Admin only)
+        Route::delete('/{id}', [CharacterCertificateController::class, 'destroy']); // Delete a Purchase (Admin only)
+    
+        Route::get('/import', [CharacterCertificateController::class, 'importCsv']); 
+    });
+
+    // Character Certificate Routes
+    Route::prefix('transfer_certificate')->group(function () {
+        Route::get('/view', [TransferCertificateController::class, 'index']);          // List all Purchase
+        Route::post('/{id?}', [TransferCertificateController::class, 'storeOrUpdate']);         // Add a new Purchase (Admin only)
+        Route::delete('/{id}', [TransferCertificateController::class, 'destroy']); // Delete a Purchase (Admin only)
+    
+        Route::get('/import', [TransferCertificateController::class, 'importCsv']); 
+    });
+
 });
