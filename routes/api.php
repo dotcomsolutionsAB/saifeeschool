@@ -34,17 +34,23 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/logout', [AuthController::class, 'logout']);
 
+    Route::post('/password', [UserController::class, 'change_password']);          // Update password
+
     // Student Routes
     Route::prefix('student')->group(function () {
-        Route::get('/view', [StudentController::class, 'index']);          // List all students
-        Route::get('/view/{id}', [StudentController::class, 'index']);     // Get details of a single student
-        Route::post('/', [StudentController::class, 'register']);         // Add a new student (Admin only)
+        Route::post('/view', [StudentController::class, 'index']);          // List all students
+        Route::post('/view/{id}', [StudentController::class, 'index']);     // Get details of a single student
+        Route::post('/register', [StudentController::class, 'register']);         // Add a new student (Admin only)
         Route::post('/{id}', [StudentController::class, 'update']);     // Update a student (Admin only)
         Route::delete('/{id}', [StudentController::class, 'destroy']); // Delete a student (Admin only)
+
+        Route::post('/duplicate', [StudentController::class, 'fetch_duplicate']); // Get duplicate student roll
 
         Route::get('/import_basic', [StudentController::class, 'importStudentCsv']); 
         Route::get('/import_details', [StudentController::class, 'importDetailsCsv']); 
     });
+
+    // Route::post('/duplicate', [StudentController::class, 'fetch_duplicate']);
 
     // Teacher Routes
     Route::prefix('teacher')->group(function () {
@@ -84,9 +90,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Fee Routes
     Route::prefix('fee')->group(function () {
-        Route::get('/view/{id?}', [FeeController::class, 'index']); // Fetch all or one record
-        Route::post('/', [FeeController::class, 'register']); // Create a new record
-        Route::post('/{id}', [FeeController::class, 'update']); // Update a record
+        Route::post('/view/{id?}', [FeeController::class, 'index']); // Fetch all or one record
+        Route::post('/register', [FeeController::class, 'register']); // Create a new record
+        Route::post('/update/{id}', [FeeController::class, 'update']); // Update a record
         Route::delete('/{id}', [FeeController::class, 'destroy']); // Delete a record
 
         Route::get('/import', [FeeController::class, 'importCsv']); 
@@ -94,9 +100,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Fee-plan-period Routes
     Route::prefix('fee_plan_period')->group(function () {
-        Route::get('/view/{id?}', [FeePlanPeriodController::class, 'index']); // Fetch all or one record
-        Route::post('/', [FeePlanPeriodController::class, 'register']); // Create a new record
-        Route::post('/{id}', [FeePlanPeriodController::class, 'update']); // Update a record
+        Route::post('/view/{id?}', [FeePlanPeriodController::class, 'index']); // Fetch all or one record
+        Route::post('/register', [FeePlanPeriodController::class, 'register']); // Create a new record
+        Route::post('/update/{id}', [FeePlanPeriodController::class, 'update']); // Update a record
         Route::delete('/{id}', [FeePlanPeriodController::class, 'destroy']); // Delete a record
 
         Route::get('/import', [FeePlanPeriodController::class, 'importCsv']); 
@@ -104,9 +110,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Fee-plan Routes
     Route::prefix('fee_plan')->group(function () {
-        Route::get('/view/{id?}', [FeePlanController::class, 'index']); // Fetch all or one record
-        Route::post('/', [FeePlanController::class, 'register']); // Create a new record
-        Route::post('/{id}', [FeePlanController::class, 'update']); // Update a record
+        Route::post('/view/{id?}', [FeePlanController::class, 'index']); // Fetch all or one record
+        Route::post('/register', [FeePlanController::class, 'register']); // Create a new record
+        Route::post('/update/{id}', [FeePlanController::class, 'update']); // Update a record
         Route::delete('/{id}', [FeePlanController::class, 'destroy']); // Delete a record
 
         Route::get('/import', [FeePlanController::class, 'importCsv']); 
@@ -193,6 +199,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', [CharacterCertificateController::class, 'destroy']); // Delete a Purchase (Admin only)
     
         Route::get('/import', [CharacterCertificateController::class, 'importCsv']); 
+
+        Route::post('/bulk', [CharacterCertificateController::class, 'bulkStore']); 
     });
 
     // Character Certificate Routes

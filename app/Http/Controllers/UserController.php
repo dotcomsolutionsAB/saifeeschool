@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\PasswordUpdated;
 
 class UserController extends Controller
 {
@@ -42,5 +44,51 @@ class UserController extends Controller
         return isset($register_admin) && $register_admin !== null
         ? response()->json(['Admin registered successfully!', 'data' => $register_admin], 201)
         : response()->json(['Failed to register admin'], 400);
+    }
+
+    // update password
+    public function change_password(Request $request)
+    {
+        $request->validate([
+            'username' => 'required'
+        ]);
+
+        $fetch_user = User::where('username', $request->input('username'))->first();
+        
+        if (isset($fetch_user)) {
+            
+            if ($fetch_user->email)
+            {
+                // Generate a random 6-digit integer password
+                $updated_password = random_int(100000, 999999);
+
+                // Send an email to the user's email address
+                try {
+                    Mail::to($fetch_user->email)->send(new PasswordUpdated($updated_password));
+
+                    // Retrieve the user by username
+                    $update_user = User::where('username', $request->input('username'))->firstOrFail();
+
+                    $update_user->update([
+                        'password' => bcrypt($updated_password),
+                    ]);
+
+                    return response()->json(['message' => 'Email sent successfully.', 'status' => 'true'], 200);
+                } catch (\Exception $e) {
+                    return response()->json(['message' => 'Failed to send email.', 'error' => $e->getMessage()], 500);
+                }
+            } else {
+                // If the email is not present
+                return response()->json([
+                    'message' => 'Email is not present.',
+                    'status' => 'false'
+                ], 200);
+            }
+        }
+
+        else{
+             // If the user does not exist
+            return response()->json(['message' => 'User not found.', 'status' => 'false'], 200);
+        }
     }
 }

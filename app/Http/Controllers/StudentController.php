@@ -11,6 +11,7 @@ use App\Models\StudentClassModel;
 use App\Models\User;
 use League\Csv\Reader;
 use League\Csv\Statement;
+use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
@@ -270,7 +271,12 @@ class StudentController extends Controller
 
         // Validate the request data
         $validated = $request->validate([
-            'st_roll_no' => 'required|string|max:255',
+            'st_roll_no' =>[
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('t_students', 'st_roll_no')->ignore($id),
+            ],
             'st_first_name' => 'required|string|max:255',
             'st_last_name' => 'required|string|max:255',
             'st_gender' => 'required|in:M,F',
@@ -506,18 +512,187 @@ class StudentController extends Controller
     //     }        
     // }
 
-    public function index($id = null)
+    // public function index($id = null)
+    // {
+    //     try {
+    //         // Step 1: Get the current academic year
+    //         $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+    //             ->where('ay_current', '1')
+    //             ->first();
+
+    //         if (!$currentAcademicYear) {
+    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+    //                 ->orderBy('id', 'desc')
+    //                 ->first();
+    //         }
+
+    //         if (!$currentAcademicYear) {
+    //             return response()->json(['message' => 'No academic year records found.'], 404);
+    //         }
+
+    //         if ($id) {
+    //             // Fetch a specific student's class details in the current academic year
+    //             $studentClass = $currentAcademicYear->studentClasses()
+    //                 ->where('st_id', $id)
+    //                 ->with(['student', 'classGroup'])
+    //                 ->first();
+
+    //             if (!$studentClass) {
+    //                 return response()->json(['message' => 'Student is not enrolled in the determined academic year.'], 404);
+    //             }
+
+    //             return response()->json([
+    //                 'message' => 'Student class name fetched successfully.',
+    //                 'data' => [
+    //                     'student_record' => $studentClass->student->makeHidden(['id', 'created_at', 'updated_at']),
+    //                     'academic_year' => $currentAcademicYear->ay_name,
+    //                     'class_name' => $studentClass->classGroup->cg_name ?? 'Class group not found',
+    //                 ],
+    //             ], 200);
+    //         } else {
+    //             // Fetch all student-class records for the determined academic year
+    //             $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
+
+    //             if ($studentClasses->isEmpty()) {
+    //                 return response()->json(['message' => 'No students enrolled in the determined academic year.'], 404);
+    //             }
+
+    //             // Map the data to include student details and class names
+    //             $data = $studentClasses->map(function ($studentClass) use ($currentAcademicYear) {
+    //                 return [
+    //                     'student_record' => $studentClass->student ? $studentClass->student->makeHidden(['id', 'created_at', 'updated_at']) : 'Student not found',
+    //                     'academic_year' => $currentAcademicYear->ay_name,
+    //                     'class_name' => $studentClass->classGroup->cg_name ?? 'Class group not found',
+    //                 ];
+    //             });
+
+    //             return response()->json([
+    //                 'message' => 'Student class names fetched successfully.',
+    //                 'academic_year' => $currentAcademicYear->ay_name,
+    //                 'data' => $data,
+    //             ], 200);
+    //         }
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'message' => 'An error occurred while fetching student class names.',
+    //             'error' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
+    // public function index($id = null)
+    // {
+    //     try {
+
+    //         // Validate the request for optional `ay_id`
+    //         $validated = $request->validate([
+    //             'ay_id' => 'nullable|integer|exists:t_academic_years,id',
+    //         ]);
+
+    //         // Determine the academic year to use
+    //         $currentAcademicYear = null;
+    //         if (!empty($validated['ay_id'])) {
+    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+    //                 ->where('id', $validated['ay_id'])
+    //                 ->first();
+    //         }
+    //         else {
+
+    //             // Step 1: Get the current academic year
+    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+    //                 ->where('ay_current', '1')
+    //                 ->first();
+
+    //             if (!$currentAcademicYear) {
+    //                 $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+    //                     ->orderBy('id', 'desc')
+    //                     ->first();
+    //             }
+
+    //         }
+
+    //         if (!$currentAcademicYear) {
+    //             return response()->json(['message' => 'No academic year records found.'], 404);
+    //         }
+
+    //         if ($id) {
+    //             // Fetch a specific student's class details in the current academic year
+    //             $studentClass = $currentAcademicYear->studentClasses()
+    //                 ->where('st_id', $id)
+    //                 ->with(['student', 'classGroup'])
+    //                 ->first();
+
+    //             if (!$studentClass) {
+    //                 return response()->json(['message' => 'Student is not enrolled in the determined academic year.'], 404);
+    //             }
+
+    //             // Format the student data
+    //             $studentData = $studentClass->student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
+    //             $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
+    //             $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
+    //             $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
+
+    //             return response()->json([
+    //                 'message' => 'Student class name fetched successfully.',
+    //                 'data' => $studentData,
+    //             ], 200);
+    //         } else {
+    //             // Fetch all student-class records for the determined academic year
+    //             $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
+
+    //             if ($studentClasses->isEmpty()) {
+    //                 return response()->json(['message' => 'No students enrolled in the determined academic year.'], 404);
+    //             }
+
+    //             // Map the data to include student details and class names
+    //             $data = $studentClasses->map(function ($studentClass) {
+    //                 $studentData = $studentClass->student ? $studentClass->student->makeHidden(['id', 'created_at', 'updated_at'])->toArray() : [];
+    //                 if (!empty($studentData)) {
+    //                     $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
+    //                     $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
+    //                 }
+    //                 $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
+    //                 return $studentData;
+    //             });
+
+    //             return response()->json([
+    //                 'message' => 'Student class names fetched successfully.',
+    //                 'academic_year' => $currentAcademicYear->ay_name,
+    //                 'data' => $data,
+    //             ], 200);
+    //         }
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'message' => 'An error occurred while fetching student class names.',
+    //             'error' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
+    public function index(Request $request, $id = null)
     {
         try {
-            // Step 1: Get the current academic year
-            $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-                ->where('ay_current', '1')
-                ->first();
+            // Validate the request for optional `ay_id`
+            $validated = $request->validate([
+                'ay_id' => 'nullable|integer|exists:t_academic_years,id',
+            ]);
 
-            if (!$currentAcademicYear) {
+            // Determine the academic year to use
+            $currentAcademicYear = null;
+            if (!empty($validated['ay_id'])) {
                 $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-                    ->orderBy('id', 'desc')
+                    ->where('id', $validated['ay_id'])
                     ->first();
+            } else {
+                $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+                    ->where('ay_current', '1')
+                    ->first();
+
+                if (!$currentAcademicYear) {
+                    $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+                        ->orderBy('id', 'desc')
+                        ->first();
+                }
             }
 
             if (!$currentAcademicYear) {
@@ -525,45 +700,51 @@ class StudentController extends Controller
             }
 
             if ($id) {
-                // Fetch a specific student's class details in the current academic year
+                // Fetch a specific student's class details in the determined academic year
                 $studentClass = $currentAcademicYear->studentClasses()
                     ->where('st_id', $id)
                     ->with(['student', 'classGroup'])
                     ->first();
 
                 if (!$studentClass) {
-                    return response()->json(['message' => 'Student is not enrolled in the determined academic year.'], 404);
+                    return response()->json(['message' => 'Student is not enrolled in the determined academic year.', 'status' => 'false'], 404);
                 }
+
+                // Format the student data
+                $studentData = $studentClass->student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
+                $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
+                $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
+                $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
 
                 return response()->json([
                     'message' => 'Student class name fetched successfully.',
-                    'data' => [
-                        'student_record' => $studentClass->student->makeHidden(['id', 'created_at', 'updated_at']),
-                        'academic_year' => $currentAcademicYear->ay_name,
-                        'class_name' => $studentClass->classGroup->cg_name ?? 'Class group not found',
-                    ],
+                    'data' => $studentData,
+                    'status' => 'true'
                 ], 200);
             } else {
                 // Fetch all student-class records for the determined academic year
                 $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
 
                 if ($studentClasses->isEmpty()) {
-                    return response()->json(['message' => 'No students enrolled in the determined academic year.'], 404);
+                    return response()->json(['message' => 'No students enrolled in the determined academic year.',  'status' => 'false'], 404);
                 }
 
                 // Map the data to include student details and class names
-                $data = $studentClasses->map(function ($studentClass) use ($currentAcademicYear) {
-                    return [
-                        'student_record' => $studentClass->student ? $studentClass->student->makeHidden(['id', 'created_at', 'updated_at']) : 'Student not found',
-                        'academic_year' => $currentAcademicYear->ay_name,
-                        'class_name' => $studentClass->classGroup->cg_name ?? 'Class group not found',
-                    ];
+                $data = $studentClasses->map(function ($studentClass) {
+                    $studentData = $studentClass->student ? $studentClass->student->makeHidden(['id', 'created_at', 'updated_at'])->toArray() : [];
+                    if (!empty($studentData)) {
+                        $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
+                        $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
+                    }
+                    $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
+                    return $studentData;
                 });
 
                 return response()->json([
                     'message' => 'Student class names fetched successfully.',
                     'academic_year' => $currentAcademicYear->ay_name,
                     'data' => $data,
+                    'status' => 'true'
                 ], 200);
             }
         } catch (\Exception $e) {
@@ -573,6 +754,7 @@ class StudentController extends Controller
             ], 500);
         }
     }
+
 
     // csv
     public function importStudentCsv(Request $request)
@@ -826,4 +1008,95 @@ class StudentController extends Controller
         }
     }
 
+    public function fetch_duplicate(Request $request)
+    {
+        $request->validate([
+            'st_roll_no' => 'required'
+        ]);
+
+        $get_student = StudentModel::where('st_roll_no', $request->input('st_roll_no'))->first();
+
+        if (isset($get_student)) {
+            return response()->json([
+                'message' => 'Duplicate found.',
+                'data' => $get_student->makeHidden(['id', 'created_at', 'updated_at']),
+                'status' => 'true'
+            ], 200);
+        }
+        else {
+            return response()->json([
+                'message' => 'No duplicate found.',
+                'status' => 'false'
+            ], 404);
+        }
+    }
+
+    public function export(Request $request)
+    {
+        $validated = $request->validate([
+            'cg_id' => 'nullable|integer|exists:t_class_groups,id',
+            'bohra' => 'nullable|boolean',
+            'gender' => 'nullable|in:M,F',
+            'ay_id' => 'nullable|integer|exists:t_academic_years,id',
+            'type' => 'required|in:excel,pdf',
+        ]);
+
+        try {
+            // Step 1: Determine academic year
+            $academicYear = !empty($validated['ay_id'])
+                ? AcademicYearModel::find($validated['ay_id'])
+                : AcademicYearModel::where('ay_current', '1')->first();
+
+            if (!$academicYear) {
+                return response()->json(['message' => 'No academic year found.', 'status' => 'false'], 404);
+            }
+
+            // Step 2: Fetch students based on filters
+            $query = DB::table('t_student_classes as sc')
+                ->join('t_students as s', 'sc.st_id', '=', 's.id')
+                ->join('t_class_groups as cg', 'sc.cg_id', '=', 'cg.id')
+                ->where('sc.ay_id', $academicYear->id)
+                ->select(
+                    DB::raw('ROW_NUMBER() OVER () as SN'),
+                    's.st_roll_no as Roll_No',
+                    DB::raw("CONCAT(s.st_first_name, ' ', s.st_last_name) as Name"),
+                    'cg.cg_name as Class',
+                    DB::raw("IF(s.st_gender = 'M', 'Male', IF(s.st_gender = 'F', 'Female', NULL)) as Gender"),
+                    DB::raw("DATE_FORMAT(s.st_dob, '%d-%m-%Y') as DOB"),
+                    's.st_its_id as ITS',
+                    's.st_mobile as Mobile'
+                );
+
+            // Apply filters
+            if (!empty($validated['cg_id'])) {
+                $query->where('sc.cg_id', $validated['cg_id']);
+            }
+            if (isset($validated['bohra'])) {
+                $query->where('s.st_bohra', $validated['bohra']);
+            }
+            if (!empty($validated['gender'])) {
+                $query->where('s.st_gender', $validated['gender']);
+            }
+
+            $students = $query->get();
+
+            if ($students->isEmpty()) {
+                return response()->json(['message' => 'No students found for the given criteria.', 'status' => 'false'], 404);
+            }
+
+            // Step 3: Handle export type
+            if ($validated['type'] === 'excel') {
+                return Excel::download(new StudentsExport($students), 'students.xlsx');
+            } elseif ($validated['type'] === 'pdf') {
+                $pdf = Pdf::loadView('exports.students', ['students' => $students, 'academic_year' => $academicYear->ay_name])
+                    ->setPaper('a4', 'portrait');
+                return $pdf->download('students.pdf');
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to export data.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

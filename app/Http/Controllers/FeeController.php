@@ -13,31 +13,117 @@ class FeeController extends Controller
 {
     //
     // Fetch all records or a specific record by ID
-    public function index($id = null)
+    // public function index($id = null)
+    // {
+    //     if ($id) {
+    //         $studentFee = FeeModel::find($id);
+    //         if ($studentFee) {
+    //             return response()->json([
+    //                 'message' => 'Student fee record fetched successfully!',
+    //                 'data' => $studentFee->makeHidden(['created_at', 'updated_at'])
+    //             ], 200);
+    //         }
+
+    //         return response()->json(['message' => 'Student fee record not found.'], 404);
+    //     }
+
+    //     else
+    //     {
+    //         $studentFees = FeeModel::all()->makeHidden(['created_at', 'updated_at']);
+
+    //         return $studentFees->isNotEmpty()
+    //             ? response()->json([
+    //                 'message' => 'Student fee records fetched successfully!',
+    //                 'data' => $studentFees,
+    //                 'count' => $studentFees->count()
+    //             ], 200)
+    //             : response()->json(['message' => 'No student fee records available.'], 400);
+            
+    //     }
+    // }
+    // public function index(Request $request, $id = null)
+    // {
+    //     // Validate `ay_id` as required
+    //     $validated = $request->validate([
+    //         'ay_id' => 'required|integer|exists:t_academic_years,id',
+    //         'status' => 'required|in:paid, unpaid',
+    //         'st_id' => 'required|exists:exists:t_academic_years,id,id'
+    //     ]);
+
+    //     $ay_id = $validated['ay_id'];
+
+    //     if ($id) {
+    //         $studentFee = FeeModel::where('id', $id)->where('ay_id', $ay_id)->first();
+
+    //         if ($studentFee) {
+    //             return response()->json([
+    //                 'message' => 'Student fee record fetched successfully!',
+    //                 'data' => $studentFee->makeHidden(['created_at', 'updated_at']),
+    //             ], 200);
+    //         }
+
+    //         return response()->json(['message' => 'Student fee record not found.'], 404);
+    //     } else {
+    //         $studentFees = FeeModel::where('ay_id', $ay_id)->get()->makeHidden(['created_at', 'updated_at']);
+
+    //         return $studentFees->isNotEmpty()
+    //             ? response()->json([
+    //                 'message' => 'Student fee records fetched successfully!',
+    //                 'data' => $studentFees,
+    //                 'count' => $studentFees->count(),
+    //             ], 200)
+    //             : response()->json(['message' => 'No student fee records available.'], 404);
+    //     }
+    // }
+
+    public function index(Request $request, $id = null)
     {
+        // Validate request inputs
+        $validated = $request->validate([
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+            'status' => 'required|in:paid,unpaid',
+            'st_id' => 'required|integer|exists:t_students,id',
+        ]);
+
+        $ay_id = $validated['ay_id'];
+        $st_id = $validated['st_id'];
+        $f_paid = $validated['status'] === 'paid' ? 1 : 0;
+
         if ($id) {
-            $studentFee = FeeModel::find($id);
+            // Fetch a specific fee record by ID, filtering by `ay_id`, `st_id`, and `status`
+            $studentFee = FeeModel::where('id', $id)
+                ->where('ay_id', $ay_id)
+                ->where('st_id', $st_id)
+                ->where('f_paid', $f_paid)
+                ->first();
 
             if ($studentFee) {
                 return response()->json([
                     'message' => 'Student fee record fetched successfully!',
-                    'data' => $studentFee->makeHidden(['created_at', 'updated_at'])
+                    'data' => $studentFee->makeHidden(['created_at', 'updated_at']),
                 ], 200);
             }
 
             return response()->json(['message' => 'Student fee record not found.'], 404);
+        } else {
+            // Fetch all fee records filtered by `ay_id`, `st_id`, and `status`
+            $studentFees = FeeModel::where('ay_id', $ay_id)
+                ->where('st_id', $st_id)
+                ->where('f_paid', $f_paid)
+                ->get()
+                ->makeHidden(['created_at', 'updated_at']);
+
+            return $studentFees->isNotEmpty()
+                ? response()->json([
+                    'message' => 'Student fee records fetched successfully!',
+                    'data' => $studentFees,
+                    'count' => $studentFees->count(),
+                ], 200)
+                : response()->json(['message' => 'No student fee records available.'], 404);
         }
-
-        $studentFees = FeeModel::all()->makeHidden(['created_at', 'updated_at']);
-
-        return $studentFees->isNotEmpty()
-            ? response()->json([
-                'message' => 'Student fee records fetched successfully!',
-                'data' => $studentFees,
-                'count' => $studentFees->count()
-            ], 200)
-            : response()->json(['message' => 'No student fee records available.'], 400);
     }
+
+
 
     // Create a new record
     public function register(Request $request)

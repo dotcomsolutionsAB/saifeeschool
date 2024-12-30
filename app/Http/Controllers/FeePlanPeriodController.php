@@ -12,31 +12,74 @@ class FeePlanPeriodController extends Controller
 {
     //
      // Fetch all records or a specific record by ID
-     public function index($id = null)
-     {
-         if ($id) {
-             $feePlanParticular = FeePlanPeriodModel::find($id);
+    //  public function index($id = null)
+    //  {
+    //      if ($id) {
+    //          $feePlanParticular = FeePlanPeriodModel::find($id);
  
-             if ($feePlanParticular) {
-                 return response()->json([
-                     'message' => 'Fee plan particular fetched successfully!',
-                     'data' => $feePlanParticular->makeHidden(['created_at', 'updated_at'])
-                 ], 200);
-             }
+    //          if ($feePlanParticular) {
+    //              return response()->json([
+    //                  'message' => 'Fee plan particular fetched successfully!',
+    //                  'data' => $feePlanParticular->makeHidden(['created_at', 'updated_at'])
+    //              ], 200);
+    //          }
  
-             return response()->json(['message' => 'Fee plan particular not found.'], 404);
-         }
+    //          return response()->json(['message' => 'Fee plan particular not found.'], 404);
+    //      }
  
-         $feePlanParticulars = FeePlanPeriodModel::all()->makeHidden(['created_at', 'updated_at']);
+    //      $feePlanParticulars = FeePlanPeriodModel::all()->makeHidden(['created_at', 'updated_at']);
  
-         return $feePlanParticulars->isNotEmpty()
-             ? response()->json([
-                 'message' => 'Fee plan particulars fetched successfully!',
-                 'data' => $feePlanParticulars,
-                 'count' => $feePlanParticulars->count()
-             ], 200)
-             : response()->json(['message' => 'No fee plan particulars available.'], 400);
-     }
+    //      return $feePlanParticulars->isNotEmpty()
+    //          ? response()->json([
+    //              'message' => 'Fee plan particulars fetched successfully!',
+    //              'data' => $feePlanParticulars,
+    //              'count' => $feePlanParticulars->count()
+    //          ], 200)
+    //          : response()->json(['message' => 'No fee plan particulars available.'], 400);
+    //  }
+    public function index(Request $request, $id = null)
+    {
+        // Validate `ay_id` and `fp_id` as required
+        $validated = $request->validate([
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+            'fp_id' => 'required|integer|exists:t_fee_plans,id',
+        ]);
+
+        $ay_id = $validated['ay_id'];
+        $fp_id = $validated['fp_id'];
+
+        if ($id) {
+            // Fetch a specific Fee Plan Particular by ID, filtered by `ay_id` and `fp_id`
+            $feePlanParticular = FeePlanPeriodModel::where('id', $id)
+                ->where('ay_id', $ay_id)
+                ->where('fp_id', $fp_id)
+                ->first();
+
+            if ($feePlanParticular) {
+                return response()->json([
+                    'message' => 'Fee plan particular fetched successfully!',
+                    'data' => $feePlanParticular->makeHidden(['created_at', 'updated_at']),
+                ], 200);
+            }
+
+            return response()->json(['message' => 'Fee plan particular not found.'], 404);
+        }
+
+        // Fetch all Fee Plan Particulars filtered by `ay_id` and `fp_id`
+        $feePlanParticulars = FeePlanPeriodModel::where('ay_id', $ay_id)
+            ->where('fp_id', $fp_id)
+            ->get()
+            ->makeHidden(['created_at', 'updated_at']);
+
+        return $feePlanParticulars->isNotEmpty()
+            ? response()->json([
+                'message' => 'Fee plan particulars fetched successfully!',
+                'data' => $feePlanParticulars,
+                'count' => $feePlanParticulars->count(),
+            ], 200)
+            : response()->json(['message' => 'No fee plan particulars available.'], 404);
+    }
+
  
      // Create a new record
      public function register(Request $request)

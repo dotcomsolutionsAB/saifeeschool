@@ -221,5 +221,83 @@ class CharacterCertificateController extends Controller
         }
     }
 
+    public function bulkStore(Request $request)
+    {
+        $validated = $request->validate([
+            'records' => 'required|array', // Expecting an array of records
+            'records.*.registration_no' => 'required|string|max:100',
+            'records.*.name' => 'required|string|max:512',
+            'records.*.joining_date' => 'required|date_format:d-m-Y',
+            'records.*.leaving_date' => 'nullable|date_format:d-m-Y',
+            'records.*.stream' => 'required|string|max:100',
+            'records.*.date_from' => 'required|string|max:100',
+            'records.*.dob' => 'required|date_format:Y-m-d',
+        ]);
+
+        try {
+            $recordsData = $validated['records'];
+            $createdRecords = [];
+
+            foreach ($recordsData as $record) {
+                // Fetch student details by name
+                $students = StudentModel::whereRaw("CONCAT(st_first_name, ' ', st_last_name) = ?", [$record['name']])->get();
+
+                if ($students->isEmpty()) {
+                    throw new \Exception("No student found with the provided name: " . $record['name']);
+                }
+
+                // If multiple students found, filter by `st_flag = 1`
+                $student = $students->count() > 1
+                    ? $students->where('st_flag', 1)->first()
+                    : $students->first();
+
+                if (!$student) {
+                    throw new \Exception("No flagged student found for name: " . $record['name']);
+                }
+
+                // Call the CounterController increment function for serial number
+                $counterRequest = new Request(['t_name' => 't_character_certificate']);
+                $counterController = new CounterController();
+                $incrementResponse = $counterController->increment($counterRequest);
+
+                if ($incrementResponse->getStatusCode() !== 200) {
+                    throw new \Exception("Failed to increment serial number.");
+                }
+
+                $serialNo = $incrementResponse->getData()->data->number;
+
+                $data = [
+                    'dated' => now()->toDateString(), // Current date
+                    'serial_no' => $serialNo, // Incremented serial number
+                    'registration_no' => $record['registration_no'],
+                    'st_id' => $student->id,
+                    'st_roll_no' => $student->st_roll_no,
+                    'name' => $record['name'],
+                    'joining_date' => Carbon::createFromFormat('d-m-Y', $record['joining_date'])->format('Y-m-d'),
+                    'leaving_date' => isset($record['leaving_date']) && $record['leaving_date']
+                        ? Carbon::createFromFormat('d-m-Y', $record['leaving_date'])->format('Y-m-d')
+                        : null,
+                    'stream' => $record['stream'],
+                    'date_from' => $record['date_from'],
+                    'dob' => $record['dob'],
+                    'dob_words' => Carbon::createFromFormat('Y-m-d', $record['dob'])->format('F j, Y'),
+                ];
+
+                $createdRecord = CharacterCertificateModel::create($data);
+                $createdRecords[] = $createdRecord->makeHidden(['id', 'created_at', 'updated_at']);
+            }
+
+            return response()->json([
+                'message' => 'Records created successfully.',
+                'data' => $createdRecords,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to process bulk creation.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 
 }
