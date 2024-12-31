@@ -12,6 +12,7 @@ use App\Models\User;
 use League\Csv\Reader;
 use League\Csv\Statement;
 use Illuminate\Validation\Rule;
+use Mpdf\Mpdf;
 
 class StudentController extends Controller
 {
@@ -1034,69 +1035,101 @@ class StudentController extends Controller
     public function export(Request $request)
     {
         $validated = $request->validate([
-            'cg_id' => 'nullable|integer|exists:t_class_groups,id',
-            'bohra' => 'nullable|boolean',
-            'gender' => 'nullable|in:M,F',
-            'ay_id' => 'nullable|integer|exists:t_academic_years,id',
-            'type' => 'required|in:excel,pdf',
+            'type' => 'required|in:excel,pdf', // Type of export
+            'cg_id' => 'required|integer|exists:t_class_groups,id', // Class group ID
+            'bohra' => 'required|boolean', // Bohra status (true/false)
+            'gender' => 'required|in:M,F', // Gender (M or F)
+            'ay_id' => 'required|integer|exists:t_academic_years,id', // Academic Year ID
         ]);
 
         try {
-            // Step 1: Determine academic year
-            $academicYear = !empty($validated['ay_id'])
-                ? AcademicYearModel::find($validated['ay_id'])
-                : AcademicYearModel::where('ay_current', '1')->first();
+            // Fetch and filter data based on the provided parameters
+            $data = StudentClassModel::with(['student', 'classGroup'])
+                ->where('cg_id', $validated['cg_id'])
+                ->whereHas('student', function ($query) use ($validated) {
+                    $query->where('st_bohra', $validated['bohra'])
+                        ->where('st_gender', $validated['gender']);
+                })
+                ->where('ay_id', $validated['ay_id'])
+                ->get()
+                ->map(function ($studentClass, $index) {
+                    $student = $studentClass->student;
 
-            if (!$academicYear) {
-                return response()->json(['message' => 'No academic year found.', 'status' => 'false'], 404);
+                    if (!$student) {
+                        return [];
+                    }
+
+                    return [
+                        'SN' => $index + 1,
+                        'Roll No' => $student->st_roll_no,
+                        'Name' => $student->st_first_name . ' ' . $student->st_last_name,
+                        'Class' => $studentClass->classGroup->cg_name ?? 'Class group not found',
+                        'Gender' => $student->st_gender === 'M' ? 'Male' : ($student->st_gender === 'F' ? 'Female' : 'Not Specified'),
+                        'DOB' => $student->st_dob ? \Carbon\Carbon::parse($student->st_dob)->format('d-m-Y') : 'N/A',
+                        'ITS' => $student->st_its_id ?? 'N/A',
+                        'Mobile' => $student->st_mobile ?? 'N/A',
+                        'Bohra' => $student->st_bohra ? 'Yes' : 'No',
+                        'Academic Year' => $studentClass->ay_id ?? 'N/A',
+                        'Class Group ID' => $studentClass->cg_id ?? 'N/A',
+                    ];
+                })
+                ->filter() // Remove empty rows where student data is missing
+                ->values()
+                ->toArray();
+
+            if (empty($data)) {
+                return response()->json(['message' => 'No data available for export.'], 404);
             }
 
-            // Step 2: Fetch students based on filters
-            $query = DB::table('t_student_classes as sc')
-                ->join('t_students as s', 'sc.st_id', '=', 's.id')
-                ->join('t_class_groups as cg', 'sc.cg_id', '=', 'cg.id')
-                ->where('sc.ay_id', $academicYear->id)
-                ->select(
-                    DB::raw('ROW_NUMBER() OVER () as SN'),
-                    's.st_roll_no as Roll_No',
-                    DB::raw("CONCAT(s.st_first_name, ' ', s.st_last_name) as Name"),
-                    'cg.cg_name as Class',
-                    DB::raw("IF(s.st_gender = 'M', 'Male', IF(s.st_gender = 'F', 'Female', NULL)) as Gender"),
-                    DB::raw("DATE_FORMAT(s.st_dob, '%d-%m-%Y') as DOB"),
-                    's.st_its_id as ITS',
-                    's.st_mobile as Mobile'
-                );
-
-            // Apply filters
-            if (!empty($validated['cg_id'])) {
-                $query->where('sc.cg_id', $validated['cg_id']);
-            }
-            if (isset($validated['bohra'])) {
-                $query->where('s.st_bohra', $validated['bohra']);
-            }
-            if (!empty($validated['gender'])) {
-                $query->where('s.st_gender', $validated['gender']);
-            }
-
-            $students = $query->get();
-
-            if ($students->isEmpty()) {
-                return response()->json(['message' => 'No students found for the given criteria.', 'status' => 'false'], 404);
-            }
-
-            // Step 3: Handle export type
+            // Export as Excel
             if ($validated['type'] === 'excel') {
-                return Excel::download(new StudentsExport($students), 'students.xlsx');
-            } elseif ($validated['type'] === 'pdf') {
-                $pdf = Pdf::loadView('exports.students', ['students' => $students, 'academic_year' => $academicYear->ay_name])
-                    ->setPaper('a4', 'portrait');
-                return $pdf->download('students.pdf');
+                return $this->exportExcel($data);
             }
+
+            // Export as PDF
+            return $this->exportPdf($data);
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to export data.',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Failed to export data.', 'error' => $e->getMessage()], 500);
         }
     }
+
+    private function exportExcel(array $data)
+    {
+        $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
+
+        // return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\StudentsExport($data), $fileName);
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\StudentsExport($data), $fileName, \Maatwebsite\Excel\Excel::XLSX);
+    }
+
+    private function exportPdf(array $data)
+    {
+        $mpdf = new \Mpdf\Mpdf([
+            'format' => 'A4',
+            'orientation' => 'P',
+            'margin_header' => 10,
+            'margin_footer' => 10,
+            'margin_top' => 20,
+            'margin_bottom' => 20,
+            'margin_left' => 15,
+            'margin_right' => 15,
+        ]);
+
+        $mpdf->SetTitle('Student Export');
+
+        // Split HTML into smaller chunks and process each chunk
+        $html = view('exports.students_pdf', compact('data'))->render();
+        $chunks = str_split($html, 50000); // Split the HTML into chunks of 50,000 characters
+
+        foreach ($chunks as $chunk) {
+            $mpdf->WriteHTML($chunk);
+        }
+
+        $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
+
+        return response()->streamDownload(function () use ($mpdf) {
+            $mpdf->Output();
+        }, $fileName);
+    }
+
+
 }

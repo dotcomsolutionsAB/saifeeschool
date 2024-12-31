@@ -41,10 +41,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/view', [StudentController::class, 'index']);          // List all students
         Route::post('/view/{id}', [StudentController::class, 'index']);     // Get details of a single student
         Route::post('/register', [StudentController::class, 'register']);         // Add a new student (Admin only)
-        Route::post('/{id}', [StudentController::class, 'update']);     // Update a student (Admin only)
+        Route::post('/update/{id}', [StudentController::class, 'update']);     // Update a student (Admin only)
         Route::delete('/{id}', [StudentController::class, 'destroy']); // Delete a student (Admin only)
 
         Route::post('/duplicate', [StudentController::class, 'fetch_duplicate']); // Get duplicate student roll
+
+        Route::post('/export', [StudentController::class, 'export']); // Get export student roll
 
         Route::get('/import_basic', [StudentController::class, 'importStudentCsv']); 
         Route::get('/import_details', [StudentController::class, 'importDetailsCsv']); 
