@@ -62,6 +62,6 @@ class StudentsExport implements FromCollection, WithHeadings
      */
     public function headings(): array
     {
-        return ['SN', 'Roll No', 'Name', 'Class', 'Gender', 'DOB', 'ITS', 'Mobile', 'Bohra', 'Academic Year', 'Class Group ID'];
+        return ['SN', 'Roll No', 'Name', 'Class', 'Gender', 'DOB', 'ITS', 'Mobile', 'Bohra', 'Academic Year'];
     }
 }

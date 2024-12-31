@@ -1044,7 +1044,7 @@ class StudentController extends Controller
 
         try {
             // Fetch and filter data based on the provided parameters
-            $data = StudentClassModel::with(['student', 'classGroup'])
+            $data = StudentClassModel::with(['student', 'classGroup', 'academicYear'])
                 ->where('cg_id', $validated['cg_id'])
                 ->whereHas('student', function ($query) use ($validated) {
                     $query->where('st_bohra', $validated['bohra'])
@@ -1069,8 +1069,8 @@ class StudentController extends Controller
                         'ITS' => $student->st_its_id ?? 'N/A',
                         'Mobile' => $student->st_mobile ?? 'N/A',
                         'Bohra' => $student->st_bohra ? 'Yes' : 'No',
-                        'Academic Year' => $studentClass->ay_id ?? 'N/A',
-                        'Class Group ID' => $studentClass->cg_id ?? 'N/A',
+                        'Academic Year' => $studentClass->academicYear->ay_name ?? 'N/A', // Use related name
+                        // 'Class Group ID' => $studentClass->cg_id ?? 'N/A',
                     ];
                 })
                 ->filter() // Remove empty rows where student data is missing
@@ -1130,6 +1130,5 @@ class StudentController extends Controller
             $mpdf->Output();
         }, $fileName);
     }
-
 
 }

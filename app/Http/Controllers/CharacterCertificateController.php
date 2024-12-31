@@ -224,7 +224,7 @@ class CharacterCertificateController extends Controller
     public function bulkStore(Request $request)
     {
         $validated = $request->validate([
-            'records' => 'required|array', // Expecting an array of records
+            'records' => 'required|array',
             'records.*.registration_no' => 'required|string|max:100',
             'records.*.name' => 'required|string|max:512',
             'records.*.joining_date' => 'required|date_format:d-m-Y',

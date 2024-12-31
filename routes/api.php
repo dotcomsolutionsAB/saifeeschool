@@ -20,6 +20,7 @@ use App\Http\Controllers\MarksController;
 use App\Http\Controllers\CharacterCertificateController;
 use App\Http\Controllers\TransferCertificateController;
 use App\Http\Controllers\CounterController;
+use App\Http\Controllers\NewAdmissionController;
 use App\Http\Controllers\Auth\AuthController;
 
 // Route::get('/user', function (Request $request) {
@@ -197,7 +198,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Character Certificate Routes
     Route::prefix('character_certificate')->group(function () {
         Route::get('/view', [CharacterCertificateController::class, 'index']);          // List all Purchase
-        Route::post('/{id?}', [CharacterCertificateController::class, 'storeOrUpdate']);         // Add a new Purchase (Admin only)
+        Route::post('/register/{id?}', [CharacterCertificateController::class, 'storeOrUpdate']);         // Add a new Purchase (Admin only)
         Route::delete('/{id}', [CharacterCertificateController::class, 'destroy']); // Delete a Purchase (Admin only)
     
         Route::get('/import', [CharacterCertificateController::class, 'importCsv']); 
@@ -212,6 +213,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::delete('/{id}', [TransferCertificateController::class, 'destroy']); // Delete a Purchase (Admin only)
     
         Route::get('/import', [TransferCertificateController::class, 'importCsv']); 
+    });
+
+    // New Admission Routes
+    Route::prefix('new_admission')->group(function () {
+        Route::get('/view', [NewAdmissionController::class, 'view']);          // List all Purchase
+        Route::post('/register', [NewAdmissionController::class, 'register']); // Register a specific child
+        Route::post('/update/{id}', [NewAdmissionController::class, 'update']); // Update a specific child
+        Route::delete('/{id}', [NewAdmissionController::class, 'destroy']); // Delete a Purchase (Admin only)
+    
+        Route::get('/import', [NewAdmissionController::class, 'importCsv']); 
     });
 
 });

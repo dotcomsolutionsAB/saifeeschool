@@ -65,7 +65,6 @@
                     <th>Mobile</th>
                     <th>Bohra</th>
                     <th>Academic Year</th>
-                    <th>Class Group ID</th>
                 </tr>
             </thead>
             <tbody>
@@ -81,7 +80,6 @@
                         <td>{{ $student['Mobile'] }}</td>
                         <td>{{ $student['Bohra'] }}</td>
                         <td>{{ $student['Academic Year'] }}</td>
-                        <td>{{ $student['Class Group ID'] }}</td>
                     </tr>
                 @empty
                     <tr>
