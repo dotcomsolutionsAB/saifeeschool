@@ -31,8 +31,8 @@ return new class extends Migration
             $table->string('date_to', 100)->nullable(); // Date to
             $table->date('dob')->nullable(); // Date of birth
             $table->string('dob_words', 256)->default(''); // Date of birth in words
-            $table->string('promotion',['0', '1'])->default(''); // Promotion status
-            $table->enum('status', ['Not Applicable', 'Refused', 'Promoted'])->default('0'); // Status (0 or 1)
+            $table->enum('promotion', ['0', '1'])->default('0'); // Promotion status
+            $table->enum('status', ['Not Applicable', 'Refused', 'Promoted'])->default('Not Applicable'); // Status            
             $table->timestamps();
         });
     }
