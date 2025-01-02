@@ -19,7 +19,7 @@ return new class extends Migration
             $table->integer('st_id')->default(0); // Student ID
             $table->string('st_roll_no', 100)->default(''); // Student roll number
             $table->string('name', 512)->default(''); // Student name
-            $table->date('joining_date')->nullable(false); // Joining date
+            $table->date('joining_date')->nullable(); // Joining date
             $table->date('leaving_date')->nullable(); // Leaving date
             $table->string('stream', 100)->default(''); // Stream
             $table->string('date_from', 100)->default(''); // Date from

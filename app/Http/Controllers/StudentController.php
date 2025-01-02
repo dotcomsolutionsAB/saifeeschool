@@ -13,6 +13,8 @@ use League\Csv\Reader;
 use League\Csv\Statement;
 use Illuminate\Validation\Rule;
 use Mpdf\Mpdf;
+use App\Http\Controllers\RazorpayController;
+use App\Http\Controllers\RazorpayService;
 
 class StudentController extends Controller
 {
@@ -1131,4 +1133,37 @@ class StudentController extends Controller
         }, $fileName);
     }
 
+    public function initiatePayment(Request $request)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'receipt' => 'nullable|string',
+            'against_fees' => 'required|integer',
+            'st_id' => 'required|integer',
+        ]);
+
+        try {
+            // Manually create an instance of RazorpayService
+            $razorpayService = new RazorpayService();
+
+            // Call the createOrder method
+            $order = $razorpayService->createOrder(
+                $validated['amount'],
+                'INR',
+                $validated['receipt'] ?? null,
+                $validated['against_fees'],
+                $validated['st_id']
+            );
+
+            return response()->json([
+                'success' => true,
+                'order' => $order,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

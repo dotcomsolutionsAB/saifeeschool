@@ -21,6 +21,8 @@ use App\Http\Controllers\CharacterCertificateController;
 use App\Http\Controllers\TransferCertificateController;
 use App\Http\Controllers\CounterController;
 use App\Http\Controllers\NewAdmissionController;
+use App\Http\Controllers\TeacherApplicationController;
+use App\Http\Controllers\RazorpayController;
 use App\Http\Controllers\Auth\AuthController;
 
 // Route::get('/user', function (Request $request) {
@@ -51,6 +53,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::get('/import_basic', [StudentController::class, 'importStudentCsv']); 
         Route::get('/import_details', [StudentController::class, 'importDetailsCsv']); 
+
+        Route::post('/make_payment', [StudentController::class, 'initiatePayment']);
     });
 
     // Route::post('/duplicate', [StudentController::class, 'fetch_duplicate']);
@@ -224,5 +228,19 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
         Route::get('/import', [NewAdmissionController::class, 'importCsv']); 
     });
+
+    // Teacher Application Routes
+    Route::prefix('teacher_application')->group(function () {
+        Route::get('/view', [TeacherApplicationController::class, 'view']);          // List all Purchase
+        Route::post('/register', [TeacherApplicationController::class, 'register']); // Register a specific child
+        Route::post('/update/{id}', [TeacherApplicationController::class, 'update']); // Update a specific child
+        Route::delete('/{id}', [TeacherApplicationController::class, 'destroy']); // Delete a Purchase (Admin only)
+    
+        Route::get('/import', [TeacherApplicationController::class, 'importCsv']); 
+    });
+
+    Route::post('/create-order', [RazorpayController::class, 'createOrder']);
+    Route::get('/payment-status/{paymentId}', [RazorpayController::class, 'fetchPaymentStatus']);
+    Route::get('/order-status/{orderId}', [RazorpayController::class, 'fetchOrderStatus']);
 
 });
