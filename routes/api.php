@@ -104,6 +104,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/update/{id}', [FeeController::class, 'update']); // Update a record
         Route::delete('/{id}', [FeeController::class, 'destroy']); // Delete a record
 
+        Route::post('/generate_pending_fees_pdf', [FeeController::class, 'generatePendingFeesPDF']);
+
         Route::get('/import', [FeeController::class, 'importCsv']); 
     });
 

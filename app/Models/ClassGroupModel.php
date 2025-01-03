@@ -11,4 +11,9 @@ class ClassGroupModel extends Model
 
     protected $fillable = [
         'id', 'ay_id', 'cg_name', 'cg_order'];
+
+    public function fees()
+    {
+        return $this->hasMany(FeeModel::class, 'cg_id', 'id');
+    }
 }

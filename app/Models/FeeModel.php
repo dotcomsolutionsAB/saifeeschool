@@ -33,4 +33,9 @@ class FeeModel extends Model
         'fp_main_monthly_fee', 
         'fp_main_admission_fee'
         ];
+
+    public function student()
+    {
+        return $this->belongsTo(StudentModel::class, 'st_id', 'id');
+    }
 }

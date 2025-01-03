@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use League\Csv\Reader;
 use League\Csv\Statement;
+use App\Models\ClassGroupModel;
+use Mpdf\Mpdf;
 
 class FeeController extends Controller
 {
@@ -548,4 +550,327 @@ class FeeController extends Controller
             return response()->json(['message' => 'Failed to import CSV.', 'error' => $e->getMessage()], 500);
         }
     }
+
+    public function generatePendingFeesPDF(Request $request)
+{
+    $validated = $request->validate([
+        'year' => 'required|integer',
+        'class_name' => 'required|string', // Expect a comma-separated list of class IDs
+        'fee_status' => 'nullable|integer|in:0,1',
+    ]);
+
+    $ay_id = $validated['year'];
+    $cg_ids = explode(',', $validated['class_name']); // Convert comma-separated IDs into an array
+    $fee_status = $validated['fee_status'] ?? 0; // Default: unpaid fees
+    $feePaid = $fee_status == 1;
+
+    // DB::enableQueryLog(); // Enable query logging
+
+    // Fetch Class Groups with fees and students
+    // $classGroups = ClassGroupModel::with(['fees' => function ($query) use ($ay_id, $feePaid) {
+    //     $query->where('ay_id', $ay_id)
+    //           ->where('f_active', 1)
+    //           ->when(!$feePaid, function ($q) {
+    //               $q->where('f_paid', 0);
+    //           })
+    //           ->with('student');
+    // }])->whereIn('id', $cg_ids)->get();
+
+    $classGroups = ClassGroupModel::with(['fees' => function ($query) use ($ay_id, $feePaid) {
+        $query->where('ay_id', $ay_id)
+              ->whereIn('f_active', ['1', 1]) // Handle both string and integer for f_active
+              ->when(!$feePaid, function ($q) {
+                  $q->whereIn('f_paid', ['0', 0]); // Unpaid fees
+              }, function ($q) {
+                  $q->whereIn('f_paid', ['1', 1]); // Paid fees
+              })
+            //   ->groupBy('st_id') // Group by student ID
+              ->with('student');
+    }])
+    ->whereIn('id', $cg_ids) // Filter by class group IDs
+    ->get();
+
+    // dd(DB::getQueryLog());
+
+    if ($classGroups->isEmpty()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No records found for the provided class group IDs or academic year.',
+        ], 404);
+    }
+
+    // Prepare data for Blade view
+    $classData = [];
+    foreach ($classGroups as $classGroup) {
+        $students = [];
+        $classTotal = 0;
+
+        // Group fees by student
+        $groupedFees = $classGroup->fees->groupBy('st_id');
+
+        foreach ($groupedFees as $studentId => $fees) {
+            $studentName = $fees->first()->student->st_first_name . ' ' . $fees->first()->student->st_last_name;
+            $rollNo = $fees->first()->student->st_roll_no;
+            $studentTotal = 0;
+            $feeDetails = [];
+
+            foreach ($fees as $fee) {
+                $feeAmount = $fee->fpp_amount - $fee->f_concession;
+                $lateFee = $fee->fpp_late_fee ?? 0;
+                $totalAmount = $feeAmount + $lateFee;
+
+                $studentTotal += $totalAmount;
+
+                $feeDetails[] = [
+                    'fee_id' => $fee->id,
+                    'fee_name' => $fee->fpp_name,
+                    'total' => $totalAmount,
+                ];
+            }
+
+            $students[] = [
+                'name' => $studentName,
+                'roll_no' => $rollNo,
+                'fees' => $feeDetails,
+                'student_total' => $studentTotal,
+            ];
+
+            // print_r($students);
+
+            $classTotal += $studentTotal;
+        }
+
+        $classData[] = [
+            'class_name' => $classGroup->cg_name,
+            'students' => $students,
+            'class_total' => $classTotal,
+        ];
+    }
+
+    // Render Blade view
+    $html = view('pending_fees', ['classes' => $classData])->render();
+
+    // Generate PDF using MPDF
+    $mpdf = new \Mpdf\Mpdf();
+    $mpdf->WriteHTML($html);
+
+    // Output PDF inline
+    return $mpdf->Output('Pending_Fees.pdf', 'I');
+}
+
+//     public function generatePendingFeesPDF(Request $request)
+// {
+//     // Validate Inputs
+//     $validated = $request->validate([
+//         'year' => 'required|integer',        // Academic Year ID
+//         'class_name' => 'required|integer', // Class Group ID
+//         'fee_status' => 'nullable|integer|in:0,1', // Fee status (0 = unpaid, 1 = paid)
+//     ]);
+
+//     $ay_id = $validated['year'];
+//     $cg_id = $validated['class_name'];
+//     $fee_status = $validated['fee_status'] ?? 0; // Default: unpaid fees
+
+//     // Fee status filter
+//     $feePaid = $fee_status == 1;
+
+//     // Fetch Class Group with Fees and Students
+//     $classGroup = ClassGroupModel::with(['fees' => function ($query) use ($ay_id, $feePaid) {
+//         $query->where('ay_id', $ay_id)
+//               ->where('f_active', 1)
+//               ->when(!$feePaid, function ($q) {
+//                   $q->where('f_paid', 0);
+//               })
+//               ->with('student');
+//     }])->where('id', $cg_id)->first();
+
+//     if (!$classGroup) {
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Invalid Class Group or Academic Year ID',
+//         ], 400);
+//     }
+
+//     // Prepare data for Blade view
+//     $classData = [];
+//     $students = [];
+//     $classTotal = 0;
+
+//     foreach ($classGroup->fees as $fee) {
+//         $feeAmount = $fee->fpp_amount - $fee->f_concession;
+//         $lateFee = $fee->fpp_late_fee ?? 0;
+//         $totalAmount = $feeAmount + $lateFee;
+
+//         $classTotal += $totalAmount;
+
+//         $students[] = [
+//             'name' => $fee->student->st_first_name . ' ' . $fee->student->st_last_name,
+//             'roll_no' => $fee->student->st_roll_no,
+//             'fee_name' => $fee->fpp_name,
+//             'total' => $totalAmount,
+//         ];
+//     }
+
+//     $classData[] = [
+//         'class_name' => $classGroup->cg_name,
+//         'students' => $students,
+//         'class_total' => $classTotal,
+//     ];
+
+//     // Load Blade view and render HTML
+//     $html = view('pending_fees', ['classes' => $classData])->render();
+
+//     // Generate PDF using MPDF
+//     $mpdf = new \Mpdf\Mpdf();
+//     $mpdf->WriteHTML($html);
+
+//     // Output PDF
+//     return $mpdf->Output('Pending_Fees.pdf', 'I'); // Inline view
+// }
+
+    // public function generatePendingFeesPDF(Request $request)
+    // {
+    //     // Validate Inputs
+    //     $validated = $request->validate([
+    //         'year' => 'required|integer',        // Academic Year ID
+    //         'class_name' => 'required|integer', // Class Group ID
+    //         'fee_status' => 'nullable|integer|in:0,1', // Fee status (0 = unpaid, 1 = paid)
+    //     ]);
+
+    //     $ay_id = $validated['year'];
+    //     $cg_id = $validated['class_name'];
+    //     $fee_status = $validated['fee_status'] ?? 0; // Default: unpaid fees
+
+    //     // Fee status filter
+    //     $feePaid = $fee_status == 1;
+
+    //     // Ensure the class group belongs to the correct academic year
+    //     $classGroup = ClassGroupModel::where('id', $cg_id)
+    //         ->where('ay_id', $ay_id)
+    //         ->first();
+
+    //     if (!$classGroup) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Class group not found or does not belong to the provided academic year',
+    //         ], 404);
+    //     }
+    //     // DB::enableQueryLog(); // Enable query logging
+    //     // Fetch fees with student data
+    //     $fees = FeeModel::where('cg_id', $cg_id)
+    //         ->where('ay_id', $ay_id)
+    //         ->where('f_active', 1)
+    //         ->when(!$feePaid, function ($query) {
+    //             $query->where('f_paid', 0);
+    //         })
+    //         ->with('student')
+    //         ->get();
+    //         // Get and dump query logs
+    //   // dd(DB::getQueryLog());
+
+    //     if ($fees->isEmpty()) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'No fees records found for the specified class group and academic year',
+    //         ], 404);
+    //     }
+
+    //     // Prepare data for Blade view
+    //     $students = [];
+    //     $classTotal = 0;
+
+    //     foreach ($fees as $fee) {
+    //         $feeAmount = $fee->fpp_amount - $fee->f_concession;
+    //         $lateFee = $fee->fpp_late_fee ?? 0;
+    //         $totalAmount = $feeAmount + $lateFee;
+
+    //         $classTotal += $totalAmount;
+
+    //         $students[] = [
+    //             'name' => $fee->student->st_first_name . ' ' . $fee->student->st_last_name,
+    //             'roll_no' => $fee->student->st_roll_no,
+    //             'fee_name' => $fee->fpp_name,
+    //             'total' => $totalAmount,
+    //         ];
+    //     }
+
+    //     $classData = [
+    //         'class_name' => $classGroup->cg_name,
+    //         'students' => $students,
+    //         'class_total' => $classTotal,
+    //     ];
+
+    //     // Load Blade view and render HTML
+    //     $html = view('pending_fees', ['classData' => $classData])->render();
+
+    //     // Generate PDF using MPDF
+    //     $mpdf = new \Mpdf\Mpdf();
+    //     $mpdf->WriteHTML($html);
+
+    //     // Output PDF
+    //     return $mpdf->Output('Pending_Fees.pdf', 'I'); // Inline view
+    // }
+
+    // public function generatePendingFeesPDF(Request $request)
+    // {
+    //     // Fetch data from database
+    //     $ay_id = $request->input('year');
+    //     $cg_id = $request->input('class_name');
+    //     $filter_fee_status = $request->input('fee_status') == 0 ? "AND f_paid = 0" : "AND f_paid = 1";
+
+    //     $classes = [];
+    //     $query = "SELECT * FROM t_class_groups WHERE ay_id = ?";
+    //     $result = \DB::select($query, [$ay_id]);
+
+    //     foreach ($result as $class) {
+    //         $students = \DB::select("
+    //             SELECT
+    //                 s.st_first_name,
+    //                 s.st_last_name,
+    //                 s.st_roll_no,
+    //                 f.fpp_name,
+    //                 f.fpp_amount,
+    //                 f.f_concession,
+    //                 f.fpp_late_fee
+    //             FROM fee f
+    //             JOIN t_students s ON s.st_id = f.st_id
+    //             WHERE f.cg_id = ? $filter_fee_status
+    //             ", [$class->cg_id]);
+
+    //         $classTotal = 0;
+    //         $studentData = [];
+
+    //         foreach ($students as $student) {
+    //             $feeAmount = $student->fpp_amount - $student->f_concession;
+    //             $lateFee = $student->fpp_late_fee;
+    //             $total = $feeAmount + $lateFee;
+
+    //             $classTotal += $total;
+
+    //             $studentData[] = [
+    //                 'name' => $student->st_first_name . ' ' . $student->st_last_name,
+    //                 'roll_no' => $student->st_roll_no,
+    //                 'fee_name' => $student->fpp_name,
+    //                 'total' => $total,
+    //             ];
+    //         }
+
+    //         $classes[] = [
+    //             'class_name' => $class->cg_name,
+    //             'students' => $studentData,
+    //             'class_total' => $classTotal,
+    //         ];
+    //     }
+
+    //     // Load the Blade view with data
+    //     $html = view('pending_fees', compact('classes'))->render();
+
+    //     // Generate PDF using MPDF
+    //     $mpdf = new Mpdf();
+    //     $mpdf->WriteHTML($html);
+
+    //     // Output PDF
+    //     return $mpdf->Output('Pending_Fees.pdf', 'I'); // 'I' for inline view, 'D' for download
+    // }
+
 }
