@@ -238,7 +238,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/update/{id}', [TeacherApplicationController::class, 'update']); // Update a specific child
         Route::delete('/{id}', [TeacherApplicationController::class, 'destroy']); // Delete a Purchase (Admin only)
     
-        Route::get('/import', [TeacherApplicationController::class, 'importCsv']); 
     });
 
     Route::post('/create-order', [RazorpayController::class, 'createOrder']);
