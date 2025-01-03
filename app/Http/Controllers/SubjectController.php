@@ -43,6 +43,7 @@ class SubjectController extends Controller
                 try {
                     // Validate and prepare the data
                     $data[] = [
+                        'id' => $row['sub_id'],
                         'subject' => $row['subject'] ?? null,
                         'cg_group' => $row['cg_group'] ?? null,
                         'type' => $row['type'] ?? null,

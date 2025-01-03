@@ -162,6 +162,7 @@ class AttendanceController extends Controller
                 try {
                     // Prepare attendance data
                     $attendance = [
+                        'id' => $row['id'],
                         'session' => $row['session'] ?? '',
                         'st_roll_no' => $row['st_roll_no'] ?? '',
                         'cg_id' => $row['cg_id'] ?? '',

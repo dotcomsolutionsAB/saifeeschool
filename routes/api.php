@@ -39,6 +39,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::post('/password', [UserController::class, 'change_password']);          // Update password
 
+    Route::post('/new_password', [UserController::class, 'updatePassword']);  // New password
+
     // Student Routes
     Route::prefix('student')->group(function () {
         Route::post('/view', [StudentController::class, 'index']);          // List all students

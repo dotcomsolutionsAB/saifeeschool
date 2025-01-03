@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PasswordUpdated;
+use Hash;
 
 class UserController extends Controller
 {
@@ -90,5 +91,23 @@ class UserController extends Controller
              // If the user does not exist
             return response()->json(['message' => 'User not found.', 'status' => 'false'], 200);
         }
+    }
+
+    public function updatePassword(Request $request)
+    {
+        // Validate the request
+        $validated = $request->validate([
+            'new_password' => 'required|string|min:8|confirmed', // 'confirmed' ensures it matches 'new_password_confirmation'
+        ]);
+
+        // Update the password
+        $user = auth()->user(); // Get the currently authenticated user
+        $user->password = Hash::make($validated['new_password']); // Hash the new password
+        $user->save(); // Save the updated user model
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password updated successfully!',
+        ]);
     }
 }
