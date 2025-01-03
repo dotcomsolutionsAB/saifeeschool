@@ -222,7 +222,7 @@ class TeacherApplicationController extends Controller
             // Check if the file path is being used elsewhere in the Uploads table
             $isFileInUse = UploadModel::where('file_url', $file->file_url)->where('id', '!=', $fileId)->exists();
 
-            print_r($isFileInUse);
+            // print_r($isFileInUse);
             if (!$isFileInUse) {
                 // File is not used anywhere else, delete from storage
                 if (\Storage::disk('public')->exists($file->file_url)) {
