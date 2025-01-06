@@ -25,6 +25,7 @@ use App\Http\Controllers\TeacherApplicationController;
 use App\Http\Controllers\RazorpayController;
 use App\Http\Controllers\PGResponseController;
 use App\Http\Controllers\DailyTransactionController;
+use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\Auth\AuthController;
 
 // Route::get('/user', function (Request $request) {
@@ -252,6 +253,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/export', [DailyTransactionController::class, 'exportToExcel']);
 
     });
+
+    Route::get('/import_txn', [TransactionController::class, 'importCsv']);
 
     Route::post('/create-order', [RazorpayController::class, 'createOrder']);
     Route::get('/payment-status/{paymentId}', [RazorpayController::class, 'fetchPaymentStatus']);

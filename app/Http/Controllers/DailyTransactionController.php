@@ -44,7 +44,7 @@ class DailyTransactionController extends Controller
 
         // Return success if transactions exist, else return an error message
         return $transactions->count() > 0 
-        ? response()->json(['status' => 'success', 'data' => $transactions]) 
+        ? response()->json(['status' => 'success', 'data' => $transactions, 'count' => count($transactions)]) 
         : response()->json(['status' => 'error', 'message' => 'No transactions found for today.']);
         }
 
