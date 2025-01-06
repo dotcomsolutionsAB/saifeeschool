@@ -23,6 +23,8 @@ use App\Http\Controllers\CounterController;
 use App\Http\Controllers\NewAdmissionController;
 use App\Http\Controllers\TeacherApplicationController;
 use App\Http\Controllers\RazorpayController;
+use App\Http\Controllers\PGResponseController;
+use App\Http\Controllers\DailyTransactionController;
 use App\Http\Controllers\Auth\AuthController;
 
 // Route::get('/user', function (Request $request) {
@@ -240,6 +242,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/update/{id}', [TeacherApplicationController::class, 'update']); // Update a specific child
         Route::delete('/{id}', [TeacherApplicationController::class, 'destroy']); // Delete a Purchase (Admin only)
     
+    });
+    Route::get('/import_pg_response', [PGResponseController::class, 'importCsv']);
+
+    Route::prefix('transactions')->group(function () {
+
+        Route::get('/records', [DailyTransactionController::class, 'index']);
+
+        Route::get('/export', [DailyTransactionController::class, 'exportToExcel']);
+
     });
 
     Route::post('/create-order', [RazorpayController::class, 'createOrder']);
