@@ -16,7 +16,8 @@ return new class extends Migration
             $table->integer('st_id')->nullable(); // Student ID (foreign key reference, optional)
             $table->integer('sch_id')->nullable(); // School ID (foreign key reference, optional)
             $table->integer('txn_type_id'); // Transaction type ID (required)
-            $table->integer('txn_date')->nullable(); // Transaction date (stored as integer, optional)
+            $table->date('txn_date')->nullable(); // Transaction date 
+            $table->time('txn_time')->nullable(); // Transaction time
             $table->enum('txn_mode', [
                 'internal', 'cash', 'cheque', 'draft', 'pg', 'imps', 'neft', 'rtgs', 'paytm', 'pos'
             ])->default('internal'); // Transaction mode with a default value of 'internal'

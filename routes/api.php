@@ -26,6 +26,7 @@ use App\Http\Controllers\RazorpayController;
 use App\Http\Controllers\PGResponseController;
 use App\Http\Controllers\DailyTransactionController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\TransactionTypeController;
 use App\Http\Controllers\Auth\AuthController;
 
 // Route::get('/user', function (Request $request) {
@@ -60,6 +61,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/import_details', [StudentController::class, 'importDetailsCsv']); 
 
         Route::post('/make_payment', [StudentController::class, 'initiatePayment']);
+
+        Route::get('/fetch_fees', [StudentController::class, 'fetchStudentFees']);
     });
 
     // Route::post('/duplicate', [StudentController::class, 'fetch_duplicate']);
@@ -255,6 +258,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     Route::get('/import_txn', [TransactionController::class, 'importCsv']);
+
+    Route::get('/import_txn_type', [TransactionTypeController::class, 'importCsv']);
+
+    Route::get('/fetch_txns', [TransactionTypeController::class, 'fetchTransactions']);
 
     Route::post('/create-order', [RazorpayController::class, 'createOrder']);
     Route::get('/payment-status/{paymentId}', [RazorpayController::class, 'fetchPaymentStatus']);

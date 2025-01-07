@@ -9,6 +9,7 @@ use App\Models\AcademicYearModel;
 use App\Models\ClassGroupModel;
 use App\Models\StudentClassModel;
 use App\Models\User;
+use App\Models\FeeModel;
 use League\Csv\Reader;
 use League\Csv\Statement;
 use Illuminate\Validation\Rule;
@@ -1166,4 +1167,222 @@ class StudentController extends Controller
             ], 500);
         }
     }
+
+    // public function fetchStudentFees()
+    // {
+    //     // Fetch the recent academic year data
+    //     $recentAcademicYearId = AcademicYearModel::where('ay_current', 1)->value('id');
+
+    //     if (!$recentAcademicYearId) {
+    //         return response()->json(['status' => 'error', 'message' => 'No active academic year found.']);
+    //     }
+
+    //     // Fetch data from the fees table with relationships
+    //     $fees = FeeModel::with(['student', 'studentClass.classGroup'])
+    //         ->whereHas('studentClass', function ($query) use ($recentAcademicYearId) {
+    //             $query->where('ay_id', $recentAcademicYearId); // Filter by recent academic year
+    //         })
+    //         ->get()
+    //         ->map(function ($fee) {
+    //             return [
+    //                 'name' => $fee->student
+    //                     ? $fee->student->st_first_name . ' ' . $fee->student->st_last_name
+    //                     : 'N/A', // Concatenate first and last name
+    //                 'roll_no' => $fee->student->st_roll_no ?? 'N/A',
+    //                 'class' => $fee->studentClass->classGroup->cg_name ?? 'N/A',
+    //                 'fee_name' => $fee->fpp_name,
+    //                 'fee_amount' => $fee->fpp_amount,
+    //                 'due_date' => $fee->fpp_due_date,
+    //                 'late_fee_applicable' => $fee->f_late_fee_applicable ? 'Yes' : 'No',
+    //                 'total_amount' => $fee->fpp_amount,
+    //             ];
+    //         });
+
+    //     return $fees->count() > 0
+    //         ? response()->json(['status' => 'success', 'data' => $fees, 'count' => $fees->count()])
+    //         : response()->json(['status' => 'error', 'message' => 'No data found.']);
+    // }
+
+    // public function fetchStudentFees()
+    // {
+    //     // Increase execution time for large datasets
+    //     // ini_set('max_execution_time', 300);
+
+    //     // Fetch the most recent academic year ID
+    //     $recentAcademicYearId = AcademicYearModel::where('ay_current', 1)->value('id');
+
+    //     if (!$recentAcademicYearId) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'No active academic year found.'
+    //         ]);
+    //     }
+
+    //     // Fetch data from the fees table with optimized relationships
+    //     // $fees = FeeModel::where('ay_id', $recentAcademicYearId)->get();
+    //     // dd($fees);
+
+        
+    //     $fees = FeeModel::with([
+    //         'student:id,st_first_name,st_last_name,st_roll_no', // Fetch only required student fields
+    //         // 'studentClass.classGroup:id,cg_name'               // Fetch only required class group fields
+    //     ])
+    //         ->whereHas('studentClass', function ($query) use ($recentAcademicYearId) {
+    //             $query->where('ay_id', $recentAcademicYearId); // Filter by recent academic year
+    //         })
+    //         ->chunk(500, function ($chunkedFees) use (&$fees) {
+    //             dd($chunkedFees);
+    //             foreach ($chunkedFees as $fee) {
+    //                 $fees[] = [
+    //                     'name' => $fee->student
+    //                         ? $fee->student->st_first_name . ' ' . $fee->student->st_last_name
+    //                         : 'N/A', // Concatenate first and last name
+    //                     'roll_no' => $fee->student->st_roll_no ?? 'N/A',
+    //                     // 'class' => $fee->studentClass->classGroup->cg_name ?? 'N/A',
+    //                     'fee_name' => $fee->fpp_name,
+    //                     'fee_amount' => $fee->fpp_amount,
+    //                     'due_date' => $fee->fpp_due_date,
+    //                     'late_fee_applicable' => $fee->f_late_fee_applicable ? 'Yes' : 'No',
+    //                     'total_amount' => $fee->fpp_amount,
+    //                 ];
+    //             }
+    //         });
+
+    //     // Return the processed data or an error response
+    //     return count($fees) > 0
+    //         ? response()->json(['status' => 'success', 'data' => $fees, 'count' => count($fees)])
+    //         : response()->json(['status' => 'error', 'message' => 'No data found.']);
+    // }
+
+    // public function fetchStudentFees(Request $request)
+    // {
+    //     // Increase PHP execution time for large datasets
+    //     // ini_set('max_execution_time', 300);
+
+    //     // Fetch the most recent academic year ID
+    //     $recentAcademicYearId = AcademicYearModel::where('ay_current', 1)->value('id');
+
+    //     if (!$recentAcademicYearId) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'No active academic year found.'
+    //         ]);
+    //     }
+
+    //     // Get pagination parameters from request
+    //     $page = $request->input('page', 1); // Default to page 1
+    //     $limit = $request->input('limit', 5); // Default to 500 records per page
+    //     $offset = ($page - 1) * $limit;
+
+    //     // Fetch fees data with pagination
+    //     $feesQuery = FeeModel::with([
+    //         'student:id,st_first_name,st_last_name,st_roll_no', // Fetch only required student fields
+    //         'studentClass.classGroup:id,cg_name'               // Fetch only required class group fields
+    //     ])
+    //         ->whereHas('studentClass', function ($query) use ($recentAcademicYearId) {
+    //             $query->where('ay_id', $recentAcademicYearId); // Filter by recent academic year
+    //         });
+
+    //     $totalCount = $feesQuery->count(); // Total records matching the criteria
+
+    //     $fees = $feesQuery
+    //         ->offset($offset)
+    //         ->limit($limit)
+    //         ->get()
+    //         ->map(function ($fee) {
+    //             return [
+    //                 'name' => $fee->student
+    //                     ? $fee->student->st_first_name . ' ' . $fee->student->st_last_name
+    //                     : 'N/A', // Concatenate first and last name
+    //                 'roll_no' => $fee->student->st_roll_no ?? 'N/A',
+    //                 'class' => $fee->studentClass->classGroup->cg_name ?? 'N/A',
+    //                 'fee_name' => $fee->fpp_name,
+    //                 'fee_amount' => $fee->fpp_amount,
+    //                 'due_date' => $fee->fpp_due_date,
+    //                 'late_fee_applicable' => $fee->f_late_fee_applicable ? 'Yes' : 'No',
+    //                 'total_amount' => $fee->fpp_amount,
+    //             ];
+    //         });
+
+    //     // Return the processed data along with metadata for pagination
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'data' => $fees,
+    //         'count' => $fees->count(),
+    //         'total' => $totalCount,
+    //         'current_page' => $page,
+    //         'total_pages' => ceil($totalCount / $limit)
+    //     ]);
+    // }
+
+    public function fetchStudentFees(Request $request)
+    {
+        // Increase PHP memory limit
+        ini_set('memory_limit', '1024M');
+
+        // Step 1: Fetch the most recent academic year ID
+        $recentAcademicYearId = AcademicYearModel::where('ay_current', 1)->value('id');
+
+        if (!$recentAcademicYearId) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No active academic year found.'
+            ]);
+        }
+
+        // Step 2: Get pagination parameters from request
+        $page = $request->input('page', 1); // Default to page 1
+        $limit = $request->input('limit', 500); // Default to 5 records per page
+        $offset = ($page - 1) * $limit;
+
+        // Step 3: Fetch only the student IDs related to the current academic year
+        $studentIds = StudentClassModel::where('ay_id', $recentAcademicYearId)
+            ->pluck('st_id');
+
+        if ($studentIds->isEmpty()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No students found for the current academic year.'
+            ]);
+        }
+
+        // Step 4: Fetch fees data for the filtered students
+        $feesQuery = FeeModel::with([
+            'student:id,st_first_name,st_last_name,st_roll_no', // Fetch only required student fields
+            'studentClass.classGroup:id,cg_name'               // Fetch only required class group fields
+        ])
+            ->whereIn('st_id', $studentIds);
+
+        $totalCount = $feesQuery->count(); // Total records matching the criteria
+
+        $fees = $feesQuery
+            ->offset($offset)
+            ->limit($limit)
+            ->get()
+            ->map(function ($fee) {
+                return [
+                    'name' => $fee->student
+                        ? $fee->student->st_first_name . ' ' . $fee->student->st_last_name
+                        : 'N/A', // Concatenate first and last name
+                    'roll_no' => $fee->student->st_roll_no ?? 'N/A',
+                    'class' => $fee->studentClass->classGroup->cg_name ?? 'N/A',
+                    'fee_name' => $fee->fpp_name,
+                    'fee_amount' => $fee->fpp_amount,
+                    'due_date' => $fee->fpp_due_date,
+                    'late_fee_applicable' => $fee->f_late_fee_applicable ? 'Yes' : 'No',
+                    'total_amount' => $fee->fpp_amount,
+                ];
+            });
+
+        // Step 5: Return the processed data along with metadata for pagination
+        return response()->json([
+            'status' => 'success',
+            'data' => $fees,
+            'count' => $fees->count(),
+            'total' => $totalCount,
+            'current_page' => $page,
+            'total_pages' => ceil($totalCount / $limit)
+        ]);
+    }
+
 }
