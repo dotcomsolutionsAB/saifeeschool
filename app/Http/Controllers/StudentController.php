@@ -10,6 +10,8 @@ use App\Models\ClassGroupModel;
 use App\Models\StudentClassModel;
 use App\Models\User;
 use App\Models\FeeModel;
+use App\Models\UploadModel;
+use Illuminate\Support\Facades\File;
 use League\Csv\Reader;
 use League\Csv\Statement;
 use Illuminate\Validation\Rule;
@@ -52,6 +54,11 @@ class StudentController extends Controller
             'country' => 'required|string|max:255',              // String, required
             'pincode' => 'required|integer|min:1',               // Integer, required
             'class_group' => 'required|integer|min:1',           // Integer, required
+            // Attachment fields
+            'birth_certificate' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
+            'aadhaar_card' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
+            'photo_pic' => 'nullable|file|mimes:jpg,png|max:2048',
+            'attachment' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
             'f_name' => 'required|string|max:255',
             'f_email' => 'required|email|max:255',
             'f_contact' => 'required|string|max:20',
@@ -171,6 +178,57 @@ class StudentController extends Controller
         }
 
         try {
+
+            // Handle file uploads
+            $photoId = null;
+            $birthCertificateId = null;
+            $aadhaarId = null;
+            $attachmentId = null;
+
+            if ($request->hasFile('photo_pic')) {
+                $photoFile = $request->file('photo_pic');
+                $photoPath = $photoFile->store('uploads/students/student_profile_images', 'public');
+                $photoId = UploadModel::create([
+                    'file_name' => pathinfo($photoFile->getClientOriginalName(), PATHINFO_FILENAME),
+                    'file_ext' => $photoFile->getClientOriginalExtension(),
+                    'file_url' => $photoPath,
+                    'file_size' => $photoFile->getSize(),
+                ])->id;
+            }
+
+            if ($request->hasFile('birth_certificate')) {
+                $birthCertificateFile = $request->file('birth_certificate');
+                $birthCertificatePath = $birthCertificateFile->store('uploads/students/birth_certificates', 'public');
+                $birthCertificateId = UploadModel::create([
+                    'file_name' => pathinfo($birthCertificateFile->getClientOriginalName(), PATHINFO_FILENAME),
+                    'file_ext' => $birthCertificateFile->getClientOriginalExtension(),
+                    'file_url' => $birthCertificatePath,
+                    'file_size' => $birthCertificateFile->getSize(),
+                ])->id;
+            }
+
+            if ($request->hasFile('aadhaar_card')) {
+                $aadhaarFile = $request->file('aadhaar_card');
+                $aadhaarPath = $aadhaarFile->store('uploads/students/aadhaar_certificate', 'public');
+                $aadhaarId = UploadModel::create([
+                    'file_name' => pathinfo($aadhaarFile->getClientOriginalName(), PATHINFO_FILENAME),
+                    'file_ext' => $aadhaarFile->getClientOriginalExtension(),
+                    'file_url' => $aadhaarPath,
+                    'file_size' => $aadhaarFile->getSize(),
+                ])->id;
+            }
+
+            if ($request->hasFile('attachment')) {
+                $attachmentFile = $request->file('attachment');
+                $attachmentPath = $aadhaarFile->store('uploads/students/attachment', 'public');
+                $attachmentId = UploadModel::create([
+                    'file_name' => pathinfo($attachmentFile->getClientOriginalName(), PATHINFO_FILENAME),
+                    'file_ext' => $attachmentFile->getClientOriginalExtension(),
+                    'file_url' => $attachmentPath,
+                    'file_size' => $attachmentFile->getSize(),
+                ])->id;
+            }
+
             // Create student
             $register_student = StudentModel::create([
                 'st_roll_no' => $validated['st_roll_no'],
@@ -192,15 +250,20 @@ class StudentController extends Controller
                 'st_admitted' => $validated['st_admitted'],
                 'st_admitted_class' => $validated['st_admitted_class'],
                 'st_flag' => $validated['st_flag'],
+                'photo_id' => $photoId, // Reference the uploaded profile picture
+                'birth_certificate_id' => $birthCertificateId, // Reference the uploaded Birth Certificate
+                'aadhaar_id' => $aadhaarId, // Reference the uploaded Aadhaar card
+                'attachment_id' => $attachmentId, // Reference the uploaded Attachments
             ]);
 
-            // $register_user = User::create([
-            //     'name' => trim(($validated['st_first_name'] ?? '') . ' ' . ($validated['st_last_name'] ?? '')),
-            //     'email' => strtolower($validated['st_gmail_address']),
-            //     'password' => bcrypt($validated['st_roll_no']),
-            //     'role' => "student",
-            //     'username' => $validated['st_gmail_address'],
-            // ]);
+            // register on user
+            $register_user = User::create([
+                'name' => trim(($validated['st_first_name'] ?? '') . ' ' . ($validated['st_last_name'] ?? '')),
+                'email' => strtolower($validated['st_gmail_address']),
+                'password' => bcrypt($validated['st_roll_no']),
+                'role' => "student",
+                'username' => $validated['st_gmail_address'],
+            ]);
 
             // Create student details
             $studentDetails  = StudentDetailsModel::create([
@@ -299,6 +362,11 @@ class StudentController extends Controller
             'st_admitted' => 'required|string|max:255',
             'st_admitted_class' => 'required|string|max:255',
             'st_flag' => 'required|string|max:255',
+            // Attachments validation
+            'birth_certificate' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
+            'aadhaar_card' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
+            'profile_picture' => 'nullable|file|mimes:jpg,png|max:2048',
+            'attachment' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
             'aadhaar_no' => 'nullable|digits:12|unique:t_student_details,aadhaar_no,' . $studentDetails->id,
             'residential_address1' => 'required|string|max:255',
             'residential_address2' => 'nullable|string|max:255',
@@ -386,6 +454,57 @@ class StudentController extends Controller
         }
 
         try {
+
+            // Handle file uploads
+            $photoId = null;
+            $birthCertificateId = null;
+            $aadhaarId = null;
+            $attachmentId = null;
+
+            if ($request->hasFile('photo_pic')) {
+                $photoFile = $request->file('photo_pic');
+                $photoPath = $photoFile->store('uploads/students/student_profile_images', 'public');
+                $photoId = UploadModel::create([
+                    'file_name' => pathinfo($photoFile->getClientOriginalName(), PATHINFO_FILENAME),
+                    'file_ext' => $photoFile->getClientOriginalExtension(),
+                    'file_url' => $photoPath,
+                    'file_size' => $photoFile->getSize(),
+                ])->id;
+            }
+
+            if ($request->hasFile('birth_certificate')) {
+                $birthCertificateFile = $request->file('birth_certificate');
+                $birthCertificatePath = $birthCertificateFile->store('uploads/students/birth_certificates', 'public');
+                $birthCertificateId = UploadModel::create([
+                    'file_name' => pathinfo($birthCertificateFile->getClientOriginalName(), PATHINFO_FILENAME),
+                    'file_ext' => $birthCertificateFile->getClientOriginalExtension(),
+                    'file_url' => $birthCertificatePath,
+                    'file_size' => $birthCertificateFile->getSize(),
+                ])->id;
+            }
+
+            if ($request->hasFile('aadhaar_card')) {
+                $aadhaarFile = $request->file('aadhaar_card');
+                $aadhaarPath = $aadhaarFile->store('uploads/students/aadhaar_certificate', 'public');
+                $aadhaarId = UploadModel::create([
+                    'file_name' => pathinfo($aadhaarFile->getClientOriginalName(), PATHINFO_FILENAME),
+                    'file_ext' => $aadhaarFile->getClientOriginalExtension(),
+                    'file_url' => $aadhaarPath,
+                    'file_size' => $aadhaarFile->getSize(),
+                ])->id;
+            }
+
+            if ($request->hasFile('attachment')) {
+                $attachmentFile = $request->file('attachment');
+                $attachmentPath = $aadhaarFile->store('uploads/students/attachment', 'public');
+                $attachmentId = UploadModel::create([
+                    'file_name' => pathinfo($attachmentFile->getClientOriginalName(), PATHINFO_FILENAME),
+                    'file_ext' => $attachmentFile->getClientOriginalExtension(),
+                    'file_url' => $attachmentPath,
+                    'file_size' => $attachmentFile->getSize(),
+                ])->id;
+            }
+
             // Update student data
             $student->update([
                 'st_roll_no' => $validated['st_roll_no'],
@@ -673,91 +792,194 @@ class StudentController extends Controller
     //     }
     // }
 
+    // public function index(Request $request, $id = null)
+    // {
+    //     try {
+    //         // Validate the request for optional `ay_id`
+    //         $validated = $request->validate([
+    //             'ay_id' => 'nullable|integer|exists:t_academic_years,id',
+    //         ]);
+
+    //         // Determine the academic year to use
+    //         $currentAcademicYear = null;
+    //         if (!empty($validated['ay_id'])) {
+    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+    //                 ->where('id', $validated['ay_id'])
+    //                 ->first();
+    //         } else {
+    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+    //                 ->where('ay_current', '1')
+    //                 ->first();
+
+    //             if (!$currentAcademicYear) {
+    //                 $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+    //                     ->orderBy('id', 'desc')
+    //                     ->first();
+    //             }
+    //         }
+
+    //         if (!$currentAcademicYear) {
+    //             return response()->json(['message' => 'No academic year records found.'], 404);
+    //         }
+
+    //         if ($id) {
+    //             // Fetch a specific student's class details in the determined academic year
+    //             $studentClass = $currentAcademicYear->studentClasses()
+    //                 ->where('st_id', $id)
+    //                 ->with(['student', 'classGroup'])
+    //                 ->first();
+
+    //             if (!$studentClass) {
+    //                 return response()->json(['message' => 'Student is not enrolled in the determined academic year.', 'status' => 'false'], 404);
+    //             }
+
+    //             // Format the student data
+    //             $studentData = $studentClass->student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
+    //             $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
+    //             $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
+    //             $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
+
+    //             return response()->json([
+    //                 'message' => 'Student class name fetched successfully.',
+    //                 'data' => $studentData,
+    //                 'status' => 'true'
+    //             ], 200);
+    //         } else {
+    //             // Fetch all student-class records for the determined academic year
+    //             $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
+
+    //             if ($studentClasses->isEmpty()) {
+    //                 return response()->json(['message' => 'No students enrolled in the determined academic year.',  'status' => 'false'], 404);
+    //             }
+
+    //             // Map the data to include student details and class names
+    //             $data = $studentClasses->map(function ($studentClass) {
+    //                 $studentData = $studentClass->student ? $studentClass->student->makeHidden(['id', 'created_at', 'updated_at'])->toArray() : [];
+    //                 if (!empty($studentData)) {
+    //                     $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
+    //                     $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
+    //                 }
+    //                 $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
+    //                 return $studentData;
+    //             });
+
+    //             return response()->json([
+    //                 'message' => 'Student class names fetched successfully.',
+    //                 'academic_year' => $currentAcademicYear->ay_name,
+    //                 'data' => $data,
+    //                 'status' => 'true'
+    //             ], 200);
+    //         }
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'message' => 'An error occurred while fetching student class names.',
+    //             'error' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
     public function index(Request $request, $id = null)
-    {
-        try {
-            // Validate the request for optional `ay_id`
-            $validated = $request->validate([
-                'ay_id' => 'nullable|integer|exists:t_academic_years,id',
-            ]);
+{
+    try {
+        // Validate the request for optional `ay_id`
+        $validated = $request->validate([
+            'ay_id' => 'nullable|integer|exists:t_academic_years,id',
+        ]);
 
-            // Determine the academic year to use
-            $currentAcademicYear = null;
-            if (!empty($validated['ay_id'])) {
-                $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-                    ->where('id', $validated['ay_id'])
-                    ->first();
-            } else {
-                $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-                    ->where('ay_current', '1')
-                    ->first();
-
-                if (!$currentAcademicYear) {
-                    $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-                        ->orderBy('id', 'desc')
-                        ->first();
-                }
-            }
+        // Determine the academic year to use
+        $currentAcademicYear = null;
+        if (!empty($validated['ay_id'])) {
+            $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+                ->where('id', $validated['ay_id'])
+                ->first();
+        } else {
+            $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+                ->where('ay_current', '1')
+                ->first();
 
             if (!$currentAcademicYear) {
-                return response()->json(['message' => 'No academic year records found.'], 404);
+                $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+                    ->orderBy('id', 'desc')
+                    ->first();
+            }
+        }
+
+        if (!$currentAcademicYear) {
+            return response()->json(['message' => 'No academic year records found.'], 404);
+        }
+
+        if ($id) {
+            // Fetch a specific student's class details in the determined academic year
+            $studentClass = $currentAcademicYear->studentClasses()
+                ->where('st_id', $id)
+                ->with(['student', 'classGroup'])
+                ->first();
+
+            if (!$studentClass) {
+                return response()->json(['message' => 'Student is not enrolled in the determined academic year.', 'status' => 'false'], 404);
             }
 
-            if ($id) {
-                // Fetch a specific student's class details in the determined academic year
-                $studentClass = $currentAcademicYear->studentClasses()
-                    ->where('st_id', $id)
-                    ->with(['student', 'classGroup'])
-                    ->first();
+            // Fetch student details and photo
+            $student = $studentClass->student;
+            $photo = $student->photo_id
+                ? UploadModel::where('id', $student->photo_id)->value('file_url')
+                : null;
 
-                if (!$studentClass) {
-                    return response()->json(['message' => 'Student is not enrolled in the determined academic year.', 'status' => 'false'], 404);
+            // Format the student data
+            $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
+            $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
+            $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
+            $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
+            $studentData['photo'] = $photo;
+
+            return response()->json([
+                'message' => 'Student class name fetched successfully.',
+                'data' => $studentData,
+                'status' => 'true'
+            ], 200);
+        } else {
+            // Fetch all student-class records for the determined academic year
+            $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
+
+            if ($studentClasses->isEmpty()) {
+                return response()->json(['message' => 'No students enrolled in the determined academic year.',  'status' => 'false'], 404);
+            }
+
+            // Map the data to include student details, class names, and photos
+            $data = $studentClasses->map(function ($studentClass) {
+                $student = $studentClass->student;
+
+                if (!$student) {
+                    return null;
                 }
 
-                // Format the student data
-                $studentData = $studentClass->student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
+                $photo = $student->photo_id
+                    ? UploadModel::where('id', $student->photo_id)->value('file_url')
+                    : null;
+
+                $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
                 $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
                 $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
                 $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
+                $studentData['photo'] = $photo;
 
-                return response()->json([
-                    'message' => 'Student class name fetched successfully.',
-                    'data' => $studentData,
-                    'status' => 'true'
-                ], 200);
-            } else {
-                // Fetch all student-class records for the determined academic year
-                $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
+                return $studentData;
+            })->filter();
 
-                if ($studentClasses->isEmpty()) {
-                    return response()->json(['message' => 'No students enrolled in the determined academic year.',  'status' => 'false'], 404);
-                }
-
-                // Map the data to include student details and class names
-                $data = $studentClasses->map(function ($studentClass) {
-                    $studentData = $studentClass->student ? $studentClass->student->makeHidden(['id', 'created_at', 'updated_at'])->toArray() : [];
-                    if (!empty($studentData)) {
-                        $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
-                        $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
-                    }
-                    $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
-                    return $studentData;
-                });
-
-                return response()->json([
-                    'message' => 'Student class names fetched successfully.',
-                    'academic_year' => $currentAcademicYear->ay_name,
-                    'data' => $data,
-                    'status' => 'true'
-                ], 200);
-            }
-        } catch (\Exception $e) {
             return response()->json([
-                'message' => 'An error occurred while fetching student class names.',
-                'error' => $e->getMessage(),
-            ], 500);
+                'message' => 'Student class names fetched successfully.',
+                'academic_year' => $currentAcademicYear->ay_name,
+                'data' => $data,
+                'status' => 'true'
+            ], 200);
         }
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'An error occurred while fetching student class names.',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
 
 
     // csv
@@ -1168,153 +1390,6 @@ class StudentController extends Controller
         }
     }
 
-    // public function fetchStudentFees()
-    // {
-    //     // Fetch the recent academic year data
-    //     $recentAcademicYearId = AcademicYearModel::where('ay_current', 1)->value('id');
-
-    //     if (!$recentAcademicYearId) {
-    //         return response()->json(['status' => 'error', 'message' => 'No active academic year found.']);
-    //     }
-
-    //     // Fetch data from the fees table with relationships
-    //     $fees = FeeModel::with(['student', 'studentClass.classGroup'])
-    //         ->whereHas('studentClass', function ($query) use ($recentAcademicYearId) {
-    //             $query->where('ay_id', $recentAcademicYearId); // Filter by recent academic year
-    //         })
-    //         ->get()
-    //         ->map(function ($fee) {
-    //             return [
-    //                 'name' => $fee->student
-    //                     ? $fee->student->st_first_name . ' ' . $fee->student->st_last_name
-    //                     : 'N/A', // Concatenate first and last name
-    //                 'roll_no' => $fee->student->st_roll_no ?? 'N/A',
-    //                 'class' => $fee->studentClass->classGroup->cg_name ?? 'N/A',
-    //                 'fee_name' => $fee->fpp_name,
-    //                 'fee_amount' => $fee->fpp_amount,
-    //                 'due_date' => $fee->fpp_due_date,
-    //                 'late_fee_applicable' => $fee->f_late_fee_applicable ? 'Yes' : 'No',
-    //                 'total_amount' => $fee->fpp_amount,
-    //             ];
-    //         });
-
-    //     return $fees->count() > 0
-    //         ? response()->json(['status' => 'success', 'data' => $fees, 'count' => $fees->count()])
-    //         : response()->json(['status' => 'error', 'message' => 'No data found.']);
-    // }
-
-    // public function fetchStudentFees()
-    // {
-    //     // Increase execution time for large datasets
-    //     // ini_set('max_execution_time', 300);
-
-    //     // Fetch the most recent academic year ID
-    //     $recentAcademicYearId = AcademicYearModel::where('ay_current', 1)->value('id');
-
-    //     if (!$recentAcademicYearId) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'No active academic year found.'
-    //         ]);
-    //     }
-
-    //     // Fetch data from the fees table with optimized relationships
-    //     // $fees = FeeModel::where('ay_id', $recentAcademicYearId)->get();
-    //     // dd($fees);
-
-        
-    //     $fees = FeeModel::with([
-    //         'student:id,st_first_name,st_last_name,st_roll_no', // Fetch only required student fields
-    //         // 'studentClass.classGroup:id,cg_name'               // Fetch only required class group fields
-    //     ])
-    //         ->whereHas('studentClass', function ($query) use ($recentAcademicYearId) {
-    //             $query->where('ay_id', $recentAcademicYearId); // Filter by recent academic year
-    //         })
-    //         ->chunk(500, function ($chunkedFees) use (&$fees) {
-    //             dd($chunkedFees);
-    //             foreach ($chunkedFees as $fee) {
-    //                 $fees[] = [
-    //                     'name' => $fee->student
-    //                         ? $fee->student->st_first_name . ' ' . $fee->student->st_last_name
-    //                         : 'N/A', // Concatenate first and last name
-    //                     'roll_no' => $fee->student->st_roll_no ?? 'N/A',
-    //                     // 'class' => $fee->studentClass->classGroup->cg_name ?? 'N/A',
-    //                     'fee_name' => $fee->fpp_name,
-    //                     'fee_amount' => $fee->fpp_amount,
-    //                     'due_date' => $fee->fpp_due_date,
-    //                     'late_fee_applicable' => $fee->f_late_fee_applicable ? 'Yes' : 'No',
-    //                     'total_amount' => $fee->fpp_amount,
-    //                 ];
-    //             }
-    //         });
-
-    //     // Return the processed data or an error response
-    //     return count($fees) > 0
-    //         ? response()->json(['status' => 'success', 'data' => $fees, 'count' => count($fees)])
-    //         : response()->json(['status' => 'error', 'message' => 'No data found.']);
-    // }
-
-    // public function fetchStudentFees(Request $request)
-    // {
-    //     // Increase PHP execution time for large datasets
-    //     // ini_set('max_execution_time', 300);
-
-    //     // Fetch the most recent academic year ID
-    //     $recentAcademicYearId = AcademicYearModel::where('ay_current', 1)->value('id');
-
-    //     if (!$recentAcademicYearId) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => 'No active academic year found.'
-    //         ]);
-    //     }
-
-    //     // Get pagination parameters from request
-    //     $page = $request->input('page', 1); // Default to page 1
-    //     $limit = $request->input('limit', 5); // Default to 500 records per page
-    //     $offset = ($page - 1) * $limit;
-
-    //     // Fetch fees data with pagination
-    //     $feesQuery = FeeModel::with([
-    //         'student:id,st_first_name,st_last_name,st_roll_no', // Fetch only required student fields
-    //         'studentClass.classGroup:id,cg_name'               // Fetch only required class group fields
-    //     ])
-    //         ->whereHas('studentClass', function ($query) use ($recentAcademicYearId) {
-    //             $query->where('ay_id', $recentAcademicYearId); // Filter by recent academic year
-    //         });
-
-    //     $totalCount = $feesQuery->count(); // Total records matching the criteria
-
-    //     $fees = $feesQuery
-    //         ->offset($offset)
-    //         ->limit($limit)
-    //         ->get()
-    //         ->map(function ($fee) {
-    //             return [
-    //                 'name' => $fee->student
-    //                     ? $fee->student->st_first_name . ' ' . $fee->student->st_last_name
-    //                     : 'N/A', // Concatenate first and last name
-    //                 'roll_no' => $fee->student->st_roll_no ?? 'N/A',
-    //                 'class' => $fee->studentClass->classGroup->cg_name ?? 'N/A',
-    //                 'fee_name' => $fee->fpp_name,
-    //                 'fee_amount' => $fee->fpp_amount,
-    //                 'due_date' => $fee->fpp_due_date,
-    //                 'late_fee_applicable' => $fee->f_late_fee_applicable ? 'Yes' : 'No',
-    //                 'total_amount' => $fee->fpp_amount,
-    //             ];
-    //         });
-
-    //     // Return the processed data along with metadata for pagination
-    //     return response()->json([
-    //         'status' => 'success',
-    //         'data' => $fees,
-    //         'count' => $fees->count(),
-    //         'total' => $totalCount,
-    //         'current_page' => $page,
-    //         'total_pages' => ceil($totalCount / $limit)
-    //     ]);
-    // }
-
     public function fetchStudentFees(Request $request)
     {
         // Increase PHP memory limit
@@ -1382,6 +1457,92 @@ class StudentController extends Controller
             'total' => $totalCount,
             'current_page' => $page,
             'total_pages' => ceil($totalCount / $limit)
+        ]);
+    }
+
+    public function migrateUploadsFromCsv()
+    {
+        $csvFilePath = storage_path('app/public/student_pic.csv'); // Path to the CSV file
+        $uploadsDir = public_path('storage/uploads/students/student_profile_images'); // Directory with the files
+
+        // Check if the CSV file exists
+        if (!File::exists($csvFilePath)) {
+            return response()->json(['status' => 'error', 'message' => 'CSV file not found.']);
+        }
+
+        // Truncate the table before import
+        UploadModel::truncate();
+
+        // Read the CSV file
+        $csv = Reader::createFromPath($csvFilePath, 'r');
+        $csv->setHeaderOffset(0); // First row as header
+
+        $records = $csv->getRecords(); // Get all records as an iterator
+        $migrated = 0;
+        $errors = [];
+
+        foreach ($records as $index => $row) {
+            try {
+                // Process only active records
+                if ((int)$row['active'] !== 1) {
+                    continue;
+                }
+
+                // Fetch file details
+                $filePath = $uploadsDir . '/' . $row['bsp_filename'];
+                
+                // Skip if the file doesn't exist
+                if (!File::exists($filePath)) {
+                    $errors[] = "File not found: {$row['bsp_filename']} (Row: {$index})";
+                    continue;
+                }
+
+                $fileName = pathinfo($filePath, PATHINFO_FILENAME);
+                $fileExtension = pathinfo($filePath, PATHINFO_EXTENSION);
+                $fileSize = File::size($filePath);
+                $fileUrl = url('storage/uploads/students/student_profile_images/' . $row['bsp_filename']);
+
+                // Convert Unix timestamps to datetime format
+                $createdAt = isset($row['create_date']) && trim($row['create_date']) !== ''
+                    ? date('Y-m-d H:i:s', $row['create_date'])
+                    : now();
+
+                $updatedAt = isset($row['modify_date']) && trim($row['modify_date']) !== ''
+                    ? date('Y-m-d H:i:s', $row['modify_date'])
+                    : $createdAt;
+
+                // Map st_id to student_id in uploads table
+                $student = StudentModel::find($row['st_id']);
+                if (!$student) {
+                    $errors[] = "Student ID not found for st_id: {$row['st_id']} (Row: {$index})";
+                    continue;
+                }
+
+                // Insert into the new uploads table
+                $upload = UploadModel::create([
+                    'file_name' => $fileName,
+                    'file_ext' => $fileExtension,
+                    'file_url' => $fileUrl,
+                    'file_size' => $fileSize,
+                    // 'student_id' => $student->id, // Map student table ID
+                    // 'photo_id' => $row['bsp_id'],  // Store `bsp_id` as `photo_id`
+                    'created_at' => $createdAt,
+                    'updated_at' => $updatedAt
+                ]);
+
+                // Update `photo_id` column in the student table with the ID of the upload record
+                $student->update(['photo_id' => $upload->id]);
+
+                $migrated++;
+            } catch (\Exception $e) {
+                $errors[] = "Error migrating row {$index}: {$e->getMessage()}";
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "Migration completed. {$migrated} files migrated.",
+            'errors' => $errors
         ]);
     }
 

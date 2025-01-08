@@ -63,6 +63,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/make_payment', [StudentController::class, 'initiatePayment']);
 
         Route::get('/fetch_fees', [StudentController::class, 'fetchStudentFees']);
+
+        Route::get('/fetch_photos', [StudentController::class, 'migrateUploadsFromCsv']);
     });
 
     // Route::post('/duplicate', [StudentController::class, 'fetch_duplicate']);
@@ -71,8 +73,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('teacher')->group(function () {
         Route::post('/', [TeacherController::class, 'create']);         // Add a new teacher (Admin only)
         Route::post('/{id}', [TeacherController::class, 'update']);     // Update a teacher (Admin only)
-        Route::get('/{id?}', [TeacherController::class, 'index']);  // Fetch all or specific teacher
+        Route::get('/view/{id?}', [TeacherController::class, 'index']);  // Fetch all or specific teacher
         Route::delete('/{id}', [TeacherController::class, 'destroy']); // Delete a teacher
+
+        Route::get('/import', [TeacherController::class, 'importCsv']); 
+
     });
 
     // Academic Year Routes

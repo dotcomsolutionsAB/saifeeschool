@@ -40,6 +40,10 @@ return new class extends Migration
             $table->string('st_admitted');
             $table->string('st_admitted_class');
             $table->string('st_flag');
+            $table->integer('photo_id')->nullable();
+            $table->integer('birth_certificate_id')->nullable();
+            $table->integer('aadhaar_id')->nullable();
+            $table->integer('attachment_id')->nullable();
             $table->timestamps();
         });
     }

@@ -20,9 +20,9 @@ return new class extends Migration
             $table->enum('gender', ['M', 'F'])->nullable();
             $table->date('dob')->nullable();
             $table->enum('blood_group', ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Rare'])->nullable();
-            $table->enum('is_class_teacher', ['0', '1']);
-            $table->string('degree');
-            $table->string('qualification');
+            $table->enum('is_class_teacher', ['0', '1'])->nullable();
+            $table->string('degree')->nullable();
+            $table->string('qualification')->nullable();
             $table->timestamps();
         });
     }

@@ -10,6 +10,6 @@ class TeacherModel extends Model
     protected $table = 't_teachers';
 
     protected $fillable = [
-        'name', 'address', 'email', 'gender', 'dob', 'blood_group', 'is_class_teacher', 'degree', 'qualification'
+        'id', 'name', 'address', 'email', 'gender', 'dob', 'blood_group', 'is_class_teacher', 'degree', 'qualification'
     ];
 }

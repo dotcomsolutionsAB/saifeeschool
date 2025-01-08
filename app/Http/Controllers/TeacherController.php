@@ -4,6 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\TeacherModel;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Hash;
+use League\Csv\Reader;
+use App\Models\User;
 
 class TeacherController extends Controller
 {
@@ -173,5 +177,76 @@ class TeacherController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function importCsv()
+    {
+        $csvFilePath = storage_path('app/public/records_teachers.csv'); // Path to your CSV file
+
+        // Check if the CSV file exists
+        if (!File::exists($csvFilePath)) {
+            return response()->json(['status' => 'error', 'message' => 'CSV file not found.']);
+        }
+
+        // Truncate the table before import
+        TeacherModel::truncate();
+
+        // Pre-hash the password to use for all users
+        $hashedPassword = bcrypt('Saifeeschool'); // Pre-hashed password for performance
+
+        // Read the CSV file
+        $csv = Reader::createFromPath($csvFilePath, 'r');
+        $csv->setHeaderOffset(0); // Use the first row as the header
+
+        $records = $csv->getRecords(); // Get all records as an iterator
+        $insertedTeachers = 0;
+        $errors = [];
+
+        foreach ($records as $index => $row) {
+            try {
+                // Check for duplicate email in TeacherModel
+                if (TeacherModel::where('email', $row['Email (username)'])->exists()) {
+                    $errors[] = "Duplicate email: {$row['Email (username)']} (Row: {$index})";
+                    continue;
+                }
+
+                // Insert into TeacherModel
+                $teacherRecord = TeacherModel::create([
+                    'id' => $row['SN'],
+                    'name' => $row['Name'],
+                    'email' => $row['Email (username)']
+                ]);
+
+                // Check for duplicate email in User model
+                if (User::where('email', $row['Email (username)'])->exists()) {
+                    $errors[] = "Duplicate user email: {$row['Email (username)']} (Row: {$index})";
+                    continue;
+                }
+
+                // Insert into User model
+                $userRecord = User::create([
+                    'name' => $row['Name'],
+                    'email' => $row['Email (username)'],
+                    'username' => $row['Email (username)'],
+                    // 'password' => Hash::make('password') // Default password; change as needed
+                    'password' => $hashedPassword, // Use pre-hashed password
+                    'role' => 'teacher',
+                ]);
+
+                // Assign the 'teacher' role
+                // $userRecord->assignRole('teacher');
+
+                $insertedTeachers++;
+            } catch (\Exception $e) {
+                $errors[] = "Error processing row {$index}: {$e->getMessage()}";
+            }
+        }
+
+        // Return the summary of the operation
+        return response()->json([
+            'status' => 'success',
+            'message' => "{$insertedTeachers} teachers imported successfully.",
+            'errors' => $errors
+        ]);
     }
 }
