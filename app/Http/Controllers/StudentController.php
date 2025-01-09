@@ -26,14 +26,14 @@ class StudentController extends Controller
     public function register(Request $request)
     {
         $validated = $request->validate([
-            'st_roll_no' => 'required|string|max:255',
+            'st_roll_no' => 'required|string|max:255|unique:t_students,st_roll_no',
             'st_first_name' => 'required|string|max:255',
             'st_last_name' => 'required|string|max:255',
             'st_gender' => 'required|in:M,F',
             'st_dob' => 'required|date',
             'st_blood_group' => 'required|in:A+,A-,B+,B-,AB+,AB-,O+,O-,Rare',
             'st_bohra' => 'required|in:0,1',
-            'st_its_id' => 'required|string|max:255',
+            'st_its_id' => 'required|string|max:255|unique:t_students,st_its_id',
             'st_house' => 'required|in:red,blue,green,gold',
             'st_wallet' => 'required|numeric',
             'st_deposit' => 'required|numeric',
@@ -45,19 +45,19 @@ class StudentController extends Controller
             'st_admitted' => 'required|string|max:255',
             'st_admitted_class' => 'required|string|max:255',
             'st_flag' => 'required|string|max:255',
-            'aadhaar_no' => 'required|numeric',
+            'aadhaar_no' => 'required|digits:12|unique:t_student_details,aadhaar_no',
             'residential_address1' => 'required|string|max:1000', // Text field, required
             'residential_address2' => 'nullable|string|max:1000', // Optional text field
             'residential_address3' => 'nullable|string|max:1000', // Optional text field
             'city' => 'required|string|max:255',                 // String, required
             'state' => 'required|string|max:255',                // String, required
             'country' => 'required|string|max:255',              // String, required
-            'pincode' => 'required|integer|min:1',               // Integer, required
+            'pincode' => 'required|digits:6',               // Integer, required
             'class_group' => 'required|integer|min:1',           // Integer, required
             // Attachment fields
             'birth_certificate' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
             'aadhaar_card' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
-            'photo_pic' => 'nullable|file|mimes:jpg,png|max:2048',
+            'photo_pic' => 'nullable|file|mimes:jpeg,jpg,png|max:2048',
             'attachment' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
             'f_name' => 'required|string|max:255',
             'f_email' => 'required|email|max:255',
@@ -365,9 +365,17 @@ class StudentController extends Controller
             // Attachments validation
             'birth_certificate' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
             'aadhaar_card' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
-            'profile_picture' => 'nullable|file|mimes:jpg,png|max:2048',
+            'photo_pic' => 'nullable|file|mimes:jpeg,jpg,png|max:2048',
             'attachment' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
-            'aadhaar_no' => 'nullable|digits:12|unique:t_student_details,aadhaar_no,' . $studentDetails->id,
+            // 'aadhaar_no' => 'nullable|digits:12|unique:t_student_details,aadhaar_no,' . $studentDetails->id,
+            'aadhaar_no' => [
+                'nullable',
+                'digits:12',
+                Rule::unique('t_student_details', 'aadhaar_no')
+                    ->where(function ($query) use ($student) {
+                        return $query->where('st_id', '!=', $student->id);
+                    }),
+            ],
             'residential_address1' => 'required|string|max:255',
             'residential_address2' => 'nullable|string|max:255',
             'residential_address3' => 'nullable|string|max:255',
@@ -461,49 +469,168 @@ class StudentController extends Controller
             $aadhaarId = null;
             $attachmentId = null;
 
+            // if ($request->hasFile('photo_pic')) {
+            //     $photoFile = $request->file('photo_pic');
+            //     $photoPath = $photoFile->store('uploads/students/student_profile_images', 'public');
+            //     $photoId = UploadModel::create([
+            //         'file_name' => pathinfo($photoFile->getClientOriginalName(), PATHINFO_FILENAME),
+            //         'file_ext' => $photoFile->getClientOriginalExtension(),
+            //         'file_url' => $photoPath,
+            //         'file_size' => $photoFile->getSize(),
+            //     ])->id;
+            // }
+
             if ($request->hasFile('photo_pic')) {
+                // Get the existing photo file details
+                $existingPhoto = UploadModel::find($student->photo_id);
+            
+                // Upload the new file
                 $photoFile = $request->file('photo_pic');
                 $photoPath = $photoFile->store('uploads/students/student_profile_images', 'public');
+
+                // Generate the full file URL
+                $fullFilePhotoUrl = url('storage/' . $photoPath);
+
                 $photoId = UploadModel::create([
                     'file_name' => pathinfo($photoFile->getClientOriginalName(), PATHINFO_FILENAME),
                     'file_ext' => $photoFile->getClientOriginalExtension(),
-                    'file_url' => $photoPath,
+                    'file_url' => $fullFilePhotoUrl,
                     'file_size' => $photoFile->getSize(),
                 ])->id;
+            
+                // Delete the old file if it exists
+                if ($existingPhoto) {
+                    $oldFilePath = public_path('storage/' . $existingPhoto->file_url);
+                    if (file_exists($oldFilePath)) {
+                        unlink($oldFilePath); // Remove file from server
+                    }
+                    $existingPhoto->delete(); // Remove record from the database
+                }
+            } else {
+                $photoId = $student->photo_id; // Keep the old photo if no new file is uploaded
             }
 
+
+            // if ($request->hasFile('birth_certificate')) {
+            //     $birthCertificateFile = $request->file('birth_certificate');
+            //     $birthCertificatePath = $birthCertificateFile->store('uploads/students/birth_certificates', 'public');
+            //     $birthCertificateId = UploadModel::create([
+            //         'file_name' => pathinfo($birthCertificateFile->getClientOriginalName(), PATHINFO_FILENAME),
+            //         'file_ext' => $birthCertificateFile->getClientOriginalExtension(),
+            //         'file_url' => $birthCertificatePath,
+            //         'file_size' => $birthCertificateFile->getSize(),
+            //     ])->id;
+            // }
+
             if ($request->hasFile('birth_certificate')) {
+                // Retrieve the existing birth certificate record
+                $existingBirthCertificate = UploadModel::find($student->birth_certificate_id);
+            
+                // Upload the new file
                 $birthCertificateFile = $request->file('birth_certificate');
                 $birthCertificatePath = $birthCertificateFile->store('uploads/students/birth_certificates', 'public');
+
+                // Generate the full file URL
+                $fullFileBirthCertificateUrl = url('storage/' . $birthCertificatePath);
+
                 $birthCertificateId = UploadModel::create([
                     'file_name' => pathinfo($birthCertificateFile->getClientOriginalName(), PATHINFO_FILENAME),
                     'file_ext' => $birthCertificateFile->getClientOriginalExtension(),
-                    'file_url' => $birthCertificatePath,
+                    'file_url' => $fullFileBirthCertificateUrl,
                     'file_size' => $birthCertificateFile->getSize(),
                 ])->id;
+            
+                // Delete the old file and record if it exists
+                if ($existingBirthCertificate) {
+                    $oldFilePath = public_path('storage/' . $existingBirthCertificate->file_url);
+                    if (file_exists($oldFilePath)) {
+                        unlink($oldFilePath); // Remove old file from server
+                    }
+                    $existingBirthCertificate->delete(); // Remove old record from uploads table
+                }
+            } else {
+                $birthCertificateId = $student->birth_certificate_id; // Keep the existing birth certificate if no new file is uploaded
             }
+            
+
+            // if ($request->hasFile('aadhaar_card')) {
+            //     $aadhaarFile = $request->file('aadhaar_card');
+            //     $aadhaarPath = $aadhaarFile->store('uploads/students/aadhaar_certificate', 'public');
+            //     $aadhaarId = UploadModel::create([
+            //         'file_name' => pathinfo($aadhaarFile->getClientOriginalName(), PATHINFO_FILENAME),
+            //         'file_ext' => $aadhaarFile->getClientOriginalExtension(),
+            //         'file_url' => $aadhaarPath,
+            //         'file_size' => $aadhaarFile->getSize(),
+            //     ])->id;
+            // }
 
             if ($request->hasFile('aadhaar_card')) {
+                $existingAadhaar = UploadModel::find($student->aadhaar_id);
+            
                 $aadhaarFile = $request->file('aadhaar_card');
                 $aadhaarPath = $aadhaarFile->store('uploads/students/aadhaar_certificate', 'public');
+
+                // Generate the full file URL
+                $fullFileAadhaarUrl = url('storage/' . $aadhaarPath);
+
                 $aadhaarId = UploadModel::create([
                     'file_name' => pathinfo($aadhaarFile->getClientOriginalName(), PATHINFO_FILENAME),
                     'file_ext' => $aadhaarFile->getClientOriginalExtension(),
-                    'file_url' => $aadhaarPath,
+                    'file_url' => $fullFileAadhaarUrl,
                     'file_size' => $aadhaarFile->getSize(),
                 ])->id;
-            }
+            
+                if ($existingAadhaar) {
+                    $oldFilePath = public_path('storage/' . $existingAadhaar->file_url);
+                    if (file_exists($oldFilePath)) {
+                        unlink($oldFilePath);
+                    }
+                    $existingAadhaar->delete();
+                }
+            } else {
+                $aadhaarId = $student->aadhaar_id;
+            }            
+
+            // if ($request->hasFile('attachment')) {
+            //     $attachmentFile = $request->file('attachment');
+            //     $attachmentPath = $attachmentFile->store('uploads/students/attachment', 'public');
+            //     $attachmentId = UploadModel::create([
+            //         'file_name' => pathinfo($attachmentFile->getClientOriginalName(), PATHINFO_FILENAME),
+            //         'file_ext' => $attachmentFile->getClientOriginalExtension(),
+            //         'file_url' => $attachmentPath,
+            //         'file_size' => $attachmentFile->getSize(),
+            //     ])->id;
+            // }
 
             if ($request->hasFile('attachment')) {
+                // Retrieve the existing attachment record
+                $existingAttachment = UploadModel::find($student->attachment_id);
+            
+                // Upload the new file
                 $attachmentFile = $request->file('attachment');
-                $attachmentPath = $aadhaarFile->store('uploads/students/attachment', 'public');
+                $attachmentPath = $attachmentFile->store('uploads/students/attachment', 'public');
+
+                // Generate the full file URL
+                $fullFileAttachmentUrl = url('storage/' . $attachmentPath);
+
                 $attachmentId = UploadModel::create([
                     'file_name' => pathinfo($attachmentFile->getClientOriginalName(), PATHINFO_FILENAME),
                     'file_ext' => $attachmentFile->getClientOriginalExtension(),
-                    'file_url' => $attachmentPath,
+                    'file_url' => $fullFileAttachmentUrl,
                     'file_size' => $attachmentFile->getSize(),
                 ])->id;
-            }
+            
+                // Delete the old file and record if it exists
+                if ($existingAttachment) {
+                    $oldFilePath = public_path('storage/' . $existingAttachment->file_url);
+                    if (file_exists($oldFilePath)) {
+                        unlink($oldFilePath); // Remove old file from server
+                    }
+                    $existingAttachment->delete(); // Remove old record from uploads table
+                }
+            } else {
+                $attachmentId = $student->attachment_id; // Keep the existing attachment if no new file is uploaded
+            }            
 
             // Update student data
             $student->update([
@@ -526,6 +653,10 @@ class StudentController extends Controller
                 'st_admitted' => $validated['st_admitted'],
                 'st_admitted_class' => $validated['st_admitted_class'],
                 'st_flag' => $validated['st_flag'],
+                'photo_id' => $photoId, // Reference the uploaded profile picture
+                'birth_certificate_id' => $birthCertificateId, // Reference the uploaded Birth Certificate
+                'aadhaar_id' => $aadhaarId, // Reference the uploaded Aadhaar card
+                'attachment_id' => $attachmentId, // Reference the uploaded Attachments
             ]);
 
             // Update student details
@@ -879,107 +1010,107 @@ class StudentController extends Controller
     // }
 
     public function index(Request $request, $id = null)
-{
-    try {
-        // Validate the request for optional `ay_id`
-        $validated = $request->validate([
-            'ay_id' => 'nullable|integer|exists:t_academic_years,id',
-        ]);
+    {
+        try {
+            // Validate the request for optional `ay_id`
+            $validated = $request->validate([
+                'ay_id' => 'nullable|integer|exists:t_academic_years,id',
+            ]);
 
-        // Determine the academic year to use
-        $currentAcademicYear = null;
-        if (!empty($validated['ay_id'])) {
-            $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-                ->where('id', $validated['ay_id'])
-                ->first();
-        } else {
-            $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-                ->where('ay_current', '1')
-                ->first();
+            // Determine the academic year to use
+            $currentAcademicYear = null;
+            if (!empty($validated['ay_id'])) {
+                $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+                    ->where('id', $validated['ay_id'])
+                    ->first();
+            } else {
+                $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+                    ->where('ay_current', '1')
+                    ->first();
+
+                if (!$currentAcademicYear) {
+                    $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+                        ->orderBy('id', 'desc')
+                        ->first();
+                }
+            }
 
             if (!$currentAcademicYear) {
-                $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-                    ->orderBy('id', 'desc')
+                return response()->json(['message' => 'No academic year records found.'], 404);
+            }
+
+            if ($id) {
+                // Fetch a specific student's class details in the determined academic year
+                $studentClass = $currentAcademicYear->studentClasses()
+                    ->where('st_id', $id)
+                    ->with(['student', 'classGroup'])
                     ->first();
-            }
-        }
 
-        if (!$currentAcademicYear) {
-            return response()->json(['message' => 'No academic year records found.'], 404);
-        }
-
-        if ($id) {
-            // Fetch a specific student's class details in the determined academic year
-            $studentClass = $currentAcademicYear->studentClasses()
-                ->where('st_id', $id)
-                ->with(['student', 'classGroup'])
-                ->first();
-
-            if (!$studentClass) {
-                return response()->json(['message' => 'Student is not enrolled in the determined academic year.', 'status' => 'false'], 404);
-            }
-
-            // Fetch student details and photo
-            $student = $studentClass->student;
-            $photo = $student->photo_id
-                ? UploadModel::where('id', $student->photo_id)->value('file_url')
-                : null;
-
-            // Format the student data
-            $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
-            $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
-            $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
-            $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
-            $studentData['photo'] = $photo;
-
-            return response()->json([
-                'message' => 'Student class name fetched successfully.',
-                'data' => $studentData,
-                'status' => 'true'
-            ], 200);
-        } else {
-            // Fetch all student-class records for the determined academic year
-            $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
-
-            if ($studentClasses->isEmpty()) {
-                return response()->json(['message' => 'No students enrolled in the determined academic year.',  'status' => 'false'], 404);
-            }
-
-            // Map the data to include student details, class names, and photos
-            $data = $studentClasses->map(function ($studentClass) {
-                $student = $studentClass->student;
-
-                if (!$student) {
-                    return null;
+                if (!$studentClass) {
+                    return response()->json(['message' => 'Student is not enrolled in the determined academic year.', 'status' => 'false'], 404);
                 }
 
+                // Fetch student details and photo
+                $student = $studentClass->student;
                 $photo = $student->photo_id
                     ? UploadModel::where('id', $student->photo_id)->value('file_url')
                     : null;
 
+                // Format the student data
                 $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
                 $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
                 $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
                 $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
                 $studentData['photo'] = $photo;
 
-                return $studentData;
-            })->filter();
+                return response()->json([
+                    'message' => 'Student class name fetched successfully.',
+                    'data' => $studentData,
+                    'status' => 'true'
+                ], 200);
+            } else {
+                // Fetch all student-class records for the determined academic year
+                $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
 
+                if ($studentClasses->isEmpty()) {
+                    return response()->json(['message' => 'No students enrolled in the determined academic year.',  'status' => 'false'], 404);
+                }
+
+                // Map the data to include student details, class names, and photos
+                $data = $studentClasses->map(function ($studentClass) {
+                    $student = $studentClass->student;
+
+                    if (!$student) {
+                        return null;
+                    }
+
+                    $photo = $student->photo_id
+                        ? UploadModel::where('id', $student->photo_id)->value('file_url')
+                        : null;
+
+                    $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
+                    $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
+                    $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
+                    $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
+                    $studentData['photo'] = $photo;
+
+                    return $studentData;
+                })->filter();
+
+                return response()->json([
+                    'message' => 'Student class names fetched successfully.',
+                    'academic_year' => $currentAcademicYear->ay_name,
+                    'data' => $data,
+                    'status' => 'true'
+                ], 200);
+            }
+        } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Student class names fetched successfully.',
-                'academic_year' => $currentAcademicYear->ay_name,
-                'data' => $data,
-                'status' => 'true'
-            ], 200);
+                'message' => 'An error occurred while fetching student class names.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'An error occurred while fetching student class names.',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
 
 
     // csv
