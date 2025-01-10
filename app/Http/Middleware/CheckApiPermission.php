@@ -19,15 +19,28 @@ class CheckApiPermission
     //     return $next($request);
     // }
 
+    // public function handle(Request $request, Closure $next, string $permission): Response
+    // {
+    //     $user = Auth::user();
+
+    //     // Check if the user is authenticated and has the required permission
+    //     if (!$user || !$user->can($permission)) {
+    //         return response()->json(['message' => 'Forbidden: Insufficient Permissions'], 403);
+    //     }
+
+    //     return $next($request);
+    // }
+
     public function handle(Request $request, Closure $next, string $permission): Response
     {
-        $user = Auth::user();
+        \Log::info('CheckApiPermission middleware triggered.');
 
-        // Check if the user is authenticated and has the required permission
+        $user = Auth::user();
         if (!$user || !$user->can($permission)) {
             return response()->json(['message' => 'Forbidden: Insufficient Permissions'], 403);
         }
 
         return $next($request);
     }
+
 }

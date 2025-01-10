@@ -28,6 +28,7 @@ use App\Http\Controllers\DailyTransactionController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionTypeController;
 use App\Http\Controllers\PermissionRoleController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\AuthController;
 
 // Route::get('/user', function (Request $request) {
@@ -299,12 +300,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/create-with-permissions', [PermissionRoleController::class, 'createRoleWithPermissions']);
     });
 
-    Route::middleware(['auth:sanctum', 'check-api-permission:manage-users
-'])->group(function () {
-        // Route::get('/secure_dashboard', [DashboardController::class, 'index']);
-        Route::prefix('student')->group(function () {
-            Route::post('/view', [StudentController::class, 'index']); 
-        });
+    // Route::middleware(['auth:sanctum', 'check-api-permission:manage-users'])->group(function () {
+    //     // Route::get('/secure_dashboard', [DashboardController::class, 'index']);
+    //     Route::prefix('student')->group(function () {
+    //         Route::post('/view', [StudentController::class, 'index']); 
+    //     });
+    // });
+
+    Route::middleware(['auth:sanctum',  \App\Http\Middleware\CheckApiPermission::class . ':manage-users'
+    ])->group(function () {
+            // Route::get('/secure_dashboard', [DashboardController::class, 'index']);
+            Route::prefix('student')->group(function () {
+                Route::post('/view', [StudentController::class, 'index']); 
+            });
     });
-    
-});
+
+    Route::get('/dashboard', [DashboardController::class, 'dashboard']);
+
+    });

@@ -8,6 +8,7 @@ return [
 
     'route' => [
         'auth:sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        'check-api-permission' => \App\Http\Middleware\CheckApiPermission::class, // Add this line
+        // 'check-api-permission' => \App\Http\Middleware\CheckApiPermission::class, // Add this line
+        'check-api-permission' => \App\Http\Middleware\CheckApiPermission::class,
     ],
 ];
