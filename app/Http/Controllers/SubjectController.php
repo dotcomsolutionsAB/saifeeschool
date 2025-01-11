@@ -77,4 +77,44 @@ class SubjectController extends Controller
         }
     }
 
+    // Fetch Records
+    public function index(Request $request, $id = null)
+    {
+        try {
+            if ($id) {
+                // Fetch the record by ID
+                $subjectRecord = SubjectModel::find($id);
+
+                if (!$subjectRecord) {
+                    return response()->json([
+                        'message' => 'Record not found.',
+                        'status' => 'error',
+                    ], 404);
+                }
+
+                return response()->json([
+                    'message' => 'Record fetched successfully.',
+                    'data' => $subjectRecord->makeHidden(['created_at', 'updated_at']),
+                    'status' => 'success',
+                ], 200);
+            }
+
+            // Fetch all records
+            $subjectRecords = SubjectModel::orderBy('id')->get();
+
+            return response()->json([
+                'message' => 'Records fetched successfully.',
+                'data' => array_slice($subjectRecords->makeHidden(['created_at', 'updated_at'])->toArray(), 0, 10), // Adjust limit as needed
+                'status' => 'success',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An error occurred while fetching records.',
+                'error' => $e->getMessage(),
+                'status' => 'error',
+            ], 500);
+        }
+    }
+
+
 }

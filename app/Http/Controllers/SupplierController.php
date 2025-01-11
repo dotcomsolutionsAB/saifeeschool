@@ -69,8 +69,9 @@ class SupplierController extends Controller
             } else {
                 $suppliers = SuppliersModel::all()->makeHidden(['id', 'created_at', 'updated_at']);
                 return response()->json([
-                    'supplier_record' => $suppliers,
-                    'count' => $suppliers->count()
+                    // 'supplier_record' => $suppliers,
+                    'supplier_record' => array_slice($suppliers->toArray(), 0, 10),
+                    // 'count' => $suppliers->count()
                 ]);
             }
         } catch (\Exception $e) {

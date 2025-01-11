@@ -119,8 +119,9 @@ class AcademicYearController extends Controller
             return $academicYears->isNotEmpty()
                 ? response()->json([
                     'message' => 'Academic years fetched successfully',
-                    'data' => $academicYears,
-                    'count' => $academicYears->count()
+                    // 'data' => $academicYears,
+                    'data' => array_slice($academicYears->toArray(), 0, 10),
+                    // 'count' => $academicYears->count()
                 ], 200)
                 : response()->json(['message' => 'No academic years available.'], 400);
         }

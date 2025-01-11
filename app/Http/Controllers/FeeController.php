@@ -80,24 +80,9 @@ class FeeController extends Controller
 
     public function index(Request $request, $id = null)
     {
-        // Validate request inputs
-        $validated = $request->validate([
-            'ay_id' => 'required|integer|exists:t_academic_years,id',
-            'status' => 'required|in:paid,unpaid',
-            'st_id' => 'required|integer|exists:t_students,id',
-        ]);
-
-        $ay_id = $validated['ay_id'];
-        $st_id = $validated['st_id'];
-        $f_paid = $validated['status'] === 'paid' ? 1 : 0;
-
         if ($id) {
-            // Fetch a specific fee record by ID, filtering by `ay_id`, `st_id`, and `status`
-            $studentFee = FeeModel::where('id', $id)
-                ->where('ay_id', $ay_id)
-                ->where('st_id', $st_id)
-                ->where('f_paid', $f_paid)
-                ->first();
+            // Fetch a specific fee record by ID, without requiring other validations
+            $studentFee = FeeModel::find($id);
 
             if ($studentFee) {
                 return response()->json([
@@ -108,6 +93,17 @@ class FeeController extends Controller
 
             return response()->json(['message' => 'Student fee record not found.'], 404);
         } else {
+            // Validate request inputs only for fetching multiple records
+            $validated = $request->validate([
+                'ay_id' => 'required|integer|exists:t_academic_years,id',
+                'status' => 'required|in:paid,unpaid',
+                'st_id' => 'required|integer|exists:t_students,id',
+            ]);
+
+            $ay_id = $validated['ay_id'];
+            $st_id = $validated['st_id'];
+            $f_paid = $validated['status'] === 'paid' ? 1 : 0;
+
             // Fetch all fee records filtered by `ay_id`, `st_id`, and `status`
             $studentFees = FeeModel::where('ay_id', $ay_id)
                 ->where('st_id', $st_id)
@@ -118,12 +114,12 @@ class FeeController extends Controller
             return $studentFees->isNotEmpty()
                 ? response()->json([
                     'message' => 'Student fee records fetched successfully!',
-                    'data' => $studentFees,
-                    'count' => $studentFees->count(),
+                    'data' => array_slice($studentFees->toArray(), 0, 10),
                 ], 200)
                 : response()->json(['message' => 'No student fee records available.'], 404);
         }
     }
+
 
 
 

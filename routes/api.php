@@ -67,6 +67,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/fetch_fees', [StudentController::class, 'fetchStudentFees']);
 
         Route::get('/fetch_photos', [StudentController::class, 'migrateUploadsFromCsv']);
+
+        Route::post('/upgrade', [StudentController::class, 'upgrade_student']);
+
+        Route::post('/apply_fee', [StudentController::class, 'apply_fee_plan']);
     });
 
     // Route::post('/duplicate', [StudentController::class, 'fetch_duplicate']);
@@ -94,9 +98,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Class-group Routes
     Route::prefix('class_group')->group(function () {
-        Route::post('/', [ClassGroupController::class, 'create']);         // Add a new teacher (Admin only)
-        Route::post('/{id}', [ClassGroupController::class, 'update']);     // Update a teacher (Admin only)
-        Route::get('/view/{id?}', [ClassGroupController::class, 'index']);  // Fetch all or specific teacher
+        Route::post('/register', [ClassGroupController::class, 'create']);         // Add a new teacher (Admin only)
+        Route::post('/update/{id}', [ClassGroupController::class, 'update']);     // Update a teacher (Admin only)
+        Route::post('/view/{id?}', [ClassGroupController::class, 'index']);  // Fetch all or specific teacher
         Route::delete('/{id}', [ClassGroupController::class, 'destroy']); // Delete a teacher
 
         Route::get('/import', [ClassGroupController::class, 'importCsv']); 
@@ -166,8 +170,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
      // Purchase Routes
      Route::prefix('attendance')->group(function () {
-        Route::get('/view', [PurchaseController::class, 'index']);          // List all Purchase
-        Route::get('/view/{id}', [PurchaseController::class, 'index']);     // Get details of a single Purchase
+        Route::get('/view', [AttendanceController::class, 'index']);          // List all Purchase
+        Route::get('/view/{id}', [AttendanceController::class, 'index']);     // Get details of a single Purchase
         Route::post('/', [AttendanceController::class, 'registerandUpdate']);         // Add a new Purchase (Admin only)
         // Route::post('/{id}', [PurchaseController::class, 'update']);     // Update a Purchase (Admin only)
         // Route::delete('/{id}', [PurchaseController::class, 'destroy']); // Delete a Purchase (Admin only)
@@ -194,6 +198,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Route::delete('/{id}', [PurchaseController::class, 'destroy']); // Delete a Purchase (Admin only)
     
         Route::get('/import', [SubjectController::class, 'importCsv']); 
+
+        Route::get('/view/{id?}', [SubjectController::class, 'index']); 
     });
 
     // Purchase Routes

@@ -1100,8 +1100,10 @@ class StudentController extends Controller
                 return response()->json([
                     'message' => 'Student class names fetched successfully.',
                     'academic_year' => $currentAcademicYear->ay_name,
-                    'data' => $data,
+                    // 'data' => $data,
+                    'data' => array_slice($data->toArray(), 0, 10),
                     'status' => 'true'
+                    // 'count' => count($data),
                 ], 200);
             }
         } catch (\Exception $e) {
@@ -1675,6 +1677,84 @@ class StudentController extends Controller
             'message' => "Migration completed. {$migrated} files migrated.",
             'errors' => $errors
         ]);
+    }
+
+    public function upgrade_student(Request $request)
+    {
+        $validated = $request->validate([
+            'student_id' => [
+                'required',
+                'array', // Ensure it's an array
+                'min:1', // Ensure at least one student ID is provided
+            ],
+            'student_id.*' => [
+                'numeric', // Each element should be numeric
+                'min:1', // Each ID should be at least 1
+                Rule::exists('t_students', 'id'), // Check if each ID exists in the t_students table
+            ],
+            'class_id' => [
+                'required',
+                'integer',
+                Rule::exists('t_class_groups', 'id'), // Check if the class_id exists in the t_class_groups table
+            ],
+        ]);
+        
+
+        // Use ternary operator to return response
+        // return $validator->fails()
+        // ? response()->json([
+        //     'status' => 'error',
+        //     'message' => 'Validation failed.',
+        //     'errors' => $validator->errors(),
+        // ], 422)
+        // : response()->json([
+        //     'status' => 'success',
+        //     'message' => 'Validation passed successfully.',
+        // ], 200);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Validation passed successfully.',
+            'data' => $validated,
+        ], 200);
+    }
+
+    public function apply_fee_plan(Request $request)
+    {
+        $validated = $request->validate([
+            'student_id' => [
+                'required',
+                'array', // Ensure it's an array
+                'min:1', // Ensure at least one student ID is provided
+            ],
+            'student_id.*' => [
+                'numeric', // Each element should be numeric
+                'min:1', // Each ID should be at least 1
+                Rule::exists('t_students', 'id'), // Check if each ID exists in the t_students table
+            ],
+            'fee_plans_id' => [
+                'required',
+                'integer',
+                Rule::exists('t_fee_plans', 'id'), // Check if the class_id exists in the t_class_groups table
+            ],
+        ]);
+        
+
+        // Use ternary operator to return response
+        // return $validator->fails()
+        // ? response()->json([
+        //     'status' => 'error',
+        //     'message' => 'Validation failed.',
+        //     'errors' => $validator->errors(),
+        // ], 422)
+        // : response()->json([
+        //     'status' => 'success',
+        //     'message' => 'Validation passed successfully.',
+        // ], 200);
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Validation passed successfully.',
+            'data' => $validated,
+        ], 200);
     }
 
 }

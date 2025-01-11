@@ -204,4 +204,18 @@ class AttendanceController extends Controller
         }
     }
 
+    public function index()
+    {
+        // Fetch all records from the model
+        $get_records = AttendanceModel::all(); // Replace FeeModel with your model name
+
+        return $get_records->isNotEmpty()
+            ? response()->json([
+                'message' => 'Records fetched successfully!',
+                'data' => $get_records->makeHidden(['id', 'created_at', 'updated_at']),
+                'count' => $get_records->count(),
+            ], 200)
+            : response()->json(['message' => 'No records available.'], 404);
+        }
+
 }

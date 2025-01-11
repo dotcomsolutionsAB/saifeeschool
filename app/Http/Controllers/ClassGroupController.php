@@ -80,7 +80,7 @@ class ClassGroupController extends Controller
     }
 
     // Fetch all class groups or a specific class group
-    public function index($id = null)
+    public function index(Request $request, $id = null)
     {
         if ($id) {
             // Fetch a specific class group
@@ -95,8 +95,17 @@ class ClassGroupController extends Controller
 
             return response()->json(['message' => 'Class group not found'], 404);
         } else {
-            // Fetch all class groups
-            $classGroups = ClassGroupModel::orderBy('cg_order')->get();
+            // Validate `ay_id` when fetching all records
+            $validated = $request->validate([
+                'ay_id' => 'required|integer|exists:t_academic_years,id',
+            ]);
+
+            $ay_id = $validated['ay_id'];
+
+            // Fetch all class groups filtered by `ay_id`
+            $classGroups = ClassGroupModel::where('ay_id', $ay_id)
+                ->orderBy('cg_order')
+                ->get();
 
             $classGroups->each(function ($group) {
                 $group->makeHidden(['id', 'created_at', 'updated_at']);
@@ -111,6 +120,7 @@ class ClassGroupController extends Controller
                 : response()->json(['message' => 'No class groups available.'], 400);
         }
     }
+
 
     // Delete a class group
     public function destroy($id)

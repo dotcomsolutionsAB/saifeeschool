@@ -118,8 +118,9 @@ class CharacterCertificateController extends Controller
 
         return response()->json([
             'message' => 'Records fetched successfully.',
-            'data' => $records->makeHidden(['id', 'created_at', 'updated_at']),
-            'count' => count($records),
+            // 'data' => $records->makeHidden(['id', 'created_at', 'updated_at']),
+            'data' => array_slice($records->makeHidden(['id', 'created_at', 'updated_at'])->toArray(), 0, 3),
+            // 'count' => count($records),
         ]);
     }
 

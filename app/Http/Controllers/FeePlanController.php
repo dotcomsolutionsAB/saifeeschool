@@ -37,36 +37,39 @@ class FeePlanController extends Controller
     // }
     public function index(Request $request, $id = null)
     {
-        // Validate `ay_id` as required
-        $validated = $request->validate([
-            'ay_id' => 'required|integer|exists:t_academic_years,id',
-        ]);
+        if (!$id) {
+            // Validate `ay_id` as required only when `$id` is not provided
+            $validated = $request->validate([
+                'ay_id' => 'required|integer|exists:t_academic_years,id',
+            ]);
 
-        $ay_id = $validated['ay_id'];
+            $ay_id = $validated['ay_id'];
 
-        if ($id) {
-            $feePlan = FeePlanModel::where('id', $id)->where('ay_id', $ay_id)->first();
+            // Fetch all Fee Plans for the specified `ay_id`
+            $feePlans = FeePlanModel::where('ay_id', $ay_id)->get()->makeHidden(['created_at', 'updated_at']);
 
-            if ($feePlan) {
-                return response()->json([
-                    'message' => 'Fee plan fetched successfully!',
-                    'data' => $feePlan->makeHidden(['created_at', 'updated_at']),
-                ], 200);
-            }
-
-            return response()->json(['message' => 'Fee plan not found.'], 404);
+            return $feePlans->isNotEmpty()
+                ? response()->json([
+                    'message' => 'Fee plans fetched successfully!',
+                    'data' => $feePlans,
+                    'count' => $feePlans->count(),
+                ], 200)
+                : response()->json(['message' => 'No fee plans available.'], 404);
         }
 
-        $feePlans = FeePlanModel::where('ay_id', $ay_id)->get()->makeHidden(['created_at', 'updated_at']);
+        // Fetch a specific Fee Plan by ID, optionally filtered by `ay_id`
+        $feePlan = FeePlanModel::where('id', $id)->first();
 
-        return $feePlans->isNotEmpty()
-            ? response()->json([
-                'message' => 'Fee plans fetched successfully!',
-                'data' => $feePlans,
-                'count' => $feePlans->count(),
-            ], 200)
-            : response()->json(['message' => 'No fee plans available.'], 404);
+        if ($feePlan) {
+            return response()->json([
+                'message' => 'Fee plan fetched successfully!',
+                'data' => $feePlan->makeHidden(['created_at', 'updated_at']),
+            ], 200);
+        }
+
+        return response()->json(['message' => 'Fee plan not found.'], 404);
     }
+
 
 
     // Create a new record

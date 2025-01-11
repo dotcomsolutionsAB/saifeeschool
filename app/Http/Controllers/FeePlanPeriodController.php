@@ -39,46 +39,52 @@ class FeePlanPeriodController extends Controller
     //  }
     public function index(Request $request, $id = null)
     {
-        // Validate `ay_id` and `fp_id` as required
-        $validated = $request->validate([
-            'ay_id' => 'required|integer|exists:t_academic_years,id',
-            'fp_id' => 'required|integer|exists:t_fee_plans,id',
-        ]);
+        try {
+            if ($id) {
+                // Fetch a specific Fee Plan Particular by ID, filtered by `ay_id` and `fp_id`
+                $feePlanParticular = FeePlanPeriodModel::where('id', $id)
+                    ->first();
 
-        $ay_id = $validated['ay_id'];
-        $fp_id = $validated['fp_id'];
+                if ($feePlanParticular) {
+                    return response()->json([
+                        'message' => 'Fee plan particular fetched successfully!',
+                        'data' => $feePlanParticular->makeHidden(['created_at', 'updated_at']),
+                    ], 200);
+                }
 
-        if ($id) {
-            // Fetch a specific Fee Plan Particular by ID, filtered by `ay_id` and `fp_id`
-            $feePlanParticular = FeePlanPeriodModel::where('id', $id)
-                ->where('ay_id', $ay_id)
-                ->where('fp_id', $fp_id)
-                ->first();
-
-            if ($feePlanParticular) {
-                return response()->json([
-                    'message' => 'Fee plan particular fetched successfully!',
-                    'data' => $feePlanParticular->makeHidden(['created_at', 'updated_at']),
-                ], 200);
+                return response()->json(['message' => 'Fee plan particular not found.'], 404);
             }
 
-            return response()->json(['message' => 'Fee plan particular not found.'], 404);
+            // Validate `ay_id` and `fp_id` as required when $id is not provided
+            $validated = $request->validate([
+                'ay_id' => 'required|integer|exists:t_academic_years,id',
+                'fp_id' => 'required|integer|exists:t_fee_plans,id',
+            ]);
+
+            $ay_id = $validated['ay_id'];
+            $fp_id = $validated['fp_id'];
+
+            // Fetch all Fee Plan Particulars filtered by `ay_id` and `fp_id`
+            $feePlanParticulars = FeePlanPeriodModel::where('ay_id', $ay_id)
+                ->where('fp_id', $fp_id)
+                ->get()
+                ->makeHidden(['created_at', 'updated_at']);
+
+            return $feePlanParticulars->isNotEmpty()
+                ? response()->json([
+                    'message' => 'Fee plan particulars fetched successfully!',
+                    'data' => $feePlanParticulars,
+                    'count' => $feePlanParticulars->count(),
+                ], 200)
+                : response()->json(['message' => 'No fee plan particulars available.'], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'An error occurred while fetching fee plan particulars.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        // Fetch all Fee Plan Particulars filtered by `ay_id` and `fp_id`
-        $feePlanParticulars = FeePlanPeriodModel::where('ay_id', $ay_id)
-            ->where('fp_id', $fp_id)
-            ->get()
-            ->makeHidden(['created_at', 'updated_at']);
-
-        return $feePlanParticulars->isNotEmpty()
-            ? response()->json([
-                'message' => 'Fee plan particulars fetched successfully!',
-                'data' => $feePlanParticulars,
-                'count' => $feePlanParticulars->count(),
-            ], 200)
-            : response()->json(['message' => 'No fee plan particulars available.'], 404);
     }
+
 
  
      // Create a new record
