@@ -49,7 +49,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Student Routes
     Route::prefix('student')->group(function () {
-        // Route::post('/view', [StudentController::class, 'index']);          // List all students
+        Route::post('/view', [StudentController::class, 'index']);          // List all students
         // Route::post('/view/{id}', [StudentController::class, 'index']);     // Get details of a single student
         Route::post('/register', [StudentController::class, 'register']);         // Add a new student (Admin only)
         Route::post('/update/{id}', [StudentController::class, 'update']);     // Update a student (Admin only)
