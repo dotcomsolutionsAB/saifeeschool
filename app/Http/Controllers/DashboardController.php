@@ -25,9 +25,9 @@ class DashboardController extends Controller
             $totalAmount = FeeModel::where('f_paid', '0')->sum('fpp_amount');
             $totalLateFeesPaid = FeeModel::where('f_late_fee_applicable', '1')->sum('f_total_paid');
             $currentMonthAmount = FeeModel::where('f_paid', '0')
-                ->where('fpp_month_no', $currentMonth)
-                ->where('fpp_year_no', $currentYear)
-                ->sum('fpp_amount');
+                                            ->where('fpp_month_no', $currentMonth)
+                                            ->where('fpp_year_no', $currentYear)
+                                            ->sum('fpp_amount');
 
             // Return a successful response
             return response()->json([
