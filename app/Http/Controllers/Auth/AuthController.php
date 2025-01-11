@@ -39,7 +39,7 @@ class AuthController extends Controller
         else {
             return response()->json([
                 'success' => false,
-                'message' => 'User not register.',
+                'message' => 'Invalid username or password!',
             ], 401);
         }
     }
