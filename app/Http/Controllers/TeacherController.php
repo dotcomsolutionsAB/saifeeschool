@@ -142,8 +142,9 @@ class TeacherController extends Controller
             return $teachers->isNotEmpty()
                 ? response()->json([
                     'message' => 'Teachers fetched successfully!',
-                    'data' => $teachers,
-                    'count' => $teachers->count()
+                    // 'data' => $teachers,
+                    'data' => array_slice($teachers->toArray(), 0, 10),
+                    // 'count' => $teachers->count()
                 ], 200)
                 : response()->json(['message' => 'No teachers available.'], 400);
         }
