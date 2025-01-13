@@ -48,30 +48,30 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/new_password', [UserController::class, 'updatePassword']);  // New password
 
     // Student Routes
-    Route::prefix('student')->group(function () {
-        Route::post('/view', [StudentController::class, 'index']);          // List all students
-        // Route::post('/view/{id}', [StudentController::class, 'index']);     // Get details of a single student
-        Route::post('/register', [StudentController::class, 'register']);         // Add a new student (Admin only)
-        Route::post('/update/{id}', [StudentController::class, 'update']);     // Update a student (Admin only)
-        Route::delete('/{id}', [StudentController::class, 'destroy']); // Delete a student (Admin only)
+    // Route::prefix('student')->group(function () {
+    //     Route::post('/view', [StudentController::class, 'index']);          // List all students
+    //     // Route::post('/view/{id}', [StudentController::class, 'index']);     // Get details of a single student
+    //     Route::post('/register', [StudentController::class, 'register']);         // Add a new student (Admin only)
+    //     Route::post('/update/{id}', [StudentController::class, 'update']);     // Update a student (Admin only)
+    //     Route::delete('/{id}', [StudentController::class, 'destroy']); // Delete a student (Admin only)
 
-        Route::post('/duplicate', [StudentController::class, 'fetch_duplicate']); // Get duplicate student roll
+    //     Route::post('/duplicate', [StudentController::class, 'fetch_duplicate']); // Get duplicate student roll
 
-        Route::post('/export', [StudentController::class, 'export']); // Get export student roll
+    //     Route::post('/export', [StudentController::class, 'export']); // Get export student roll
 
-        Route::get('/import_basic', [StudentController::class, 'importStudentCsv']); 
-        Route::get('/import_details', [StudentController::class, 'importDetailsCsv']); 
+    //     Route::get('/import_basic', [StudentController::class, 'importStudentCsv']); 
+    //     Route::get('/import_details', [StudentController::class, 'importDetailsCsv']); 
 
-        Route::post('/make_payment', [StudentController::class, 'initiatePayment']);
+    //     Route::post('/make_payment', [StudentController::class, 'initiatePayment']);
 
-        Route::get('/fetch_fees', [StudentController::class, 'fetchStudentFees']);
+    //     Route::get('/fetch_fees', [StudentController::class, 'fetchStudentFees']);
 
-        Route::get('/fetch_photos', [StudentController::class, 'migrateUploadsFromCsv']);
+    //     Route::get('/fetch_photos', [StudentController::class, 'migrateUploadsFromCsv']);
 
-        Route::post('/upgrade', [StudentController::class, 'upgrade_student']);
+    //     Route::post('/upgrade', [StudentController::class, 'upgrade_student']);
 
-        Route::post('/apply_fee', [StudentController::class, 'apply_fee_plan']);
-    });
+    //     Route::post('/apply_fee', [StudentController::class, 'apply_fee_plan']);
+    // });
 
     // Route::post('/duplicate', [StudentController::class, 'fetch_duplicate']);
 
@@ -306,12 +306,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/create-with-permissions', [PermissionRoleController::class, 'createRoleWithPermissions']);
     });
 
-    // Route::middleware(['auth:sanctum', 'check-api-permission:manage-users'])->group(function () {
-    //     // Route::get('/secure_dashboard', [DashboardController::class, 'index']);
-    //     Route::prefix('student')->group(function () {
-    //         Route::post('/view', [StudentController::class, 'index']); 
-    //     });
-    // });
+    Route::middleware(['auth:sanctum', 'check-api-permission:manage-users'])->group(function () {
+        // Route::get('/secure_dashboard', [DashboardController::class, 'index']);
+        Route::prefix('student')->group(function () {
+            Route::post('/view', [StudentController::class, 'index']); 
+        });
+    });
 
     // Route::middleware(['auth:sanctum',  \App\Http\Middleware\CheckApiPermission::class . ':manage-users'
     // ])->group(function () {

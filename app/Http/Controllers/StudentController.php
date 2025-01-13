@@ -18,6 +18,7 @@ use Illuminate\Validation\Rule;
 use Mpdf\Mpdf;
 use App\Http\Controllers\RazorpayController;
 use App\Http\Controllers\RazorpayService;
+use Illuminate\Support\Facades\DB;
 
 class StudentController extends Controller
 {
@@ -1009,29 +1010,141 @@ class StudentController extends Controller
     //     }
     // }
 
+    // public function index(Request $request, $id = null)
+    // {
+    //     try {
+    //         // Validate the request for optional `ay_id`
+    //         $validated = $request->validate([
+    //             'ay_id' => 'nullable|integer|exists:t_academic_years,id',
+    //         ]);
+
+    //         // Determine the academic year to use
+    //         $currentAcademicYear = null;
+    //         if (!empty($validated['ay_id'])) {
+    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+    //                 ->where('id', $validated['ay_id'])
+    //                 ->first();
+    //         } else {
+    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+    //                 ->where('ay_current', '1')
+    //                 ->first();
+
+    //             if (!$currentAcademicYear) {
+    //                 $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
+    //                     ->orderBy('id', 'desc')
+    //                     ->first();
+    //             }
+    //         }
+
+    //         if (!$currentAcademicYear) {
+    //             return response()->json(['message' => 'No academic year records found.'], 404);
+    //         }
+
+    //         if ($id) {
+    //             // Fetch a specific student's class details in the determined academic year
+    //             $studentClass = $currentAcademicYear->studentClasses()
+    //                 ->where('st_id', $id)
+    //                 ->with(['student', 'classGroup'])
+    //                 ->first();
+
+    //             if (!$studentClass) {
+    //                 return response()->json(['message' => 'Student is not enrolled in the determined academic year.', 'status' => 'false'], 404);
+    //             }
+
+    //             // Fetch student details and photo
+    //             $student = $studentClass->student;
+    //             $photo = $student->photo_id
+    //                 ? UploadModel::where('id', $student->photo_id)->value('file_url')
+    //                 : null;
+
+    //             // Format the student data
+    //             $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
+    //             $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
+    //             $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
+    //             $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
+    //             $studentData['photo'] = $photo;
+
+    //             return response()->json([
+    //                 'message' => 'Student class name fetched successfully.',
+    //                 'data' => $studentData,
+    //                 'status' => 'true'
+    //             ], 200);
+    //         } else {
+    //             // Fetch all student-class records for the determined academic year
+    //             $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
+
+    //             if ($studentClasses->isEmpty()) {
+    //                 return response()->json(['message' => 'No students enrolled in the determined academic year.',  'status' => 'false'], 404);
+    //             }
+
+    //             // Map the data to include student details, class names, and photos
+    //             $data = $studentClasses->map(function ($studentClass) {
+    //                 $student = $studentClass->student;
+
+    //                 if (!$student) {
+    //                     return null;
+    //                 }
+
+    //                 $photo = $student->photo_id
+    //                     ? UploadModel::where('id', $student->photo_id)->value('file_url')
+    //                     : null;
+
+    //                 $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
+    //                 $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
+    //                 $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
+    //                 $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
+    //                 $studentData['photo'] = $photo;
+
+    //                 return $studentData;
+    //             })->filter();
+
+    //             return response()->json([
+    //                 'message' => 'Student class names fetched successfully.',
+    //                 'academic_year' => $currentAcademicYear->ay_name,
+    //                 // 'data' => $data,
+    //                 'data' => array_slice($data->toArray(), 0, 10),
+    //                 'status' => 'true'
+    //                 // 'count' => count($data),
+    //             ], 200);
+    //         }
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'message' => 'An error occurred while fetching student class names.',
+    //             'error' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
     public function index(Request $request, $id = null)
     {
         try {
-            // Validate the request for optional `ay_id`
+            // Validate the request for optional filters
             $validated = $request->validate([
                 'ay_id' => 'nullable|integer|exists:t_academic_years,id',
+                'offset' => 'nullable|integer|min:0',
+                'limit' => 'nullable|integer|min:1|max:100', // Limit parameter with a max of 100
+                'search' => 'nullable|string|max:255',
+                'bohra' => 'nullable|in:0,1',
+                'class_name' => 'nullable|string|max:255',
+                'gender' => 'nullable|in:M,F',
+                'dob_from' => 'nullable|date',
+                'dob_to' => 'nullable|date|after_or_equal:dob_from',
+                'roll_no' => 'nullable|string|max:255',
             ]);
 
-            // Determine the academic year to use
+            $offset = $validated['offset'] ?? 0;
+            $limit = $validated['limit'] ?? 10; // Default limit to 10
+
+            $query = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup']);
+
+            // Determine the academic year
             $currentAcademicYear = null;
             if (!empty($validated['ay_id'])) {
-                $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-                    ->where('id', $validated['ay_id'])
-                    ->first();
+                $currentAcademicYear = $query->where('id', $validated['ay_id'])->first();
             } else {
-                $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-                    ->where('ay_current', '1')
-                    ->first();
-
+                $currentAcademicYear = $query->where('ay_current', '1')->first();
                 if (!$currentAcademicYear) {
-                    $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-                        ->orderBy('id', 'desc')
-                        ->first();
+                    $currentAcademicYear = $query->orderBy('id', 'desc')->first();
                 }
             }
 
@@ -1040,23 +1153,21 @@ class StudentController extends Controller
             }
 
             if ($id) {
-                // Fetch a specific student's class details in the determined academic year
+                // Fetch a specific student's class details
                 $studentClass = $currentAcademicYear->studentClasses()
                     ->where('st_id', $id)
                     ->with(['student', 'classGroup'])
                     ->first();
 
                 if (!$studentClass) {
-                    return response()->json(['message' => 'Student is not enrolled in the determined academic year.', 'status' => 'false'], 404);
+                    return response()->json(['message' => 'Student not enrolled in the determined academic year.', 'status' => 'false'], 404);
                 }
 
-                // Fetch student details and photo
                 $student = $studentClass->student;
                 $photo = $student->photo_id
                     ? UploadModel::where('id', $student->photo_id)->value('file_url')
                     : null;
 
-                // Format the student data
                 $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
                 $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
                 $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
@@ -1069,14 +1180,67 @@ class StudentController extends Controller
                     'status' => 'true'
                 ], 200);
             } else {
-                // Fetch all student-class records for the determined academic year
-                $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
+                // Fetch all student-class records and apply filters
+                $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup']);
 
-                if ($studentClasses->isEmpty()) {
-                    return response()->json(['message' => 'No students enrolled in the determined academic year.',  'status' => 'false'], 404);
+                // Apply filters
+                if (!empty($validated['search'])) {
+                    $studentClasses->whereHas('student', function ($query) use ($validated) {
+                        $query->where('st_first_name', 'like', '%' . $validated['search'] . '%')
+                            ->orWhere('st_last_name', 'like', '%' . $validated['search'] . '%');
+                    });
                 }
 
-                // Map the data to include student details, class names, and photos
+                if (isset($validated['bohra'])) {
+                    $studentClasses->whereHas('student', function ($query) use ($validated) {
+                        $query->where('st_bohra', $validated['bohra']);
+                    });
+                }
+
+                if (!empty($validated['class_name'])) {
+                    $studentClasses->whereHas('classGroup', function ($query) use ($validated) {
+                        $query->where('cg_name', 'like', '%' . $validated['class_name'] . '%');
+                    });
+                }
+
+                if (!empty($validated['gender'])) {
+                    $studentClasses->whereHas('student', function ($query) use ($validated) {
+                        $query->where('st_gender', $validated['gender']);
+                    });
+                }
+
+                if (!empty($validated['dob_from']) || !empty($validated['dob_to'])) {
+                    $studentClasses->whereHas('student', function ($query) use ($validated) {
+                        if (!empty($validated['dob_from'])) {
+                            $query->where('st_dob', '>=', $validated['dob_from']);
+                        }
+                        if (!empty($validated['dob_to'])) {
+                            $query->where('st_dob', '<=', $validated['dob_to']);
+                        }
+                    });
+                }
+
+                if (!empty($validated['roll_no'])) {
+                    $studentClasses->whereHas('student', function ($query) use ($validated) {
+                        $query->where('st_roll_no', $validated['roll_no']);
+                    });
+                }
+
+                // Enable query logging
+                // DB::enableQueryLog();
+
+                // Get the filtered results
+                $studentClasses = $studentClasses->get();
+
+                // Get the logged queries
+                // $queries = DB::getQueryLog();
+
+                // dd($studentClasses);
+
+                if ($studentClasses->isEmpty()) {
+                    return response()->json(['message' => 'No students match the given criteria.', 'status' => 'false'], 404);
+                }
+
                 $data = $studentClasses->map(function ($studentClass) {
                     $student = $studentClass->student;
 
@@ -1088,7 +1252,7 @@ class StudentController extends Controller
                         ? UploadModel::where('id', $student->photo_id)->value('file_url')
                         : null;
 
-                    $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
+                    $studentData = $student->makeHidden(['created_at', 'updated_at'])->toArray();
                     $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
                     $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
                     $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
@@ -1100,10 +1264,9 @@ class StudentController extends Controller
                 return response()->json([
                     'message' => 'Student class names fetched successfully.',
                     'academic_year' => $currentAcademicYear->ay_name,
-                    // 'data' => $data,
-                    'data' => array_slice($data->toArray(), 0, 10),
-                    'status' => 'true'
-                    // 'count' => count($data),
+                    'data' => $data->slice($offset, $limit)->values(),
+                    'status' => 'true',
+                    'count' => $data->count()
                 ], 200);
             }
         } catch (\Exception $e) {
@@ -1113,6 +1276,7 @@ class StudentController extends Controller
             ], 500);
         }
     }
+
 
 
     // csv
