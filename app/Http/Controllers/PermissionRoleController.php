@@ -39,8 +39,8 @@ class PermissionRoleController extends Controller
     {
         $request->validate([
             'permissions' => 'required|array',
-            'valid_from' => 'nullable|date',
-            'valid_to' => 'nullable|date|after_or_equal:valid_from',
+            // 'valid_from' => 'nullable|date',
+            // 'valid_to' => 'nullable|date|after_or_equal:valid_from',
         ]);
 
         $createdPermissions = [];
@@ -51,8 +51,8 @@ class PermissionRoleController extends Controller
                 ['name' => $permissionName],
                 [
                     'guard_name' => 'sanctum',
-                    'valid_from' => $request->valid_from,
-                    'valid_to' => $request->valid_to,
+                    // 'valid_from' => $request->valid_from,
+                    // 'valid_to' => $request->valid_to,
                 ]
             );
 
@@ -97,8 +97,8 @@ class PermissionRoleController extends Controller
         $request->validate([
             'role' => 'required|string',
             'permissions' => 'required|array',
-            'valid_from' => 'nullable|date',
-            'valid_to' => 'nullable|date|after_or_equal:valid_from',
+            // 'valid_from' => 'nullable|date',
+            // 'valid_to' => 'nullable|date|after_or_equal:valid_from',
         ]);
 
         $role = Role::where('name', $request->role)->first();
