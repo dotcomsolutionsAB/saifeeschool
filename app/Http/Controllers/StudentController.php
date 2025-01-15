@@ -394,10 +394,6 @@ class StudentController extends Controller
             'f_business_country' => 'required|string|max:255',
             'f_business_pincode' => 'required|string|max:10',
         ])->validate());
-        // Clear unrelated fields
-        $validated['f_employer_name'] = null;
-        $validated['f_designation'] = null;
-        $validated['f_work_address1'] = null;
     } elseif ($validated['f_occupation'] === 'employed') {
         $validated = array_merge($validated, Validator::make($data, [
             'f_employer_name' => 'required|string|max:255',
@@ -408,10 +404,6 @@ class StudentController extends Controller
             'f_work_country' => 'required|string|max:255',
             'f_work_pincode' => 'required|string|max:10',
         ])->validate());
-        // Clear unrelated fields
-        $validated['f_business_name'] = null;
-        $validated['f_business_nature'] = null;
-        $validated['f_business_address1'] = null;
     }
 
     // Additional validation based on mother's occupation
@@ -425,10 +417,6 @@ class StudentController extends Controller
             'm_business_country' => 'required|string|max:255',
             'm_business_pincode' => 'required|string|max:10',
         ])->validate());
-        // Clear unrelated fields
-        $validated['m_employer_name'] = null;
-        $validated['m_designation'] = null;
-        $validated['m_work_address1'] = null;
     } elseif ($validated['m_occupation'] === 'employed') {
         $validated = array_merge($validated, Validator::make($data, [
             'm_employer_name' => 'required|string|max:255',
@@ -439,10 +427,6 @@ class StudentController extends Controller
             'm_work_country' => 'required|string|max:255',
             'm_work_pincode' => 'required|string|max:10',
         ])->validate());
-        // Clear unrelated fields
-        $validated['m_business_name'] = null;
-        $validated['m_business_nature'] = null;
-        $validated['m_business_address1'] = null;
     }
 
     try {
@@ -489,38 +473,38 @@ class StudentController extends Controller
             'f_email' => $validated['f_email'],
             'f_contact' => $validated['f_contact'],
             'f_occupation' => $validated['f_occupation'],
-            'f_business_name' => $validated['f_business_name'],
-            'f_business_nature' => $validated['f_business_nature'],
-            'f_business_address1' => $validated['f_business_address1'],
-            'f_business_city' => $validated['f_business_city'],
-            'f_business_state' => $validated['f_business_state'],
-            'f_business_country' => $validated['f_business_country'],
-            'f_business_pincode' => $validated['f_business_pincode'],
-            'f_employer_name' => $validated['f_employer_name'],
-            'f_designation' => $validated['f_designation'],
-            'f_work_address1' => $validated['f_work_address1'],
-            'f_work_city' => $validated['f_work_city'],
-            'f_work_state' => $validated['f_work_state'],
-            'f_work_country' => $validated['f_work_country'],
-            'f_work_pincode' => $validated['f_work_pincode'],
+            'f_business_name' => $validated['f_business_name'] ?? null,
+            'f_business_nature' => $validated['f_business_nature'] ?? null,
+            'f_business_address1' => $validated['f_business_address1'] ?? null,
+            'f_business_city' => $validated['f_business_city'] ?? null,
+            'f_business_state' => $validated['f_business_state'] ?? null,
+            'f_business_country' => $validated['f_business_country'] ?? null,
+            'f_business_pincode' => $validated['f_business_pincode'] ?? null,
+            'f_employer_name' => $validated['f_employer_name'] ?? null,
+            'f_designation' => $validated['f_designation'] ?? null,
+            'f_work_address1' => $validated['f_work_address1'] ?? null,
+            'f_work_city' => $validated['f_work_city'] ?? null,
+            'f_work_state' => $validated['f_work_state'] ?? null,
+            'f_work_country' => $validated['f_work_country'] ?? null,
+            'f_work_pincode' => $validated['f_work_pincode'] ?? null,
             'm_name' => $validated['m_name'],
             'm_email' => $validated['m_email'],
             'm_contact' => $validated['m_contact'],
             'm_occupation' => $validated['m_occupation'],
-            'm_business_name' => $validated['m_business_name'],
-            'm_business_nature' => $validated['m_business_nature'],
-            'm_business_address1' => $validated['m_business_address1'],
-            'm_business_city' => $validated['m_business_city'],
-            'm_business_state' => $validated['m_business_state'],
-            'm_business_country' => $validated['m_business_country'],
-            'm_business_pincode' => $validated['m_business_pincode'],
-            'm_employer_name' => $validated['m_employer_name'],
-            'm_designation' => $validated['m_designation'],
-            'm_work_address1' => $validated['m_work_address1'],
-            'm_work_city' => $validated['m_work_city'],
-            'm_work_state' => $validated['m_work_state'],
-            'm_work_country' => $validated['m_work_country'],
-            'm_work_pincode' => $validated['m_work_pincode'],
+            'm_business_name' => $validated['m_business_name'] ?? null,
+            'm_business_nature' => $validated['m_business_nature'] ?? null,
+            'm_business_address1' => $validated['m_business_address1'] ?? null,
+            'm_business_city' => $validated['m_business_city'] ?? null,
+            'm_business_state' => $validated['m_business_state'] ?? null,
+            'm_business_country' => $validated['m_business_country'] ?? null,
+            'm_business_pincode' => $validated['m_business_pincode'] ?? null,
+            'm_employer_name' => $validated['m_employer_name'] ?? null,
+            'm_designation' => $validated['m_designation'] ?? null,
+            'm_work_address1' => $validated['m_work_address1'] ?? null,
+            'm_work_city' => $validated['m_work_city'] ?? null,
+            'm_work_state' => $validated['m_work_state'] ?? null,
+            'm_work_country' => $validated['m_work_country'] ?? null,
+            'm_work_pincode' => $validated['m_work_pincode'] ?? null,
         ]);
 
         // Create user record
@@ -544,7 +528,6 @@ class StudentController extends Controller
         ], 500);
     }
 }
-
 public function uploadFiles(Request $request)
 {
     $request->validate([
