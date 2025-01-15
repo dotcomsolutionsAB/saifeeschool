@@ -1,5 +1,7 @@
 <?php
 
+namespace App\Http\Controllers;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator; // For validations
 use Illuminate\Support\Facades\DB; // For database operations
@@ -22,6 +24,7 @@ use App\Http\Controllers\RazorpayController; // Razorpay Controller
 use App\Http\Controllers\RazorpayService; // Razorpay Service
 use Illuminate\Validation\Rule; // For advanced validation rules
 use Carbon\Carbon; // For date manipulation
+
 class StudentController extends Controller
 {
     //
@@ -545,20 +548,20 @@ class StudentController extends Controller
 public function uploadFiles(Request $request)
 {
     $request->validate([
-        'st_roll_no' => 'required|exists:t_students,st_roll_no',
+        'st_id' => 'required|exists:t_students,id',
         'file_type' => 'required|array|min:1',
         'file_type.*' => 'required|in:photo,birth_certificate,aadhar,attachment',
         'file' => 'required|array|min:1',
         'file.*' => 'required|file|mimes:jpeg,jpg,png,pdf|max:2048',
     ]);
 
-    $studentRollNo = $request->input('st_roll_no');
+    $studentId = $request->input('st_id');
     $fileTypes = $request->input('file_type');
     $files = $request->file('file');
 
     try {
-        // Fetch the student using roll number
-        $student = StudentModel::where('st_roll_no', $studentRollNo)->first();
+        // Fetch the student and user token
+        $student = StudentModel::find($studentId);
 
         if (!$student) {
             return response()->json([
@@ -584,10 +587,10 @@ public function uploadFiles(Request $request)
 
             $file = $files[$index];
             $fileName = match ($fileType) {
-                'photo' => "{$studentRollNo}_photo.{$file->getClientOriginalExtension()}",
-                'birth_certificate' => "{$studentRollNo}_birth.{$file->getClientOriginalExtension()}",
-                'aadhar' => "{$studentRollNo}_aadhar.{$file->getClientOriginalExtension()}",
-                'attachment' => "{$studentRollNo}_attachment.{$file->getClientOriginalExtension()}",
+                'photo' => "{$studentId}_photo.{$file->getClientOriginalExtension()}",
+                'birth_certificate' => "{$studentId}_birth.{$file->getClientOriginalExtension()}",
+                'aadhar' => "{$studentId}_aadhar.{$file->getClientOriginalExtension()}",
+                'attachment' => "{$studentId}_attachment.{$file->getClientOriginalExtension()}",
             };
 
             $filePath = $file->storeAs($directory, $fileName, 'public');
@@ -624,6 +627,7 @@ public function uploadFiles(Request $request)
         ], 500);
     }
 }
+
 
     // update
     public function update(Request $request, $id)
