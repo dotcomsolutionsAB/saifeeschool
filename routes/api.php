@@ -56,7 +56,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 ->middleware(['check-api-permission:students.full, students.view']);     // Get details of a single student
 
         Route::post('/register', [StudentController::class, 'register'])
-                ->middleware(['check-api-permission:students.full']);         // Add a new student (Admin only)
+                ->middleware(['check-api-permission:students.full']);   
+
+         Route::post('/upload', [StudentController::class, 'uploadFiles'])
+                ->middleware(['check-api-permission:students.full']);   
+                
+                // Add a new student (Admin only)
 
         Route::post('/update/{id}', [StudentController::class, 'update'])
                 ->middleware(['check-api-permission:students.full']);     // Update a student (Admin only)

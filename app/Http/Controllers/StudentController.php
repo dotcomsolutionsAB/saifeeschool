@@ -24,311 +24,605 @@ class StudentController extends Controller
 {
     //
     // Create a new student
+    // public function register(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'st_roll_no' => 'required|string|max:255|unique:t_students,st_roll_no',
+    //         'st_first_name' => 'required|string|max:255',
+    //         'st_last_name' => 'required|string|max:255',
+    //         'st_gender' => 'required|in:M,F',
+    //         'st_dob' => 'required|date',
+    //         'st_blood_group' => 'required|in:A+,A-,B+,B-,AB+,AB-,O+,O-,Rare',
+    //         'st_bohra' => 'required|in:0,1',
+    //         'st_its_id' => 'required|string|max:255|unique:t_students,st_its_id',
+    //         'st_house' => 'required|in:red,blue,green,gold',
+    //         'st_wallet' => 'required|numeric',
+    //         'st_deposit' => 'required|numeric',
+    //         'st_gmail_address' => 'nullable|string',
+    //         'st_mobile' => 'nullable|string|max:20',
+    //         'st_external' => 'required|in:0,1',
+    //         'st_on_roll' => 'required|in:0,1',
+    //         'st_year_of_admission' => 'required|string|max:255',
+    //         'st_admitted' => 'required|string|max:255',
+    //         'st_admitted_class' => 'required|string|max:255',
+    //         'st_flag' => 'required|string|max:255',
+    //         'aadhaar_no' => 'required|digits:12|unique:t_student_details,aadhaar_no',
+    //         'residential_address1' => 'required|string|max:1000', // Text field, required
+    //         'residential_address2' => 'nullable|string|max:1000', // Optional text field
+    //         'residential_address3' => 'nullable|string|max:1000', // Optional text field
+    //         'city' => 'required|string|max:255',                 // String, required
+    //         'state' => 'required|string|max:255',                // String, required
+    //         'country' => 'required|string|max:255',              // String, required
+    //         'pincode' => 'required|digits:6',               // Integer, required
+    //         'class_group' => 'required|integer|min:1',           // Integer, required
+    //         // Attachment fields
+    //         'birth_certificate' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
+    //         'aadhaar_card' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
+    //         'photo_pic' => 'nullable|file|mimes:jpeg,jpg,png|max:2048',
+    //         'attachment' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
+    //         'f_name' => 'required|string|max:255',
+    //         'f_email' => 'required|email|max:255',
+    //         'f_contact' => 'required|string|max:20',
+    //         'm_name' => 'required|string|max:255',
+    //         'm_email' => 'required|email|max:255',
+    //         'm_contact' => 'required|string|max:20',
+    //         'f_occupation' => 'required|in:employed,self-employed,none',
+    //         'm_occupation' => 'required|in:employed,self-employed,home-maker',
+    //         // Validate father business fields
+    //         'f_business_name' => 'nullable|string|max:255',
+    //         'f_business_nature' => 'nullable|string|max:255',
+    //         'f_business_address1' => 'nullable|string|max:255',
+    //         'f_business_address2' => 'nullable|string|max:255',
+    //         'f_business_city' => 'nullable|string|max:255',
+    //         'f_business_state' => 'nullable|string|max:255',
+    //         'f_business_country' => 'nullable|string|max:255',
+    //         'f_business_pincode' => 'nullable|string|max:10',
+    //         // Validate father work fields
+    //         'f_employer_name' => 'nullable|string|max:255',
+    //         'f_designation' => 'nullable|string|max:255',
+    //         'f_work_address1' => 'nullable|string|max:255',
+    //         'f_work_address2' => 'nullable|string|max:255',
+    //         'f_work_city' => 'nullable|string|max:255',
+    //         'f_work_state' => 'nullable|string|max:255',
+    //         'f_work_country' => 'nullable|string|max:255',
+    //         'f_work_pincode' => 'nullable|string|max:10',
+    //         // Validate mother business fields
+    //         'm_business_name' => 'nullable|string|max:255',
+    //         'm_business_nature' => 'nullable|string|max:255',
+    //         'm_business_address1' => 'nullable|string|max:255',
+    //         'm_business_address2' => 'nullable|string|max:255',
+    //         'm_business_city' => 'nullable|string|max:255',
+    //         'm_business_state' => 'nullable|string|max:255',
+    //         'm_business_country' => 'nullable|string|max:255',
+    //         'm_business_pincode' => 'nullable|string|max:10',
+    //         // Validate mother work fields
+    //         'm_employer_name' => 'nullable|string|max:255',
+    //         'm_designation' => 'nullable|string|max:255',
+    //         'm_work_address1' => 'nullable|string|max:255',
+    //         'm_work_address2' => 'nullable|string|max:255',
+    //         'm_work_city' => 'nullable|string|max:255',
+    //         'm_work_state' => 'nullable|string|max:255',
+    //         'm_work_country' => 'nullable|string|max:255',
+    //         'm_work_pincode' => 'nullable|string|max:10',
+    //     ]);
+
+    //     // Handle father occupation
+    //     if ($validated['f_occupation'] === 'self-employed') {
+    //         $validated = array_merge($validated, $request->validate([
+    //             'f_business_name' => 'required|string|max:255',
+    //             'f_business_nature' => 'required|string|max:255',
+    //             'f_business_address1' => 'required|string|max:255',
+    //             'f_business_city' => 'required|string|max:255',
+    //             'f_business_state' => 'required|string|max:255',
+    //             'f_business_country' => 'required|string|max:255',
+    //             'f_business_pincode' => 'required|string|max:10',
+    //         ]));
+    //         // Clear work-related fields
+    //         $validated = array_merge($validated, [
+    //             'f_employer_name' => null,
+    //             'f_designation' => null,
+    //             'f_work_address1' => null,
+    //             'f_work_city' => null,
+    //         ]);
+    //     } elseif ($validated['f_occupation'] === 'employed') {
+    //         $validated = array_merge($validated, $request->validate([
+    //             'f_employer_name' => 'required|string|max:255',
+    //             'f_designation' => 'required|string|max:255',
+    //             'f_work_address1' => 'required|string|max:255',
+    //             'f_work_city' => 'required|string|max:255',
+    //             'f_work_state' => 'required|string|max:255',
+    //             'f_work_country' => 'required|string|max:255',
+    //             'f_work_pincode' => 'required|string|max:10',
+    //         ]));
+    //         // Clear business-related fields
+    //         $validated = array_merge($validated, [
+    //             'f_business_name' => null,
+    //             'f_business_nature' => null,
+    //             'f_business_address1' => null,
+    //         ]);
+    //     }
+
+    //     // Handle mother occupation
+    //     if ($validated['m_occupation'] === 'self-employed') {
+    //         $validated = array_merge($validated, $request->validate([
+    //             'm_business_name' => 'required|string|max:255',
+    //             'm_business_nature' => 'required|string|max:255',
+    //             'm_business_address1' => 'required|string|max:255',
+    //             'm_business_city' => 'required|string|max:255',
+    //             'm_business_state' => 'required|string|max:255',
+    //             'm_business_country' => 'required|string|max:255',
+    //             'm_business_pincode' => 'required|string|max:10',
+    //         ]));
+    //         // Clear work-related fields
+    //         $validated = array_merge($validated, [
+    //             'm_employer_name' => null,
+    //             'm_designation' => null,
+    //             'm_work_address1' => null,
+    //             'm_work_city' => null,
+    //         ]);
+    //     } elseif ($validated['m_occupation'] === 'employed') {
+    //         $validated = array_merge($validated, $request->validate([
+    //             'm_employer_name' => 'required|string|max:255',
+    //             'm_designation' => 'required|string|max:255',
+    //             'm_work_address1' => 'required|string|max:255',
+    //             'm_work_city' => 'required|string|max:255',
+    //             'm_work_state' => 'required|string|max:255',
+    //             'm_work_country' => 'required|string|max:255',
+    //             'm_work_pincode' => 'required|string|max:10',
+    //         ]));
+    //         // Clear business-related fields
+    //         $validated = array_merge($validated, [
+    //             'm_business_name' => null,
+    //             'm_business_nature' => null,
+    //             'm_business_address1' => null,
+    //         ]);
+    //     }
+
+    //     try {
+
+    //         // Handle file uploads
+    //         $photoId = null;
+    //         $birthCertificateId = null;
+    //         $aadhaarId = null;
+    //         $attachmentId = null;
+
+    //         if ($request->hasFile('photo_pic')) {
+    //             $photoFile = $request->file('photo_pic');
+    //             $photoPath = $photoFile->store('uploads/students/student_profile_images', 'public');
+    //             $photoId = UploadModel::create([
+    //                 'file_name' => pathinfo($photoFile->getClientOriginalName(), PATHINFO_FILENAME),
+    //                 'file_ext' => $photoFile->getClientOriginalExtension(),
+    //                 'file_url' => $photoPath,
+    //                 'file_size' => $photoFile->getSize(),
+    //             ])->id;
+    //         }
+
+    //         if ($request->hasFile('birth_certificate')) {
+    //             $birthCertificateFile = $request->file('birth_certificate');
+    //             $birthCertificatePath = $birthCertificateFile->store('uploads/students/birth_certificates', 'public');
+    //             $birthCertificateId = UploadModel::create([
+    //                 'file_name' => pathinfo($birthCertificateFile->getClientOriginalName(), PATHINFO_FILENAME),
+    //                 'file_ext' => $birthCertificateFile->getClientOriginalExtension(),
+    //                 'file_url' => $birthCertificatePath,
+    //                 'file_size' => $birthCertificateFile->getSize(),
+    //             ])->id;
+    //         }
+
+    //         if ($request->hasFile('aadhaar_card')) {
+    //             $aadhaarFile = $request->file('aadhaar_card');
+    //             $aadhaarPath = $aadhaarFile->store('uploads/students/aadhaar_certificate', 'public');
+    //             $aadhaarId = UploadModel::create([
+    //                 'file_name' => pathinfo($aadhaarFile->getClientOriginalName(), PATHINFO_FILENAME),
+    //                 'file_ext' => $aadhaarFile->getClientOriginalExtension(),
+    //                 'file_url' => $aadhaarPath,
+    //                 'file_size' => $aadhaarFile->getSize(),
+    //             ])->id;
+    //         }
+
+    //         if ($request->hasFile('attachment')) {
+    //             $attachmentFile = $request->file('attachment');
+    //             $attachmentPath = $aadhaarFile->store('uploads/students/attachment', 'public');
+    //             $attachmentId = UploadModel::create([
+    //                 'file_name' => pathinfo($attachmentFile->getClientOriginalName(), PATHINFO_FILENAME),
+    //                 'file_ext' => $attachmentFile->getClientOriginalExtension(),
+    //                 'file_url' => $attachmentPath,
+    //                 'file_size' => $attachmentFile->getSize(),
+    //             ])->id;
+    //         }
+
+    //         // Create student
+    //         $register_student = StudentModel::create([
+    //             'st_roll_no' => $validated['st_roll_no'],
+    //             'st_first_name' => $validated['st_first_name'],
+    //             'st_last_name' => $validated['st_last_name'],
+    //             'st_gender' => $validated['st_gender'],
+    //             'st_dob' => $validated['st_dob'],
+    //             'st_blood_group' => $validated['st_blood_group'],
+    //             'st_bohra' => $validated['st_bohra'],
+    //             'st_its_id' => $validated['st_its_id'],
+    //             'st_house' => $validated['st_house'],
+    //             'st_wallet' => $validated['st_wallet'],
+    //             'st_deposit' => $validated['st_deposit'],
+    //             'st_gmail_address' => strtolower($validated['st_gmail_address']),
+    //             'st_mobile' => $validated['st_mobile'],
+    //             'st_external' => $validated['st_external'],
+    //             'st_on_roll' => $validated['st_on_roll'],
+    //             'st_year_of_admission' => $validated['st_year_of_admission'],
+    //             'st_admitted' => $validated['st_admitted'],
+    //             'st_admitted_class' => $validated['st_admitted_class'],
+    //             'st_flag' => $validated['st_flag'],
+    //             'photo_id' => $photoId, // Reference the uploaded profile picture
+    //             'birth_certificate_id' => $birthCertificateId, // Reference the uploaded Birth Certificate
+    //             'aadhaar_id' => $aadhaarId, // Reference the uploaded Aadhaar card
+    //             'attachment_id' => $attachmentId, // Reference the uploaded Attachments
+    //         ]);
+
+    //         // register on user
+    //         $register_user = User::create([
+    //             'name' => trim(($validated['st_first_name'] ?? '') . ' ' . ($validated['st_last_name'] ?? '')),
+    //             'email' => strtolower($validated['st_gmail_address']),
+    //             'password' => bcrypt($validated['st_roll_no']),
+    //             'role' => "student",
+    //             'username' => $validated['st_gmail_address'],
+    //         ]);
+
+    //         // Create student details
+    //         $studentDetails  = StudentDetailsModel::create([
+    //             'st_id' => $register_student->id,
+    //             'aadhaar_no' => $validated['aadhaar_no'] ?? null,
+    //             'residential_address1' => $validated['residential_address1'] ?? null,
+    //             'residential_address2' => $validated['residential_address2'] ?? null,
+    //             'residential_address3' => $validated['residential_address3'] ?? null,
+    //             'city' => $validated['city'] ?? null,
+    //             'state' => $validated['state'] ?? null,
+    //             'country' => $validated['country'] ?? null,
+    //             'pincode' => $validated['pincode'] ?? null,
+    //             'class_group' => $validated['class_group'] ?? null,
+    //             'f_name' => $validated['f_name'] ?? null,
+    //             'f_email' => $validated['f_email'] ?? null,
+    //             'f_contact' => $validated['f_contact'] ?? null,
+    //             'f_occupation' => $validated['f_occupation'] ?? null,
+    //             'f_business_name' => $validated['f_business_name'] ?? null,
+    //             'f_business_nature' => $validated['f_business_nature'] ?? null,
+    //             'f_business_address1' => $validated['f_business_address1'] ?? null,
+    //             'f_business_address2' => $validated['f_business_address2'] ?? null,
+    //             'f_business_city' => $validated['f_business_city'] ?? null,
+    //             'f_business_state' => $validated['f_business_state'] ?? null,
+    //             'f_business_country' => $validated['f_business_country'] ?? null,
+    //             'f_business_pincode' => $validated['f_business_pincode'] ?? null,
+    //             'f_employer_name' => $validated['f_employer_name'] ?? null,
+    //             'f_designation' => $validated['f_designation'] ?? null,
+    //             'f_work_address1' => $validated['f_work_address1'] ?? null,
+    //             'f_work_address2' => $validated['f_work_address2'] ?? null,
+    //             'f_work_city' => $validated['f_work_city'] ?? null,
+    //             'f_work_state' => $validated['f_work_state'] ?? null,
+    //             'f_work_country' => $validated['f_work_country'] ?? null,
+    //             'f_work_pincode' => $validated['f_work_pincode'] ?? null,
+    //             'm_name' => $validated['m_name'] ?? null,
+    //             'm_email' => $validated['m_email'] ?? null,
+    //             'm_contact' => $validated['m_contact'] ?? null,
+    //             'm_occupation' => $validated['m_occupation'] ?? null,
+    //             'm_business_name' => $validated['m_business_name'] ?? null,
+    //             'm_business_nature' => $validated['m_business_nature'] ?? null,
+    //             'm_business_address1' => $validated['m_business_address1'] ?? null,
+    //             'm_business_address2' => $validated['m_business_address2'] ?? null,
+    //             'm_business_city' => $validated['m_business_city'] ?? null,
+    //             'm_business_state' => $validated['m_business_state'] ?? null,
+    //             'm_business_country' => $validated['m_business_country'] ?? null,
+    //             'm_business_pincode' => $validated['m_business_pincode'] ?? null,
+    //             'm_employer_name' => $validated['m_employer_name'] ?? null,
+    //             'm_designation' => $validated['m_designation'] ?? null,
+    //             'm_work_address1' => $validated['m_work_address1'] ?? null,
+    //             'm_work_address2' => $validated['m_work_address2'] ?? null,
+    //             'm_work_city' => $validated['m_work_city'] ?? null,
+    //             'm_work_state' => $validated['m_work_state'] ?? null,
+    //             'm_work_country' => $validated['m_work_country'] ?? null,
+    //             'm_work_pincode' => $validated['m_work_pincode'] ?? null,
+    //         ]);
+
+    //         return response()->json([
+    //             'message' => 'Student registered successfully',
+    //             'student' => $register_student->makeHidden(['id', 'created_at', 'updated_at']),
+    //             'studentDetails' => $studentDetails->makeHidden(['id', 'created_at', 'updated_at']),
+    //         ], 201);
+    //     } catch (\Exception $e) {
+    //         return response()->json(['message' => 'Registration failed', 'error' => $e->getMessage()], 500);
+    //     }
+    // }
+
+
     public function register(Request $request)
-    {
-        $validated = $request->validate([
-            'st_roll_no' => 'required|string|max:255|unique:t_students,st_roll_no',
-            'st_first_name' => 'required|string|max:255',
-            'st_last_name' => 'required|string|max:255',
-            'st_gender' => 'required|in:M,F',
-            'st_dob' => 'required|date',
-            'st_blood_group' => 'required|in:A+,A-,B+,B-,AB+,AB-,O+,O-,Rare',
-            'st_bohra' => 'required|in:0,1',
-            'st_its_id' => 'required|string|max:255|unique:t_students,st_its_id',
-            'st_house' => 'required|in:red,blue,green,gold',
-            'st_wallet' => 'required|numeric',
-            'st_deposit' => 'required|numeric',
-            'st_gmail_address' => 'nullable|string',
-            'st_mobile' => 'nullable|string|max:20',
-            'st_external' => 'required|in:0,1',
-            'st_on_roll' => 'required|in:0,1',
-            'st_year_of_admission' => 'required|string|max:255',
-            'st_admitted' => 'required|string|max:255',
-            'st_admitted_class' => 'required|string|max:255',
-            'st_flag' => 'required|string|max:255',
-            'aadhaar_no' => 'required|digits:12|unique:t_student_details,aadhaar_no',
-            'residential_address1' => 'required|string|max:1000', // Text field, required
-            'residential_address2' => 'nullable|string|max:1000', // Optional text field
-            'residential_address3' => 'nullable|string|max:1000', // Optional text field
-            'city' => 'required|string|max:255',                 // String, required
-            'state' => 'required|string|max:255',                // String, required
-            'country' => 'required|string|max:255',              // String, required
-            'pincode' => 'required|digits:6',               // Integer, required
-            'class_group' => 'required|integer|min:1',           // Integer, required
-            // Attachment fields
-            'birth_certificate' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
-            'aadhaar_card' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
-            'photo_pic' => 'nullable|file|mimes:jpeg,jpg,png|max:2048',
-            'attachment' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
-            'f_name' => 'required|string|max:255',
-            'f_email' => 'required|email|max:255',
-            'f_contact' => 'required|string|max:20',
-            'm_name' => 'required|string|max:255',
-            'm_email' => 'required|email|max:255',
-            'm_contact' => 'required|string|max:20',
-            'f_occupation' => 'required|in:employed,self-employed,none',
-            'm_occupation' => 'required|in:employed,self-employed,home-maker',
-            // Validate father business fields
-            'f_business_name' => 'nullable|string|max:255',
-            'f_business_nature' => 'nullable|string|max:255',
-            'f_business_address1' => 'nullable|string|max:255',
-            'f_business_address2' => 'nullable|string|max:255',
-            'f_business_city' => 'nullable|string|max:255',
-            'f_business_state' => 'nullable|string|max:255',
-            'f_business_country' => 'nullable|string|max:255',
-            'f_business_pincode' => 'nullable|string|max:10',
-            // Validate father work fields
-            'f_employer_name' => 'nullable|string|max:255',
-            'f_designation' => 'nullable|string|max:255',
-            'f_work_address1' => 'nullable|string|max:255',
-            'f_work_address2' => 'nullable|string|max:255',
-            'f_work_city' => 'nullable|string|max:255',
-            'f_work_state' => 'nullable|string|max:255',
-            'f_work_country' => 'nullable|string|max:255',
-            'f_work_pincode' => 'nullable|string|max:10',
-            // Validate mother business fields
-            'm_business_name' => 'nullable|string|max:255',
-            'm_business_nature' => 'nullable|string|max:255',
-            'm_business_address1' => 'nullable|string|max:255',
-            'm_business_address2' => 'nullable|string|max:255',
-            'm_business_city' => 'nullable|string|max:255',
-            'm_business_state' => 'nullable|string|max:255',
-            'm_business_country' => 'nullable|string|max:255',
-            'm_business_pincode' => 'nullable|string|max:10',
-            // Validate mother work fields
-            'm_employer_name' => 'nullable|string|max:255',
-            'm_designation' => 'nullable|string|max:255',
-            'm_work_address1' => 'nullable|string|max:255',
-            'm_work_address2' => 'nullable|string|max:255',
-            'm_work_city' => 'nullable|string|max:255',
-            'm_work_state' => 'nullable|string|max:255',
-            'm_work_country' => 'nullable|string|max:255',
-            'm_work_pincode' => 'nullable|string|max:10',
+{
+    $data = $request->json()->all();
+
+    // Base validation for general fields
+    $validated = Validator::make($data, [
+        // Student fields
+        'st_roll_no' => 'required|string|max:255|unique:t_students,st_roll_no',
+        'st_first_name' => 'required|string|max:255',
+        'st_last_name' => 'required|string|max:255',
+        'st_gender' => 'required|in:M,F',
+        'st_dob' => 'required|date',
+        'st_blood_group' => 'required|in:A+,A-,B+,B-,AB+,AB-,O+,O-,Rare',
+        'st_bohra' => 'required|in:0,1',
+        'st_its_id' => 'required|string|max:255|unique:t_students,st_its_id',
+        'st_house' => 'required|in:red,blue,green,gold',
+        'st_wallet' => 'required|numeric',
+        'st_deposit' => 'required|numeric',
+        'st_gmail_address' => 'nullable|string',
+        'st_mobile' => 'nullable|string|max:20',
+        'st_external' => 'required|in:0,1',
+        'st_on_roll' => 'required|in:0,1',
+        'st_year_of_admission' => 'required|string|max:255',
+        'st_admitted' => 'required|string|max:255',
+        'st_admitted_class' => 'required|string|max:255',
+        'st_flag' => 'required|string|max:255',
+        // Student Details fields
+        'aadhaar_no' => 'required|digits:12|unique:t_student_details,aadhaar_no',
+        'residential_address1' => 'required|string|max:1000',
+        'residential_address2' => 'nullable|string|max:1000',
+        'residential_address3' => 'nullable|string|max:1000',
+        'city' => 'required|string|max:255',
+        'state' => 'required|string|max:255',
+        'country' => 'required|string|max:255',
+        'pincode' => 'required|digits:6',
+        'class_group' => 'required|integer|min:1',
+        // Parent details
+        'f_name' => 'required|string|max:255',
+        'f_email' => 'required|email|max:255',
+        'f_contact' => 'required|string|max:20',
+        'm_name' => 'required|string|max:255',
+        'm_email' => 'required|email|max:255',
+        'm_contact' => 'required|string|max:20',
+        'f_occupation' => 'required|in:employed,self-employed,none',
+        'm_occupation' => 'required|in:employed,self-employed,home-maker',
+    ])->validate();
+
+    // Additional validation based on father's occupation
+    if ($validated['f_occupation'] === 'self-employed') {
+        $validated = array_merge($validated, Validator::make($data, [
+            'f_business_name' => 'required|string|max:255',
+            'f_business_nature' => 'required|string|max:255',
+            'f_business_address1' => 'required|string|max:255',
+            'f_business_city' => 'required|string|max:255',
+            'f_business_state' => 'required|string|max:255',
+            'f_business_country' => 'required|string|max:255',
+            'f_business_pincode' => 'required|string|max:10',
+        ])->validate());
+        // Clear unrelated fields
+        $validated['f_employer_name'] = null;
+        $validated['f_designation'] = null;
+        $validated['f_work_address1'] = null;
+    } elseif ($validated['f_occupation'] === 'employed') {
+        $validated = array_merge($validated, Validator::make($data, [
+            'f_employer_name' => 'required|string|max:255',
+            'f_designation' => 'required|string|max:255',
+            'f_work_address1' => 'required|string|max:255',
+            'f_work_city' => 'required|string|max:255',
+            'f_work_state' => 'required|string|max:255',
+            'f_work_country' => 'required|string|max:255',
+            'f_work_pincode' => 'required|string|max:10',
+        ])->validate());
+        // Clear unrelated fields
+        $validated['f_business_name'] = null;
+        $validated['f_business_nature'] = null;
+        $validated['f_business_address1'] = null;
+    }
+
+    // Additional validation based on mother's occupation
+    if ($validated['m_occupation'] === 'self-employed') {
+        $validated = array_merge($validated, Validator::make($data, [
+            'm_business_name' => 'required|string|max:255',
+            'm_business_nature' => 'required|string|max:255',
+            'm_business_address1' => 'required|string|max:255',
+            'm_business_city' => 'required|string|max:255',
+            'm_business_state' => 'required|string|max:255',
+            'm_business_country' => 'required|string|max:255',
+            'm_business_pincode' => 'required|string|max:10',
+        ])->validate());
+        // Clear unrelated fields
+        $validated['m_employer_name'] = null;
+        $validated['m_designation'] = null;
+        $validated['m_work_address1'] = null;
+    } elseif ($validated['m_occupation'] === 'employed') {
+        $validated = array_merge($validated, Validator::make($data, [
+            'm_employer_name' => 'required|string|max:255',
+            'm_designation' => 'required|string|max:255',
+            'm_work_address1' => 'required|string|max:255',
+            'm_work_city' => 'required|string|max:255',
+            'm_work_state' => 'required|string|max:255',
+            'm_work_country' => 'required|string|max:255',
+            'm_work_pincode' => 'required|string|max:10',
+        ])->validate());
+        // Clear unrelated fields
+        $validated['m_business_name'] = null;
+        $validated['m_business_nature'] = null;
+        $validated['m_business_address1'] = null;
+    }
+
+    try {
+        // Generate user_token
+        $userToken = md5($validated['st_roll_no'] . Str::random(10) . time());
+
+        // Create student record
+        $student = StudentModel::create([
+            'st_roll_no' => $validated['st_roll_no'],
+            'st_first_name' => $validated['st_first_name'],
+            'st_last_name' => $validated['st_last_name'],
+            'st_gender' => $validated['st_gender'],
+            'st_dob' => $validated['st_dob'],
+            'st_blood_group' => $validated['st_blood_group'],
+            'st_bohra' => $validated['st_bohra'],
+            'st_its_id' => $validated['st_its_id'],
+            'st_house' => $validated['st_house'],
+            'st_wallet' => $validated['st_wallet'],
+            'st_deposit' => $validated['st_deposit'],
+            'st_gmail_address' => $validated['st_gmail_address'],
+            'st_mobile' => $validated['st_mobile'],
+            'st_external' => $validated['st_external'],
+            'st_on_roll' => $validated['st_on_roll'],
+            'st_year_of_admission' => $validated['st_year_of_admission'],
+            'st_admitted' => $validated['st_admitted'],
+            'st_admitted_class' => $validated['st_admitted_class'],
+            'st_flag' => $validated['st_flag'],
+            'user_token' => $userToken,
         ]);
 
-        // Handle father occupation
-        if ($validated['f_occupation'] === 'self-employed') {
-            $validated = array_merge($validated, $request->validate([
-                'f_business_name' => 'required|string|max:255',
-                'f_business_nature' => 'required|string|max:255',
-                'f_business_address1' => 'required|string|max:255',
-                'f_business_city' => 'required|string|max:255',
-                'f_business_state' => 'required|string|max:255',
-                'f_business_country' => 'required|string|max:255',
-                'f_business_pincode' => 'required|string|max:10',
-            ]));
-            // Clear work-related fields
-            $validated = array_merge($validated, [
-                'f_employer_name' => null,
-                'f_designation' => null,
-                'f_work_address1' => null,
-                'f_work_city' => null,
-            ]);
-        } elseif ($validated['f_occupation'] === 'employed') {
-            $validated = array_merge($validated, $request->validate([
-                'f_employer_name' => 'required|string|max:255',
-                'f_designation' => 'required|string|max:255',
-                'f_work_address1' => 'required|string|max:255',
-                'f_work_city' => 'required|string|max:255',
-                'f_work_state' => 'required|string|max:255',
-                'f_work_country' => 'required|string|max:255',
-                'f_work_pincode' => 'required|string|max:10',
-            ]));
-            // Clear business-related fields
-            $validated = array_merge($validated, [
-                'f_business_name' => null,
-                'f_business_nature' => null,
-                'f_business_address1' => null,
-            ]);
-        }
+        // Create student details record
+        StudentDetailsModel::create([
+            'st_id' => $student->id,
+            'aadhaar_no' => $validated['aadhaar_no'],
+            'residential_address1' => $validated['residential_address1'],
+            'residential_address2' => $validated['residential_address2'],
+            'residential_address3' => $validated['residential_address3'],
+            'city' => $validated['city'],
+            'state' => $validated['state'],
+            'country' => $validated['country'],
+            'pincode' => $validated['pincode'],
+            'class_group' => $validated['class_group'],
+            'f_name' => $validated['f_name'],
+            'f_email' => $validated['f_email'],
+            'f_contact' => $validated['f_contact'],
+            'f_occupation' => $validated['f_occupation'],
+            'f_business_name' => $validated['f_business_name'],
+            'f_business_nature' => $validated['f_business_nature'],
+            'f_business_address1' => $validated['f_business_address1'],
+            'f_business_city' => $validated['f_business_city'],
+            'f_business_state' => $validated['f_business_state'],
+            'f_business_country' => $validated['f_business_country'],
+            'f_business_pincode' => $validated['f_business_pincode'],
+            'f_employer_name' => $validated['f_employer_name'],
+            'f_designation' => $validated['f_designation'],
+            'f_work_address1' => $validated['f_work_address1'],
+            'f_work_city' => $validated['f_work_city'],
+            'f_work_state' => $validated['f_work_state'],
+            'f_work_country' => $validated['f_work_country'],
+            'f_work_pincode' => $validated['f_work_pincode'],
+            'm_name' => $validated['m_name'],
+            'm_email' => $validated['m_email'],
+            'm_contact' => $validated['m_contact'],
+            'm_occupation' => $validated['m_occupation'],
+            'm_business_name' => $validated['m_business_name'],
+            'm_business_nature' => $validated['m_business_nature'],
+            'm_business_address1' => $validated['m_business_address1'],
+            'm_business_city' => $validated['m_business_city'],
+            'm_business_state' => $validated['m_business_state'],
+            'm_business_country' => $validated['m_business_country'],
+            'm_business_pincode' => $validated['m_business_pincode'],
+            'm_employer_name' => $validated['m_employer_name'],
+            'm_designation' => $validated['m_designation'],
+            'm_work_address1' => $validated['m_work_address1'],
+            'm_work_city' => $validated['m_work_city'],
+            'm_work_state' => $validated['m_work_state'],
+            'm_work_country' => $validated['m_work_country'],
+            'm_work_pincode' => $validated['m_work_pincode'],
+        ]);
 
-        // Handle mother occupation
-        if ($validated['m_occupation'] === 'self-employed') {
-            $validated = array_merge($validated, $request->validate([
-                'm_business_name' => 'required|string|max:255',
-                'm_business_nature' => 'required|string|max:255',
-                'm_business_address1' => 'required|string|max:255',
-                'm_business_city' => 'required|string|max:255',
-                'm_business_state' => 'required|string|max:255',
-                'm_business_country' => 'required|string|max:255',
-                'm_business_pincode' => 'required|string|max:10',
-            ]));
-            // Clear work-related fields
-            $validated = array_merge($validated, [
-                'm_employer_name' => null,
-                'm_designation' => null,
-                'm_work_address1' => null,
-                'm_work_city' => null,
-            ]);
-        } elseif ($validated['m_occupation'] === 'employed') {
-            $validated = array_merge($validated, $request->validate([
-                'm_employer_name' => 'required|string|max:255',
-                'm_designation' => 'required|string|max:255',
-                'm_work_address1' => 'required|string|max:255',
-                'm_work_city' => 'required|string|max:255',
-                'm_work_state' => 'required|string|max:255',
-                'm_work_country' => 'required|string|max:255',
-                'm_work_pincode' => 'required|string|max:10',
-            ]));
-            // Clear business-related fields
-            $validated = array_merge($validated, [
-                'm_business_name' => null,
-                'm_business_nature' => null,
-                'm_business_address1' => null,
-            ]);
-        }
+        // Create user record
+        User::create([
+            'name' => $validated['st_first_name'] . ' ' . $validated['st_last_name'],
+            'email' => $validated['st_gmail_address'],
+            'password' => bcrypt($validated['st_roll_no']),
+            'role' => 'student',
+            'username' => $validated['st_gmail_address'],
+            'user_token' => $userToken,
+        ]);
 
-        try {
-
-            // Handle file uploads
-            $photoId = null;
-            $birthCertificateId = null;
-            $aadhaarId = null;
-            $attachmentId = null;
-
-            if ($request->hasFile('photo_pic')) {
-                $photoFile = $request->file('photo_pic');
-                $photoPath = $photoFile->store('uploads/students/student_profile_images', 'public');
-                $photoId = UploadModel::create([
-                    'file_name' => pathinfo($photoFile->getClientOriginalName(), PATHINFO_FILENAME),
-                    'file_ext' => $photoFile->getClientOriginalExtension(),
-                    'file_url' => $photoPath,
-                    'file_size' => $photoFile->getSize(),
-                ])->id;
-            }
-
-            if ($request->hasFile('birth_certificate')) {
-                $birthCertificateFile = $request->file('birth_certificate');
-                $birthCertificatePath = $birthCertificateFile->store('uploads/students/birth_certificates', 'public');
-                $birthCertificateId = UploadModel::create([
-                    'file_name' => pathinfo($birthCertificateFile->getClientOriginalName(), PATHINFO_FILENAME),
-                    'file_ext' => $birthCertificateFile->getClientOriginalExtension(),
-                    'file_url' => $birthCertificatePath,
-                    'file_size' => $birthCertificateFile->getSize(),
-                ])->id;
-            }
-
-            if ($request->hasFile('aadhaar_card')) {
-                $aadhaarFile = $request->file('aadhaar_card');
-                $aadhaarPath = $aadhaarFile->store('uploads/students/aadhaar_certificate', 'public');
-                $aadhaarId = UploadModel::create([
-                    'file_name' => pathinfo($aadhaarFile->getClientOriginalName(), PATHINFO_FILENAME),
-                    'file_ext' => $aadhaarFile->getClientOriginalExtension(),
-                    'file_url' => $aadhaarPath,
-                    'file_size' => $aadhaarFile->getSize(),
-                ])->id;
-            }
-
-            if ($request->hasFile('attachment')) {
-                $attachmentFile = $request->file('attachment');
-                $attachmentPath = $aadhaarFile->store('uploads/students/attachment', 'public');
-                $attachmentId = UploadModel::create([
-                    'file_name' => pathinfo($attachmentFile->getClientOriginalName(), PATHINFO_FILENAME),
-                    'file_ext' => $attachmentFile->getClientOriginalExtension(),
-                    'file_url' => $attachmentPath,
-                    'file_size' => $attachmentFile->getSize(),
-                ])->id;
-            }
-
-            // Create student
-            $register_student = StudentModel::create([
-                'st_roll_no' => $validated['st_roll_no'],
-                'st_first_name' => $validated['st_first_name'],
-                'st_last_name' => $validated['st_last_name'],
-                'st_gender' => $validated['st_gender'],
-                'st_dob' => $validated['st_dob'],
-                'st_blood_group' => $validated['st_blood_group'],
-                'st_bohra' => $validated['st_bohra'],
-                'st_its_id' => $validated['st_its_id'],
-                'st_house' => $validated['st_house'],
-                'st_wallet' => $validated['st_wallet'],
-                'st_deposit' => $validated['st_deposit'],
-                'st_gmail_address' => strtolower($validated['st_gmail_address']),
-                'st_mobile' => $validated['st_mobile'],
-                'st_external' => $validated['st_external'],
-                'st_on_roll' => $validated['st_on_roll'],
-                'st_year_of_admission' => $validated['st_year_of_admission'],
-                'st_admitted' => $validated['st_admitted'],
-                'st_admitted_class' => $validated['st_admitted_class'],
-                'st_flag' => $validated['st_flag'],
-                'photo_id' => $photoId, // Reference the uploaded profile picture
-                'birth_certificate_id' => $birthCertificateId, // Reference the uploaded Birth Certificate
-                'aadhaar_id' => $aadhaarId, // Reference the uploaded Aadhaar card
-                'attachment_id' => $attachmentId, // Reference the uploaded Attachments
-            ]);
-
-            // register on user
-            $register_user = User::create([
-                'name' => trim(($validated['st_first_name'] ?? '') . ' ' . ($validated['st_last_name'] ?? '')),
-                'email' => strtolower($validated['st_gmail_address']),
-                'password' => bcrypt($validated['st_roll_no']),
-                'role' => "student",
-                'username' => $validated['st_gmail_address'],
-            ]);
-
-            // Create student details
-            $studentDetails  = StudentDetailsModel::create([
-                'st_id' => $register_student->id,
-                'aadhaar_no' => $validated['aadhaar_no'] ?? null,
-                'residential_address1' => $validated['residential_address1'] ?? null,
-                'residential_address2' => $validated['residential_address2'] ?? null,
-                'residential_address3' => $validated['residential_address3'] ?? null,
-                'city' => $validated['city'] ?? null,
-                'state' => $validated['state'] ?? null,
-                'country' => $validated['country'] ?? null,
-                'pincode' => $validated['pincode'] ?? null,
-                'class_group' => $validated['class_group'] ?? null,
-                'f_name' => $validated['f_name'] ?? null,
-                'f_email' => $validated['f_email'] ?? null,
-                'f_contact' => $validated['f_contact'] ?? null,
-                'f_occupation' => $validated['f_occupation'] ?? null,
-                'f_business_name' => $validated['f_business_name'] ?? null,
-                'f_business_nature' => $validated['f_business_nature'] ?? null,
-                'f_business_address1' => $validated['f_business_address1'] ?? null,
-                'f_business_address2' => $validated['f_business_address2'] ?? null,
-                'f_business_city' => $validated['f_business_city'] ?? null,
-                'f_business_state' => $validated['f_business_state'] ?? null,
-                'f_business_country' => $validated['f_business_country'] ?? null,
-                'f_business_pincode' => $validated['f_business_pincode'] ?? null,
-                'f_employer_name' => $validated['f_employer_name'] ?? null,
-                'f_designation' => $validated['f_designation'] ?? null,
-                'f_work_address1' => $validated['f_work_address1'] ?? null,
-                'f_work_address2' => $validated['f_work_address2'] ?? null,
-                'f_work_city' => $validated['f_work_city'] ?? null,
-                'f_work_state' => $validated['f_work_state'] ?? null,
-                'f_work_country' => $validated['f_work_country'] ?? null,
-                'f_work_pincode' => $validated['f_work_pincode'] ?? null,
-                'm_name' => $validated['m_name'] ?? null,
-                'm_email' => $validated['m_email'] ?? null,
-                'm_contact' => $validated['m_contact'] ?? null,
-                'm_occupation' => $validated['m_occupation'] ?? null,
-                'm_business_name' => $validated['m_business_name'] ?? null,
-                'm_business_nature' => $validated['m_business_nature'] ?? null,
-                'm_business_address1' => $validated['m_business_address1'] ?? null,
-                'm_business_address2' => $validated['m_business_address2'] ?? null,
-                'm_business_city' => $validated['m_business_city'] ?? null,
-                'm_business_state' => $validated['m_business_state'] ?? null,
-                'm_business_country' => $validated['m_business_country'] ?? null,
-                'm_business_pincode' => $validated['m_business_pincode'] ?? null,
-                'm_employer_name' => $validated['m_employer_name'] ?? null,
-                'm_designation' => $validated['m_designation'] ?? null,
-                'm_work_address1' => $validated['m_work_address1'] ?? null,
-                'm_work_address2' => $validated['m_work_address2'] ?? null,
-                'm_work_city' => $validated['m_work_city'] ?? null,
-                'm_work_state' => $validated['m_work_state'] ?? null,
-                'm_work_country' => $validated['m_work_country'] ?? null,
-                'm_work_pincode' => $validated['m_work_pincode'] ?? null,
-            ]);
-
-            return response()->json([
-                'message' => 'Student registered successfully',
-                'student' => $register_student->makeHidden(['id', 'created_at', 'updated_at']),
-                'studentDetails' => $studentDetails->makeHidden(['id', 'created_at', 'updated_at']),
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json(['message' => 'Registration failed', 'error' => $e->getMessage()], 500);
-        }
+        return response()->json([
+            'message' => 'Student registered successfully',
+            'data' => $student->toArray(),
+        ], 201);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Registration failed',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
+
+public function uploadFiles(Request $request)
+{
+    $request->validate([
+        'st_id' => 'required|exists:t_students,id',
+        'file_type' => 'required|array|min:1',
+        'file_type.*' => 'required|in:photo,birth_certificate,aadhar,attachment',
+        'file' => 'required|array|min:1',
+        'file.*' => 'required|file|mimes:jpeg,jpg,png,pdf|max:2048',
+    ]);
+
+    $studentId = $request->input('st_id');
+    $fileTypes = $request->input('file_type');
+    $files = $request->file('file');
+
+    try {
+        // Fetch the student and user token
+        $student = StudentModel::find($studentId);
+
+        if (!$student) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Student not found.',
+            ], 404);
+        }
+
+        $userToken = $student->user_token;
+        $directory = "uploads/students/{$userToken}";
+
+        // Ensure directory exists
+        if (!Storage::disk('public')->exists($directory)) {
+            Storage::disk('public')->makeDirectory($directory);
+        }
+
+        $uploadedFiles = [];
+
+        foreach ($fileTypes as $index => $fileType) {
+            if (!isset($files[$index])) {
+                continue;
+            }
+
+            $file = $files[$index];
+            $fileName = match ($fileType) {
+                'photo' => "{$studentId}_photo.{$file->getClientOriginalExtension()}",
+                'birth_certificate' => "{$studentId}_birth.{$file->getClientOriginalExtension()}",
+                'aadhar' => "{$studentId}_aadhar.{$file->getClientOriginalExtension()}",
+                'attachment' => "{$studentId}_attachment.{$file->getClientOriginalExtension()}",
+            };
+
+            $filePath = $file->storeAs($directory, $fileName, 'public');
+
+            // Save file details in the uploads table (replace if exists)
+            $upload = UploadModel::updateOrCreate(
+                ['file_name' => $fileName],
+                [
+                    'file_ext' => $file->getClientOriginalExtension(),
+                    'file_url' => $filePath,
+                    'file_size' => $file->getSize(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+
+            $uploadedFiles[] = [
+                'file_id' => $upload->id,
+                'file_name' => $upload->file_name,
+                'file_url' => Storage::url($filePath),
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Files uploaded successfully.',
+            'data' => $uploadedFiles,
+        ], 201);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'File upload failed.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
 
     // update
     public function update(Request $request, $id)
