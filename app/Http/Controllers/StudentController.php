@@ -19,7 +19,7 @@ use Mpdf\Mpdf;
 use App\Http\Controllers\RazorpayController;
 use App\Http\Controllers\RazorpayService;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Validator;
 class StudentController extends Controller
 {
     //
