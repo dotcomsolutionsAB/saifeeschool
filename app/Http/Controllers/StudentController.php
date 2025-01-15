@@ -543,20 +543,20 @@ class StudentController extends Controller
 public function uploadFiles(Request $request)
 {
     $request->validate([
-        'st_id' => 'required|exists:t_students,id',
+        'st_roll_no' => 'required|exists:t_students,st_roll_no',
         'file_type' => 'required|array|min:1',
         'file_type.*' => 'required|in:photo,birth_certificate,aadhar,attachment',
         'file' => 'required|array|min:1',
         'file.*' => 'required|file|mimes:jpeg,jpg,png,pdf|max:2048',
     ]);
 
-    $studentId = $request->input('st_id');
+    $studentRollNo = $request->input('st_roll_no');
     $fileTypes = $request->input('file_type');
     $files = $request->file('file');
 
     try {
-        // Fetch the student and user token
-        $student = StudentModel::find($studentId);
+        // Fetch the student using roll number
+        $student = StudentModel::where('st_roll_no', $studentRollNo)->first();
 
         if (!$student) {
             return response()->json([
@@ -582,10 +582,10 @@ public function uploadFiles(Request $request)
 
             $file = $files[$index];
             $fileName = match ($fileType) {
-                'photo' => "{$studentId}_photo.{$file->getClientOriginalExtension()}",
-                'birth_certificate' => "{$studentId}_birth.{$file->getClientOriginalExtension()}",
-                'aadhar' => "{$studentId}_aadhar.{$file->getClientOriginalExtension()}",
-                'attachment' => "{$studentId}_attachment.{$file->getClientOriginalExtension()}",
+                'photo' => "{$studentRollNo}_photo.{$file->getClientOriginalExtension()}",
+                'birth_certificate' => "{$studentRollNo}_birth.{$file->getClientOriginalExtension()}",
+                'aadhar' => "{$studentRollNo}_aadhar.{$file->getClientOriginalExtension()}",
+                'attachment' => "{$studentRollNo}_attachment.{$file->getClientOriginalExtension()}",
             };
 
             $filePath = $file->storeAs($directory, $fileName, 'public');
@@ -622,7 +622,6 @@ public function uploadFiles(Request $request)
         ], 500);
     }
 }
-
 
     // update
     public function update(Request $request, $id)
