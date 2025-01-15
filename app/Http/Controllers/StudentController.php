@@ -553,6 +553,16 @@ public function uploadFiles(Request $request)
             ], 404);
         }
 
+        // Check if the student has a matching user by email
+        $user = User::where('email', $student->st_gmail_address)->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No matching user found for the student email.',
+            ], 404);
+        }
+
         $userToken = $student->user_token;
         $directory = "uploads/students/{$userToken}";
 
