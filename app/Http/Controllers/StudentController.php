@@ -1,25 +1,27 @@
 <?php
 
-namespace App\Http\Controllers;
-
 use Illuminate\Http\Request;
-use App\Models\StudentModel;
-use App\Models\StudentDetailsModel;
-use App\Models\AcademicYearModel;
-use App\Models\ClassGroupModel;
-use App\Models\StudentClassModel;
-use App\Models\User;
-use App\Models\FeeModel;
-use App\Models\UploadModel;
-use Illuminate\Support\Facades\File;
-use League\Csv\Reader;
-use League\Csv\Statement;
-use Illuminate\Validation\Rule;
-use Mpdf\Mpdf;
-use App\Http\Controllers\RazorpayController;
-use App\Http\Controllers\RazorpayService;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Validator; // For validations
+use Illuminate\Support\Facades\DB; // For database operations
+use Illuminate\Support\Facades\Hash; // For password hashing
+use Illuminate\Support\Facades\Storage; // For file storage
+use Illuminate\Support\Facades\File; // File handling
+use Illuminate\Support\Str; // For string manipulations
+use App\Models\StudentModel; // Student model
+use App\Models\StudentDetailsModel; // Student Details model
+use App\Models\AcademicYearModel; // Academic Year model
+use App\Models\ClassGroupModel; // Class Group model
+use App\Models\StudentClassModel; // Student Class model
+use App\Models\User; // User model
+use App\Models\FeeModel; // Fee model
+use App\Models\UploadModel; // File uploads model
+use League\Csv\Reader; // For CSV handling
+use League\Csv\Statement; // For CSV processing
+use Mpdf\Mpdf; // For PDF generation
+use App\Http\Controllers\RazorpayController; // Razorpay Controller
+use App\Http\Controllers\RazorpayService; // Razorpay Service
+use Illuminate\Validation\Rule; // For advanced validation rules
+use Carbon\Carbon; // For date manipulation
 class StudentController extends Controller
 {
     //
