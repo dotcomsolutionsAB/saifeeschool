@@ -88,8 +88,10 @@ class ClassGroupController extends Controller
 
             if ($classGroup) {
                 return response()->json([
+                    'code' => 200,
+                    'status' => true,
                     'message' => 'Class group fetched successfully',
-                    'data' => $classGroup->makeHidden(['id', 'created_at', 'updated_at'])
+                    'data' => $classGroup->makeHidden(['created_at', 'updated_at'])
                 ], 200);
             }
 
@@ -108,16 +110,22 @@ class ClassGroupController extends Controller
                 ->get();
 
             $classGroups->each(function ($group) {
-                $group->makeHidden(['id', 'created_at', 'updated_at']);
+                $group->makeHidden(['created_at', 'updated_at']);
             });
 
             return $classGroups->isNotEmpty()
                 ? response()->json([
+                    'code' => 200,
+                    'status' => true,
                     'message' => 'Class groups fetched successfully',
                     'data' => $classGroups,
                     'count' => $classGroups->count()
                 ], 200)
-                : response()->json(['message' => 'No class groups available.'], 400);
+                : response()->json([
+                    'code' => 200,
+                    'status' => false,
+                    'message' => 'No class groups available.'
+                ]);
         }
     }
 
