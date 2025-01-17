@@ -1466,10 +1466,11 @@ public function uploadFiles(Request $request)
                 $studentData['photo'] = $photo;
 
                 return response()->json([
+                    'code' => 200,
+                    'status' => true,
                     'message' => 'Student class name fetched successfully.',
-                    'data' => $studentData,
-                    'status' => 'true'
-                ], 200);
+                    'data' => $studentData
+                ]);
             } else {
                 // Fetch all student-class records and apply filters
                 $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup']);
@@ -1553,18 +1554,21 @@ public function uploadFiles(Request $request)
                 })->filter();
 
                 return response()->json([
+                    'code' => 200,
+                    'status' => true,
                     'message' => 'Student class names fetched successfully.',
                     'academic_year' => $currentAcademicYear->ay_name,
                     'data' => $data->slice($offset, $limit)->values(),
-                    'status' => 'true',
                     'count' => $data->count()
-                ], 200);
+                ]);
             }
         } catch (\Exception $e) {
             return response()->json([
+                'code' => 500,
+                'status' => false,
                 'message' => 'An error occurred while fetching student class names.',
                 'error' => $e->getMessage(),
-            ], 500);
+            ]);
         }
     }
 
