@@ -36,22 +36,25 @@ class AuthController extends Controller
             }
 
             return response()->json([
-                'success' => true,
+                'code' => 200,
+                'status' => true,
+                'message' => 'User logged in successfully!',
                 'data' => [
                     'token' => $generated_token,
                     'name' => $user->name,
                     'role' => $user->role,
-                    'current_year_id' => $current_year_id,
+                    'ay_id' => $current_year_id,
                 ],
-                'message' => 'User logged in successfully!',
+                
             ], 200);
         }
 
         else {
             return response()->json([
+                'code' => 200,
                 'success' => false,
                 'message' => 'Invalid username or password!',
-            ], 401);
+            ], 200);
         }
     }
 
@@ -61,17 +64,19 @@ class AuthController extends Controller
         // Check if the user is authenticated
         if(!$request->user()) {
             return response()->json([
+                'code' => 200,
                 'success'=> false,
                 'message'=>'Sorry, no user is logged in now!',
-            ], 401);
+            ], 200);
         }
 
         // Revoke the token that was used to authenticate the current request
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
+            'code' => 200,
             'success' => true,
             'message' => 'Logged out successfully!',
-        ], 204);
+        ], 200);
     }
 }
