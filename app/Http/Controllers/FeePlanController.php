@@ -50,11 +50,17 @@ class FeePlanController extends Controller
 
             return $feePlans->isNotEmpty()
                 ? response()->json([
+                    'code' => 200,
+                    'status' => true,
                     'message' => 'Fee plans fetched successfully!',
                     'data' => $feePlans,
                     'count' => $feePlans->count(),
-                ], 200)
-                : response()->json(['message' => 'No fee plans available.'], 404);
+                ])
+                : response()->json([
+                    'code' => 200,
+                    'status' => false,
+                    'message' => 'No fee plans available.'
+                ]);
         }
 
         // Fetch a specific Fee Plan by ID, optionally filtered by `ay_id`
