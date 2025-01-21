@@ -1466,7 +1466,10 @@ public function uploadFiles(Request $request)
                 'data' => $studentData
             ]);
         } else {
-            
+            // Fetch all student-class records and apply filters
+            $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup']);
+
+            // Apply filters
             if (!empty($validated['search'])) {
                 $studentClasses->whereHas('student', function ($query) use ($validated) {
                     $searchTerm = '%' . trim($validated['search']) . '%'; // Trim and wildcard the search term
