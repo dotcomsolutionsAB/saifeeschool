@@ -1466,15 +1466,13 @@ public function uploadFiles(Request $request)
                 'data' => $studentData
             ]);
         } else {
-            // Fetch all student-class records and apply filters
-            $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup']);
-
-            // Apply filters
+            
             if (!empty($validated['search'])) {
                 $studentClasses->whereHas('student', function ($query) use ($validated) {
-                    $query->where('st_first_name', 'like', '%' . $validated['search'] . '%')
-                        ->orWhere('st_last_name', 'like', '%' . $validated['search'] . '%')
-                        ->orWhere('st_its_id', 'like', '%' . $validated['search'] . '%');
+                    $searchTerm = '%' . trim($validated['search']) . '%'; // Trim and wildcard the search term
+                    $query->whereRaw('LOWER(st_first_name) like ?', [strtolower($searchTerm)])
+                          ->orWhereRaw('LOWER(st_last_name) like ?', [strtolower($searchTerm)])
+                          ->orWhereRaw('LOWER(st_its_id) like ?', [strtolower($searchTerm)]);
                 });
             }
 
