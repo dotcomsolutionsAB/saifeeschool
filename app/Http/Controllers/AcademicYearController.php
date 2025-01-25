@@ -102,28 +102,40 @@ class AcademicYearController extends Controller
 
             if ($academicYear) {
                 return response()->json([
-                    'message' => 'Academic year fetched successfully',
+                    'code' => 200,
+                    'status' => true,
+                    'message' => 'Academic years fetched successfully',
                     'data' => $academicYear->makeHidden(['id', 'created_at', 'updated_at'])
                 ], 200);
             }
 
-            return response()->json(['message' => 'Academic year not found'], 404);
+            return response()->json([
+                'code' => 200,
+                'status'=> true,
+                'data'=>[],
+                'message' => 'Academic year not found'
+            ], 200);
         } else {
             // Fetch all records
             $academicYears = AcademicYearModel::all();
 
             $academicYears->each(function ($year) {
-                $year->makeHidden(['id', 'created_at', 'updated_at']);
+                $year->makeHidden(['created_at', 'updated_at']);
             });
 
             return $academicYears->isNotEmpty()
                 ? response()->json([
+                    'code' => 200,
+                    'status' => true,
                     'message' => 'Academic years fetched successfully',
-                    // 'data' => $academicYears,
-                    'data' => array_slice($academicYears->toArray(), 0, 10),
-                    // 'count' => $academicYears->count()
+                    'data' => array_slice($academicYears->toArray(), 0, 10)
                 ], 200)
-                : response()->json(['message' => 'No academic years available.'], 400);
+                : response()->json([
+                    'code' => 200,
+                    'status'=> true,
+                    'data'=>[],
+                    'message' => 'No academic years available.'
+                ], 200);
         }
     }
 
