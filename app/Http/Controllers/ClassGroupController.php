@@ -84,51 +84,60 @@ class ClassGroupController extends Controller
     {
         if ($id) {
             // Fetch a specific class group
-            $classGroup = ClassGroupModel::find($id);
-
+            $classGroup = ClassGroupModel::with('academicYear')->find($id);
+    
             if ($classGroup) {
                 return response()->json([
                     'code' => 200,
                     'status' => true,
                     'message' => 'Class group fetched successfully',
                     'data' => $classGroup->makeHidden(['created_at', 'updated_at'])
+                        ->append('academic_year_name')
                 ], 200);
             }
-
+    
             return response()->json(['message' => 'Class group not found'], 404);
         } else {
             // Validate `ay_id` when fetching all records
             $validated = $request->validate([
                 'ay_id' => 'required|integer|exists:t_academic_years,id',
             ]);
-
+    
             $ay_id = $validated['ay_id'];
-
+    
+            // Fetch the academic year name
+            $academicYear = AcademicYearModel::find($ay_id);
+            if (!$academicYear) {
+                return response()->json(['message' => 'Academic year not found'], 404);
+            }
+    
             // Fetch all class groups filtered by `ay_id`
             $classGroups = ClassGroupModel::where('ay_id', $ay_id)
                 ->orderBy('cg_order')
                 ->get();
-
-            $classGroups->each(function ($group) {
-                $group->makeHidden(['created_at', 'updated_at']);
+    
+            $classGroups->each(function ($group) use ($academicYear) {
+                $group->makeHidden(['created_at', 'updated_at', 'ay_id', 'cg_order']);
+                $group->academic_year_name = $academicYear->ay_name;
             });
-
+    
             return $classGroups->isNotEmpty()
                 ? response()->json([
                     'code' => 200,
                     'status' => true,
                     'message' => 'Class groups fetched successfully',
                     'data' => $classGroups,
+                    'academic_year_name' => $academicYear->ay_name,
                     'count' => $classGroups->count()
                 ], 200)
                 : response()->json([
                     'code' => 200,
                     'status' => false,
-                    'message' => 'No class groups available.'
+                    'message' => 'No class groups available.',
+                    'academic_year_name' => $academicYear->ay_name
                 ]);
         }
     }
-
 
     // Delete a class group
     public function destroy($id)

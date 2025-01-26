@@ -799,8 +799,9 @@ class StudentController extends Controller
                 }
 
                 if (!empty($validated['cg_id'])) {
-                    $studentClasses->whereHas('classGroup', function ($query) use ($validated) {
-                        $query->where('cg_id', 'like', '%' . $validated['cg_id'] . '%');
+                    $cgIds = explode(',', $validated['cg_id']); // Split the comma-separated input into an array
+                    $studentClasses->whereHas('classGroup', function ($query) use ($cgIds) {
+                        $query->whereIn('cg_id', $cgIds); // Match any of the IDs in the array
                     });
                 }
 
