@@ -43,8 +43,8 @@ class StudentController extends Controller
             'st_bohra' => 'required|in:0,1',
             'st_its_id' => 'required|string|max:255|unique:t_students,st_its_id',
             'st_house' => 'required|in:red,blue,green,gold',
-            'st_wallet' => 'required|numeric',
-            'st_deposit' => 'required|numeric',
+            //'st_wallet' => 'required|numeric',
+            //'st_deposit' => 'required|numeric',
             'st_gmail_address' => 'nullable|string',
             'st_mobile' => 'nullable|string|max:20',
             'st_external' => 'required|in:0,1',
@@ -135,8 +135,8 @@ class StudentController extends Controller
                 'st_bohra' => $validated['st_bohra'],
                 'st_its_id' => $validated['st_its_id'],
                 'st_house' => $validated['st_house'],
-                'st_wallet' => $validated['st_wallet'],
-                'st_deposit' => $validated['st_deposit'],
+                'st_wallet' => 0,
+                'st_deposit' => 0,
                 'st_gmail_address' => $validated['st_gmail_address'],
                 'st_mobile' => $validated['st_mobile'],
                 'st_external' => $validated['st_external'],
@@ -230,13 +230,13 @@ class StudentController extends Controller
             'file.*' => 'required|file|mimes:jpeg,jpg,png,pdf|max:2048',
         ]);
 
-        $studentRollNo = $request->input('st_roll_no');
+        $studentRollNo = $request->input('st_id');
         $fileTypes = $request->input('file_type');
         $files = $request->file('file');
 
         try {
             // Fetch the student using roll number
-            $student = StudentModel::where('st_roll_no', $studentRollNo)->first();
+            $student = StudentModel::where('st_id', $studentRollNo)->first();
 
             if (!$student) {
                 return response()->json([
@@ -798,9 +798,9 @@ class StudentController extends Controller
                     });
                 }
 
-                if (!empty($validated['class_name'])) {
+                if (!empty($validated['cg_id'])) {
                     $studentClasses->whereHas('classGroup', function ($query) use ($validated) {
-                        $query->where('cg_name', 'like', '%' . $validated['class_name'] . '%');
+                        $query->where('cg_id', 'like', '%' . $validated['cg_id'] . '%');
                     });
                 }
 
