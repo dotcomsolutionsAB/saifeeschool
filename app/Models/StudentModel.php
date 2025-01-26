@@ -21,4 +21,12 @@ class StudentModel extends Model
         return $this->hasOne(StudentDetailsModel::class, 'st_id', 'id');
     }
 
+    /**
+     * Define a one-to-many relationship with StudentClassModel.
+     */
+    public function studentClasses()
+    {
+        return $this->hasMany(StudentClassModel::class, 'st_id', 'id');
+    }
+
 }
