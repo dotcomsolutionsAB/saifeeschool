@@ -717,7 +717,7 @@ class StudentController extends Controller
                 'gender' => 'nullable|in:M,F',
                 'dob_from' => 'nullable|date',
                 'dob_to' => 'nullable|date|after_or_equal:dob_from',
-                'roll_no' => 'nullable|string|max:255',
+               
             ]);
 
             $offset = $validated['offset'] ?? 0;
@@ -1314,63 +1314,107 @@ class StudentController extends Controller
     {
         $validated = $request->validate([
             'type' => 'required|in:excel,pdf', // Type of export
-            'cg_id' => 'required|integer|exists:t_class_groups,id', // Class group ID
-            'bohra' => 'required|boolean', // Bohra status (true/false)
-            'gender' => 'required|in:M,F', // Gender (M or F)
-            'ay_id' => 'required|integer|exists:t_academic_years,id', // Academic Year ID
+            'cg_id' => 'nullable|string', // Comma-separated Class Group IDs
+            'bohra' => 'nullable|in:0,1', // Bohra status
+            'gender' => 'nullable|in:M,F', // Gender
+            'ay_id' => 'nullable|integer|exists:t_academic_years,id', // Academic Year ID
+            'search' => 'nullable|string|max:255', // Search term for student names or ITS IDs
+            'dob_from' => 'nullable|date', // Start of DOB range
+            'dob_to' => 'nullable|date|after_or_equal:dob_from', // End of DOB range
         ]);
-
+    
         try {
-            // Fetch and filter data based on the provided parameters
-            $data = StudentClassModel::with(['student', 'classGroup', 'academicYear'])
-                ->where('cg_id', $validated['cg_id'])
-                ->whereHas('student', function ($query) use ($validated) {
-                    $query->where('st_bohra', $validated['bohra'])
-                        ->where('st_gender', $validated['gender']);
-                })
-                ->where('ay_id', $validated['ay_id'])
-                ->get()
-                ->map(function ($studentClass, $index) {
-                    $student = $studentClass->student;
-
-                    if (!$student) {
-                        return [];
+            // Build the query
+            $query = StudentClassModel::with(['student', 'classGroup', 'academicYear']);
+    
+            // Filter by Academic Year ID
+            if (!empty($validated['ay_id'])) {
+                $query->where('ay_id', $validated['ay_id']);
+            }
+    
+            // Filter by Class Group IDs
+            if (!empty($validated['cg_id'])) {
+                $cgIds = explode(',', $validated['cg_id']); // Convert comma-separated IDs to array
+                $query->whereIn('cg_id', $cgIds);
+            }
+    
+            // Filter by Bohra status
+            if (isset($validated['bohra'])) {
+                $query->whereHas('student', function ($subQuery) use ($validated) {
+                    $subQuery->where('st_bohra', $validated['bohra']);
+                });
+            }
+    
+            // Filter by Gender
+            if (!empty($validated['gender'])) {
+                $query->whereHas('student', function ($subQuery) use ($validated) {
+                    $subQuery->where('st_gender', $validated['gender']);
+                });
+            }
+    
+            // Filter by Search Term (Name or ITS ID)
+            if (!empty($validated['search'])) {
+                $query->whereHas('student', function ($subQuery) use ($validated) {
+                    $searchTerm = '%' . trim($validated['search']) . '%';
+                    $subQuery->whereRaw('LOWER(st_first_name) like ?', [strtolower($searchTerm)])
+                        ->orWhereRaw('LOWER(st_last_name) like ?', [strtolower($searchTerm)])
+                        ->orWhereRaw('LOWER(st_its_id) like ?', [strtolower($searchTerm)]);
+                });
+            }
+    
+            // Filter by Date of Birth Range
+            if (!empty($validated['dob_from']) || !empty($validated['dob_to'])) {
+                $query->whereHas('student', function ($subQuery) use ($validated) {
+                    if (!empty($validated['dob_from'])) {
+                        $subQuery->where('st_dob', '>=', $validated['dob_from']);
                     }
-
-                    return [
-                        'SN' => $index + 1,
-                        'Roll No' => $student->st_roll_no,
-                        'Name' => $student->st_first_name . ' ' . $student->st_last_name,
-                        'Class' => $studentClass->classGroup->cg_name ?? 'Class group not found',
-                        'Gender' => $student->st_gender === 'M' ? 'Male' : ($student->st_gender === 'F' ? 'Female' : 'Not Specified'),
-                        'DOB' => $student->st_dob ? \Carbon\Carbon::parse($student->st_dob)->format('d-m-Y') : 'N/A',
-                        'ITS' => $student->st_its_id ?? 'N/A',
-                        'Mobile' => $student->st_mobile ?? 'N/A',
-                        'Bohra' => $student->st_bohra ? 'Yes' : 'No',
-                        'Academic Year' => $studentClass->academicYear->ay_name ?? 'N/A', // Use related name
-                        // 'Class Group ID' => $studentClass->cg_id ?? 'N/A',
-                    ];
-                })
-                ->filter() // Remove empty rows where student data is missing
-                ->values()
-                ->toArray();
-
+                    if (!empty($validated['dob_to'])) {
+                        $subQuery->where('st_dob', '<=', $validated['dob_to']);
+                    }
+                });
+            }
+    
+            // Get data and format it
+            $data = $query->get()->map(function ($studentClass, $index) {
+                $student = $studentClass->student;
+    
+                if (!$student) {
+                    return [];
+                }
+    
+                return [
+                    'SN' => $index + 1,
+                    'Roll No' => $student->st_roll_no,
+                    'Name' => $student->st_first_name . ' ' . $student->st_last_name,
+                    'Class' => $studentClass->classGroup->cg_name ?? 'Class group not found',
+                    'Gender' => $student->st_gender === 'M' ? 'Male' : ($student->st_gender === 'F' ? 'Female' : 'Not Specified'),
+                    'DOB' => $student->st_dob ? \Carbon\Carbon::parse($student->st_dob)->format('d-m-Y') : 'N/A',
+                    'ITS' => $student->st_its_id ?? 'N/A',
+                    'Mobile' => $student->st_mobile ?? 'N/A',
+                    'Bohra' => $student->st_bohra ? 'Yes' : 'No',
+                    'Academic Year' => $studentClass->academicYear->ay_name ?? 'N/A',
+                ];
+            })->filter()->values()->toArray();
+    
             if (empty($data)) {
                 return response()->json(['message' => 'No data available for export.'], 404);
             }
-
-            // Export as Excel
+    
+            // Export as Excel or PDF
             if ($validated['type'] === 'excel') {
                 return $this->exportExcel($data);
             }
-
-            // Export as PDF
+    
             return $this->exportPdf($data);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to export data.', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'An error occurred while exporting data.',
+                'error' => $e->getMessage(),
+            ]);
         }
     }
-
     private function exportExcel(array $data)
     {
         $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
@@ -1651,7 +1695,7 @@ class StudentController extends Controller
                 'min:1', // Each ID should be at least 1
                 Rule::exists('t_students', 'id'), // Check if each ID exists in the t_students table
             ],
-            'fee_plans_id' => [
+            'fp_id' => [
                 'required',
                 'integer',
                 Rule::exists('t_fee_plans', 'id'), // Check if the class_id exists in the t_class_groups table
