@@ -731,7 +731,12 @@ class StudentController extends Controller
                 : $query->where('ay_current', '1')->first() ?? $query->orderBy('id', 'desc')->first();
 
             if (!$currentAcademicYear) {
-                return response()->json(['message' => 'No academic year records found.'], 404);
+                return response()->json([
+                    'code' => 200,
+                    'status' => true,
+                    'data' => [],
+                    'message' => 'No academic year records found.'
+                ], 200);
             }
 
             if ($id) {
