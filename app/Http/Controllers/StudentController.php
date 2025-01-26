@@ -1611,7 +1611,7 @@ class StudentController extends Controller
                 'min:1', // Each ID should be at least 1
                 Rule::exists('t_students', 'id'), // Check if each ID exists in the t_students table
             ],
-            'class_id' => [
+            'cg_id' => [
                 'required',
                 'integer',
                 Rule::exists('t_class_groups', 'id'), // Check if the class_id exists in the t_class_groups table
