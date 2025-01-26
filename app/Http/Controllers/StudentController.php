@@ -1602,12 +1602,12 @@ class StudentController extends Controller
     public function upgrade_student(Request $request)
     {
         $validated = $request->validate([
-            'student_id' => [
+            'st_id' => [
                 'required',
                 'array', // Ensure it's an array
                 'min:1', // Ensure at least one student ID is provided
             ],
-            'student_id.*' => [
+            'st_id.*' => [
                 'numeric', // Each element should be numeric
                 'min:1', // Each ID should be at least 1
                 Rule::exists('t_students', 'id'), // Check if each ID exists in the t_students table
@@ -1641,12 +1641,12 @@ class StudentController extends Controller
     public function apply_fee_plan(Request $request)
     {
         $validated = $request->validate([
-            'student_id' => [
+            'st_id' => [
                 'required',
                 'array', // Ensure it's an array
                 'min:1', // Ensure at least one student ID is provided
             ],
-            'student_id.*' => [
+            'st_id.*' => [
                 'numeric', // Each element should be numeric
                 'min:1', // Each ID should be at least 1
                 Rule::exists('t_students', 'id'), // Check if each ID exists in the t_students table
