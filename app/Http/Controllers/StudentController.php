@@ -747,7 +747,12 @@ class StudentController extends Controller
                     ->first();
 
                 if (!$studentClass) {
-                    return response()->json(['message' => 'Student not enrolled in the determined academic year.', 'status' => 'false'], 404);
+                    return response()->json([
+                        'code' => 200,
+                        'status' => true,
+                        'data' => [],
+                        'message' => 'Student not enrolled in the determined academic year.',
+                    ], 200);
                 }
 
                 $student = $studentClass->student;
@@ -826,7 +831,12 @@ class StudentController extends Controller
                 $studentClasses = $studentClasses->get();
 
                 if ($studentClasses->isEmpty()) {
-                    return response()->json(['message' => 'No students match the given criteria.', 'status' => 'false'], 404);
+                    return response()->json([
+                        'code' => 200,
+                        'status' => true,
+                        'data' => [],
+                        'message' => 'No students match the given criteria.'
+                    ], 404);
                 }
 
                 $data = $studentClasses->map(function ($studentClass) {
