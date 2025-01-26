@@ -116,7 +116,7 @@ class UserController extends Controller
     {
         try {
             // Fetch enum values for the st_blood_group column
-            $result = DB::select("SHOW COLUMNS FROM student WHERE Field = 'st_blood_group'");
+            $result = DB::select("SHOW COLUMNS FROM t_student WHERE Field = 'st_blood_group'");
     
             // Extract enum values
             $bloodGroups = [];
@@ -146,7 +146,7 @@ class UserController extends Controller
     {
         try {
             // Fetch enum values for the st_house column
-            $result = DB::select("SHOW COLUMNS FROM student WHERE Field = 'st_house'");
+            $result = DB::select("SHOW COLUMNS FROM t_student WHERE Field = 'st_house'");
     
             // Extract enum values
             $houses = [];
