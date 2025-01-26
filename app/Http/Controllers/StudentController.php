@@ -27,599 +27,291 @@ use Carbon\Carbon; // For date manipulation
 
 class StudentController extends Controller
 {
-    //
-    // Create a new student
-    // public function register(Request $request)
-    // {
-    //     $validated = $request->validate([
-    //         'st_roll_no' => 'required|string|max:255|unique:t_students,st_roll_no',
-    //         'st_first_name' => 'required|string|max:255',
-    //         'st_last_name' => 'required|string|max:255',
-    //         'st_gender' => 'required|in:M,F',
-    //         'st_dob' => 'required|date',
-    //         'st_blood_group' => 'required|in:A+,A-,B+,B-,AB+,AB-,O+,O-,Rare',
-    //         'st_bohra' => 'required|in:0,1',
-    //         'st_its_id' => 'required|string|max:255|unique:t_students,st_its_id',
-    //         'st_house' => 'required|in:red,blue,green,gold',
-    //         'st_wallet' => 'required|numeric',
-    //         'st_deposit' => 'required|numeric',
-    //         'st_gmail_address' => 'nullable|string',
-    //         'st_mobile' => 'nullable|string|max:20',
-    //         'st_external' => 'required|in:0,1',
-    //         'st_on_roll' => 'required|in:0,1',
-    //         'st_year_of_admission' => 'required|string|max:255',
-    //         'st_admitted' => 'required|string|max:255',
-    //         'st_admitted_class' => 'required|string|max:255',
-    //         'st_flag' => 'required|string|max:255',
-    //         'aadhaar_no' => 'required|digits:12|unique:t_student_details,aadhaar_no',
-    //         'residential_address1' => 'required|string|max:1000', // Text field, required
-    //         'residential_address2' => 'nullable|string|max:1000', // Optional text field
-    //         'residential_address3' => 'nullable|string|max:1000', // Optional text field
-    //         'city' => 'required|string|max:255',                 // String, required
-    //         'state' => 'required|string|max:255',                // String, required
-    //         'country' => 'required|string|max:255',              // String, required
-    //         'pincode' => 'required|digits:6',               // Integer, required
-    //         'class_group' => 'required|integer|min:1',           // Integer, required
-    //         // Attachment fields
-    //         'birth_certificate' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
-    //         'aadhaar_card' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
-    //         'photo_pic' => 'nullable|file|mimes:jpeg,jpg,png|max:2048',
-    //         'attachment' => 'nullable|file|mimes:pdf,jpg,png|max:2048',
-    //         'f_name' => 'required|string|max:255',
-    //         'f_email' => 'required|email|max:255',
-    //         'f_contact' => 'required|string|max:20',
-    //         'm_name' => 'required|string|max:255',
-    //         'm_email' => 'required|email|max:255',
-    //         'm_contact' => 'required|string|max:20',
-    //         'f_occupation' => 'required|in:employed,self-employed,none',
-    //         'm_occupation' => 'required|in:employed,self-employed,home-maker',
-    //         // Validate father business fields
-    //         'f_business_name' => 'nullable|string|max:255',
-    //         'f_business_nature' => 'nullable|string|max:255',
-    //         'f_business_address1' => 'nullable|string|max:255',
-    //         'f_business_address2' => 'nullable|string|max:255',
-    //         'f_business_city' => 'nullable|string|max:255',
-    //         'f_business_state' => 'nullable|string|max:255',
-    //         'f_business_country' => 'nullable|string|max:255',
-    //         'f_business_pincode' => 'nullable|string|max:10',
-    //         // Validate father work fields
-    //         'f_employer_name' => 'nullable|string|max:255',
-    //         'f_designation' => 'nullable|string|max:255',
-    //         'f_work_address1' => 'nullable|string|max:255',
-    //         'f_work_address2' => 'nullable|string|max:255',
-    //         'f_work_city' => 'nullable|string|max:255',
-    //         'f_work_state' => 'nullable|string|max:255',
-    //         'f_work_country' => 'nullable|string|max:255',
-    //         'f_work_pincode' => 'nullable|string|max:10',
-    //         // Validate mother business fields
-    //         'm_business_name' => 'nullable|string|max:255',
-    //         'm_business_nature' => 'nullable|string|max:255',
-    //         'm_business_address1' => 'nullable|string|max:255',
-    //         'm_business_address2' => 'nullable|string|max:255',
-    //         'm_business_city' => 'nullable|string|max:255',
-    //         'm_business_state' => 'nullable|string|max:255',
-    //         'm_business_country' => 'nullable|string|max:255',
-    //         'm_business_pincode' => 'nullable|string|max:10',
-    //         // Validate mother work fields
-    //         'm_employer_name' => 'nullable|string|max:255',
-    //         'm_designation' => 'nullable|string|max:255',
-    //         'm_work_address1' => 'nullable|string|max:255',
-    //         'm_work_address2' => 'nullable|string|max:255',
-    //         'm_work_city' => 'nullable|string|max:255',
-    //         'm_work_state' => 'nullable|string|max:255',
-    //         'm_work_country' => 'nullable|string|max:255',
-    //         'm_work_pincode' => 'nullable|string|max:10',
-    //     ]);
-
-    //     // Handle father occupation
-    //     if ($validated['f_occupation'] === 'self-employed') {
-    //         $validated = array_merge($validated, $request->validate([
-    //             'f_business_name' => 'required|string|max:255',
-    //             'f_business_nature' => 'required|string|max:255',
-    //             'f_business_address1' => 'required|string|max:255',
-    //             'f_business_city' => 'required|string|max:255',
-    //             'f_business_state' => 'required|string|max:255',
-    //             'f_business_country' => 'required|string|max:255',
-    //             'f_business_pincode' => 'required|string|max:10',
-    //         ]));
-    //         // Clear work-related fields
-    //         $validated = array_merge($validated, [
-    //             'f_employer_name' => null,
-    //             'f_designation' => null,
-    //             'f_work_address1' => null,
-    //             'f_work_city' => null,
-    //         ]);
-    //     } elseif ($validated['f_occupation'] === 'employed') {
-    //         $validated = array_merge($validated, $request->validate([
-    //             'f_employer_name' => 'required|string|max:255',
-    //             'f_designation' => 'required|string|max:255',
-    //             'f_work_address1' => 'required|string|max:255',
-    //             'f_work_city' => 'required|string|max:255',
-    //             'f_work_state' => 'required|string|max:255',
-    //             'f_work_country' => 'required|string|max:255',
-    //             'f_work_pincode' => 'required|string|max:10',
-    //         ]));
-    //         // Clear business-related fields
-    //         $validated = array_merge($validated, [
-    //             'f_business_name' => null,
-    //             'f_business_nature' => null,
-    //             'f_business_address1' => null,
-    //         ]);
-    //     }
-
-    //     // Handle mother occupation
-    //     if ($validated['m_occupation'] === 'self-employed') {
-    //         $validated = array_merge($validated, $request->validate([
-    //             'm_business_name' => 'required|string|max:255',
-    //             'm_business_nature' => 'required|string|max:255',
-    //             'm_business_address1' => 'required|string|max:255',
-    //             'm_business_city' => 'required|string|max:255',
-    //             'm_business_state' => 'required|string|max:255',
-    //             'm_business_country' => 'required|string|max:255',
-    //             'm_business_pincode' => 'required|string|max:10',
-    //         ]));
-    //         // Clear work-related fields
-    //         $validated = array_merge($validated, [
-    //             'm_employer_name' => null,
-    //             'm_designation' => null,
-    //             'm_work_address1' => null,
-    //             'm_work_city' => null,
-    //         ]);
-    //     } elseif ($validated['m_occupation'] === 'employed') {
-    //         $validated = array_merge($validated, $request->validate([
-    //             'm_employer_name' => 'required|string|max:255',
-    //             'm_designation' => 'required|string|max:255',
-    //             'm_work_address1' => 'required|string|max:255',
-    //             'm_work_city' => 'required|string|max:255',
-    //             'm_work_state' => 'required|string|max:255',
-    //             'm_work_country' => 'required|string|max:255',
-    //             'm_work_pincode' => 'required|string|max:10',
-    //         ]));
-    //         // Clear business-related fields
-    //         $validated = array_merge($validated, [
-    //             'm_business_name' => null,
-    //             'm_business_nature' => null,
-    //             'm_business_address1' => null,
-    //         ]);
-    //     }
-
-    //     try {
-
-    //         // Handle file uploads
-    //         $photoId = null;
-    //         $birthCertificateId = null;
-    //         $aadhaarId = null;
-    //         $attachmentId = null;
-
-    //         if ($request->hasFile('photo_pic')) {
-    //             $photoFile = $request->file('photo_pic');
-    //             $photoPath = $photoFile->store('uploads/students/student_profile_images', 'public');
-    //             $photoId = UploadModel::create([
-    //                 'file_name' => pathinfo($photoFile->getClientOriginalName(), PATHINFO_FILENAME),
-    //                 'file_ext' => $photoFile->getClientOriginalExtension(),
-    //                 'file_url' => $photoPath,
-    //                 'file_size' => $photoFile->getSize(),
-    //             ])->id;
-    //         }
-
-    //         if ($request->hasFile('birth_certificate')) {
-    //             $birthCertificateFile = $request->file('birth_certificate');
-    //             $birthCertificatePath = $birthCertificateFile->store('uploads/students/birth_certificates', 'public');
-    //             $birthCertificateId = UploadModel::create([
-    //                 'file_name' => pathinfo($birthCertificateFile->getClientOriginalName(), PATHINFO_FILENAME),
-    //                 'file_ext' => $birthCertificateFile->getClientOriginalExtension(),
-    //                 'file_url' => $birthCertificatePath,
-    //                 'file_size' => $birthCertificateFile->getSize(),
-    //             ])->id;
-    //         }
-
-    //         if ($request->hasFile('aadhaar_card')) {
-    //             $aadhaarFile = $request->file('aadhaar_card');
-    //             $aadhaarPath = $aadhaarFile->store('uploads/students/aadhaar_certificate', 'public');
-    //             $aadhaarId = UploadModel::create([
-    //                 'file_name' => pathinfo($aadhaarFile->getClientOriginalName(), PATHINFO_FILENAME),
-    //                 'file_ext' => $aadhaarFile->getClientOriginalExtension(),
-    //                 'file_url' => $aadhaarPath,
-    //                 'file_size' => $aadhaarFile->getSize(),
-    //             ])->id;
-    //         }
-
-    //         if ($request->hasFile('attachment')) {
-    //             $attachmentFile = $request->file('attachment');
-    //             $attachmentPath = $aadhaarFile->store('uploads/students/attachment', 'public');
-    //             $attachmentId = UploadModel::create([
-    //                 'file_name' => pathinfo($attachmentFile->getClientOriginalName(), PATHINFO_FILENAME),
-    //                 'file_ext' => $attachmentFile->getClientOriginalExtension(),
-    //                 'file_url' => $attachmentPath,
-    //                 'file_size' => $attachmentFile->getSize(),
-    //             ])->id;
-    //         }
-
-    //         // Create student
-    //         $register_student = StudentModel::create([
-    //             'st_roll_no' => $validated['st_roll_no'],
-    //             'st_first_name' => $validated['st_first_name'],
-    //             'st_last_name' => $validated['st_last_name'],
-    //             'st_gender' => $validated['st_gender'],
-    //             'st_dob' => $validated['st_dob'],
-    //             'st_blood_group' => $validated['st_blood_group'],
-    //             'st_bohra' => $validated['st_bohra'],
-    //             'st_its_id' => $validated['st_its_id'],
-    //             'st_house' => $validated['st_house'],
-    //             'st_wallet' => $validated['st_wallet'],
-    //             'st_deposit' => $validated['st_deposit'],
-    //             'st_gmail_address' => strtolower($validated['st_gmail_address']),
-    //             'st_mobile' => $validated['st_mobile'],
-    //             'st_external' => $validated['st_external'],
-    //             'st_on_roll' => $validated['st_on_roll'],
-    //             'st_year_of_admission' => $validated['st_year_of_admission'],
-    //             'st_admitted' => $validated['st_admitted'],
-    //             'st_admitted_class' => $validated['st_admitted_class'],
-    //             'st_flag' => $validated['st_flag'],
-    //             'photo_id' => $photoId, // Reference the uploaded profile picture
-    //             'birth_certificate_id' => $birthCertificateId, // Reference the uploaded Birth Certificate
-    //             'aadhaar_id' => $aadhaarId, // Reference the uploaded Aadhaar card
-    //             'attachment_id' => $attachmentId, // Reference the uploaded Attachments
-    //         ]);
-
-    //         // register on user
-    //         $register_user = User::create([
-    //             'name' => trim(($validated['st_first_name'] ?? '') . ' ' . ($validated['st_last_name'] ?? '')),
-    //             'email' => strtolower($validated['st_gmail_address']),
-    //             'password' => bcrypt($validated['st_roll_no']),
-    //             'role' => "student",
-    //             'username' => $validated['st_gmail_address'],
-    //         ]);
-
-    //         // Create student details
-    //         $studentDetails  = StudentDetailsModel::create([
-    //             'st_id' => $register_student->id,
-    //             'aadhaar_no' => $validated['aadhaar_no'] ?? null,
-    //             'residential_address1' => $validated['residential_address1'] ?? null,
-    //             'residential_address2' => $validated['residential_address2'] ?? null,
-    //             'residential_address3' => $validated['residential_address3'] ?? null,
-    //             'city' => $validated['city'] ?? null,
-    //             'state' => $validated['state'] ?? null,
-    //             'country' => $validated['country'] ?? null,
-    //             'pincode' => $validated['pincode'] ?? null,
-    //             'class_group' => $validated['class_group'] ?? null,
-    //             'f_name' => $validated['f_name'] ?? null,
-    //             'f_email' => $validated['f_email'] ?? null,
-    //             'f_contact' => $validated['f_contact'] ?? null,
-    //             'f_occupation' => $validated['f_occupation'] ?? null,
-    //             'f_business_name' => $validated['f_business_name'] ?? null,
-    //             'f_business_nature' => $validated['f_business_nature'] ?? null,
-    //             'f_business_address1' => $validated['f_business_address1'] ?? null,
-    //             'f_business_address2' => $validated['f_business_address2'] ?? null,
-    //             'f_business_city' => $validated['f_business_city'] ?? null,
-    //             'f_business_state' => $validated['f_business_state'] ?? null,
-    //             'f_business_country' => $validated['f_business_country'] ?? null,
-    //             'f_business_pincode' => $validated['f_business_pincode'] ?? null,
-    //             'f_employer_name' => $validated['f_employer_name'] ?? null,
-    //             'f_designation' => $validated['f_designation'] ?? null,
-    //             'f_work_address1' => $validated['f_work_address1'] ?? null,
-    //             'f_work_address2' => $validated['f_work_address2'] ?? null,
-    //             'f_work_city' => $validated['f_work_city'] ?? null,
-    //             'f_work_state' => $validated['f_work_state'] ?? null,
-    //             'f_work_country' => $validated['f_work_country'] ?? null,
-    //             'f_work_pincode' => $validated['f_work_pincode'] ?? null,
-    //             'm_name' => $validated['m_name'] ?? null,
-    //             'm_email' => $validated['m_email'] ?? null,
-    //             'm_contact' => $validated['m_contact'] ?? null,
-    //             'm_occupation' => $validated['m_occupation'] ?? null,
-    //             'm_business_name' => $validated['m_business_name'] ?? null,
-    //             'm_business_nature' => $validated['m_business_nature'] ?? null,
-    //             'm_business_address1' => $validated['m_business_address1'] ?? null,
-    //             'm_business_address2' => $validated['m_business_address2'] ?? null,
-    //             'm_business_city' => $validated['m_business_city'] ?? null,
-    //             'm_business_state' => $validated['m_business_state'] ?? null,
-    //             'm_business_country' => $validated['m_business_country'] ?? null,
-    //             'm_business_pincode' => $validated['m_business_pincode'] ?? null,
-    //             'm_employer_name' => $validated['m_employer_name'] ?? null,
-    //             'm_designation' => $validated['m_designation'] ?? null,
-    //             'm_work_address1' => $validated['m_work_address1'] ?? null,
-    //             'm_work_address2' => $validated['m_work_address2'] ?? null,
-    //             'm_work_city' => $validated['m_work_city'] ?? null,
-    //             'm_work_state' => $validated['m_work_state'] ?? null,
-    //             'm_work_country' => $validated['m_work_country'] ?? null,
-    //             'm_work_pincode' => $validated['m_work_pincode'] ?? null,
-    //         ]);
-
-    //         return response()->json([
-    //             'message' => 'Student registered successfully',
-    //             'student' => $register_student->makeHidden(['id', 'created_at', 'updated_at']),
-    //             'studentDetails' => $studentDetails->makeHidden(['id', 'created_at', 'updated_at']),
-    //         ], 201);
-    //     } catch (\Exception $e) {
-    //         return response()->json(['message' => 'Registration failed', 'error' => $e->getMessage()], 500);
-    //     }
-    // }
-
-
     public function register(Request $request)
-{
-    $data = $request->json()->all();
+    {
+        $data = $request->json()->all();
 
-    // Base validation for general fields
-    $validated = Validator::make($data, [
-        // Student fields
-        'st_roll_no' => 'required|string|max:255|unique:t_students,st_roll_no',
-        'st_first_name' => 'required|string|max:255',
-        'st_last_name' => 'required|string|max:255',
-        'st_gender' => 'required|in:M,F',
-        'st_dob' => 'required|date',
-        'st_blood_group' => 'required|in:A+,A-,B+,B-,AB+,AB-,O+,O-,Rare',
-        'st_bohra' => 'required|in:0,1',
-        'st_its_id' => 'required|string|max:255|unique:t_students,st_its_id',
-        'st_house' => 'required|in:red,blue,green,gold',
-        'st_wallet' => 'required|numeric',
-        'st_deposit' => 'required|numeric',
-        'st_gmail_address' => 'nullable|string',
-        'st_mobile' => 'nullable|string|max:20',
-        'st_external' => 'required|in:0,1',
-        'st_on_roll' => 'required|in:0,1',
-        'st_year_of_admission' => 'required|string|max:255',
-        'st_admitted' => 'required|string|max:255',
-        'st_admitted_class' => 'required|string|max:255',
-        'st_flag' => 'required|string|max:255',
-        // Student Details fields
-        'aadhaar_no' => 'required|digits:12|unique:t_student_details,aadhaar_no',
-        'residential_address1' => 'required|string|max:1000',
-        'residential_address2' => 'nullable|string|max:1000',
-        'residential_address3' => 'nullable|string|max:1000',
-        'city' => 'required|string|max:255',
-        'state' => 'required|string|max:255',
-        'country' => 'required|string|max:255',
-        'pincode' => 'required|digits:6',
-        'class_group' => 'required|integer|min:1',
-        // Parent details
-        'f_name' => 'required|string|max:255',
-        'f_email' => 'required|email|max:255',
-        'f_contact' => 'required|string|max:20',
-        'm_name' => 'required|string|max:255',
-        'm_email' => 'required|email|max:255',
-        'm_contact' => 'required|string|max:20',
-        'f_occupation' => 'required|in:employed,self-employed,none',
-        'm_occupation' => 'required|in:employed,self-employed,home-maker',
-    ])->validate();
+        // Base validation for general fields
+        $validated = Validator::make($data, [
+            // Student fields
+            'st_roll_no' => 'required|string|max:255|unique:t_students,st_roll_no',
+            'st_first_name' => 'required|string|max:255',
+            'st_last_name' => 'required|string|max:255',
+            'st_gender' => 'required|in:M,F',
+            'st_dob' => 'required|date',
+            'st_blood_group' => 'required|in:A+,A-,B+,B-,AB+,AB-,O+,O-,Rare',
+            'st_bohra' => 'required|in:0,1',
+            'st_its_id' => 'required|string|max:255|unique:t_students,st_its_id',
+            'st_house' => 'required|in:red,blue,green,gold',
+            'st_wallet' => 'required|numeric',
+            'st_deposit' => 'required|numeric',
+            'st_gmail_address' => 'nullable|string',
+            'st_mobile' => 'nullable|string|max:20',
+            'st_external' => 'required|in:0,1',
+            'st_on_roll' => 'required|in:0,1',
+            'st_year_of_admission' => 'required|string|max:255',
+            'st_admitted' => 'required|string|max:255',
+            'st_admitted_class' => 'required|string|max:255',
+            'st_flag' => 'required|string|max:255',
+            // Student Details fields
+            'aadhaar_no' => 'required|digits:12|unique:t_student_details,aadhaar_no',
+            'residential_address1' => 'required|string|max:1000',
+            'residential_address2' => 'nullable|string|max:1000',
+            'residential_address3' => 'nullable|string|max:1000',
+            'city' => 'required|string|max:255',
+            'state' => 'required|string|max:255',
+            'country' => 'required|string|max:255',
+            'pincode' => 'required|digits:6',
+            'class_group' => 'required|integer|min:1',
+            // Parent details
+            'f_name' => 'required|string|max:255',
+            'f_email' => 'required|email|max:255',
+            'f_contact' => 'required|string|max:20',
+            'm_name' => 'required|string|max:255',
+            'm_email' => 'required|email|max:255',
+            'm_contact' => 'required|string|max:20',
+            'f_occupation' => 'required|in:employed,self-employed,none',
+            'm_occupation' => 'required|in:employed,self-employed,home-maker',
+        ])->validate();
 
-    // Additional validation based on father's occupation
-    if ($validated['f_occupation'] === 'self-employed') {
-        $validated = array_merge($validated, Validator::make($data, [
-            'f_business_name' => 'required|string|max:255',
-            'f_business_nature' => 'required|string|max:255',
-            'f_business_address1' => 'required|string|max:255',
-            'f_business_city' => 'required|string|max:255',
-            'f_business_state' => 'required|string|max:255',
-            'f_business_country' => 'required|string|max:255',
-            'f_business_pincode' => 'required|string|max:10',
-        ])->validate());
-    } elseif ($validated['f_occupation'] === 'employed') {
-        $validated = array_merge($validated, Validator::make($data, [
-            'f_employer_name' => 'required|string|max:255',
-            'f_designation' => 'required|string|max:255',
-            'f_work_address1' => 'required|string|max:255',
-            'f_work_city' => 'required|string|max:255',
-            'f_work_state' => 'required|string|max:255',
-            'f_work_country' => 'required|string|max:255',
-            'f_work_pincode' => 'required|string|max:10',
-        ])->validate());
-    }
+        // Additional validation based on father's occupation
+        if ($validated['f_occupation'] === 'self-employed') {
+            $validated = array_merge($validated, Validator::make($data, [
+                'f_business_name' => 'required|string|max:255',
+                'f_business_nature' => 'required|string|max:255',
+                'f_business_address1' => 'required|string|max:255',
+                'f_business_city' => 'required|string|max:255',
+                'f_business_state' => 'required|string|max:255',
+                'f_business_country' => 'required|string|max:255',
+                'f_business_pincode' => 'required|string|max:10',
+            ])->validate());
+        } elseif ($validated['f_occupation'] === 'employed') {
+            $validated = array_merge($validated, Validator::make($data, [
+                'f_employer_name' => 'required|string|max:255',
+                'f_designation' => 'required|string|max:255',
+                'f_work_address1' => 'required|string|max:255',
+                'f_work_city' => 'required|string|max:255',
+                'f_work_state' => 'required|string|max:255',
+                'f_work_country' => 'required|string|max:255',
+                'f_work_pincode' => 'required|string|max:10',
+            ])->validate());
+        }
 
-    // Additional validation based on mother's occupation
-    if ($validated['m_occupation'] === 'self-employed') {
-        $validated = array_merge($validated, Validator::make($data, [
-            'm_business_name' => 'required|string|max:255',
-            'm_business_nature' => 'required|string|max:255',
-            'm_business_address1' => 'required|string|max:255',
-            'm_business_city' => 'required|string|max:255',
-            'm_business_state' => 'required|string|max:255',
-            'm_business_country' => 'required|string|max:255',
-            'm_business_pincode' => 'required|string|max:10',
-        ])->validate());
-    } elseif ($validated['m_occupation'] === 'employed') {
-        $validated = array_merge($validated, Validator::make($data, [
-            'm_employer_name' => 'required|string|max:255',
-            'm_designation' => 'required|string|max:255',
-            'm_work_address1' => 'required|string|max:255',
-            'm_work_city' => 'required|string|max:255',
-            'm_work_state' => 'required|string|max:255',
-            'm_work_country' => 'required|string|max:255',
-            'm_work_pincode' => 'required|string|max:10',
-        ])->validate());
-    }
+        // Additional validation based on mother's occupation
+        if ($validated['m_occupation'] === 'self-employed') {
+            $validated = array_merge($validated, Validator::make($data, [
+                'm_business_name' => 'required|string|max:255',
+                'm_business_nature' => 'required|string|max:255',
+                'm_business_address1' => 'required|string|max:255',
+                'm_business_city' => 'required|string|max:255',
+                'm_business_state' => 'required|string|max:255',
+                'm_business_country' => 'required|string|max:255',
+                'm_business_pincode' => 'required|string|max:10',
+            ])->validate());
+        } elseif ($validated['m_occupation'] === 'employed') {
+            $validated = array_merge($validated, Validator::make($data, [
+                'm_employer_name' => 'required|string|max:255',
+                'm_designation' => 'required|string|max:255',
+                'm_work_address1' => 'required|string|max:255',
+                'm_work_city' => 'required|string|max:255',
+                'm_work_state' => 'required|string|max:255',
+                'm_work_country' => 'required|string|max:255',
+                'm_work_pincode' => 'required|string|max:10',
+            ])->validate());
+        }
 
-    try {
-        // Generate user_token
-        $userToken = md5($validated['st_roll_no'] . Str::random(10) . time());
+        try {
+            // Generate user_token
+            $userToken = md5($validated['st_roll_no'] . Str::random(10) . time());
 
-        // Create student record
-        $student = StudentModel::create([
-            'st_roll_no' => $validated['st_roll_no'],
-            'st_first_name' => $validated['st_first_name'],
-            'st_last_name' => $validated['st_last_name'],
-            'st_gender' => $validated['st_gender'],
-            'st_dob' => $validated['st_dob'],
-            'st_blood_group' => $validated['st_blood_group'],
-            'st_bohra' => $validated['st_bohra'],
-            'st_its_id' => $validated['st_its_id'],
-            'st_house' => $validated['st_house'],
-            'st_wallet' => $validated['st_wallet'],
-            'st_deposit' => $validated['st_deposit'],
-            'st_gmail_address' => $validated['st_gmail_address'],
-            'st_mobile' => $validated['st_mobile'],
-            'st_external' => $validated['st_external'],
-            'st_on_roll' => $validated['st_on_roll'],
-            'st_year_of_admission' => $validated['st_year_of_admission'],
-            'st_admitted' => $validated['st_admitted'],
-            'st_admitted_class' => $validated['st_admitted_class'],
-            'st_flag' => $validated['st_flag'],
-            'user_token' => $userToken,
-        ]);
+            // Create student record
+            $student = StudentModel::create([
+                'st_roll_no' => $validated['st_roll_no'],
+                'st_first_name' => $validated['st_first_name'],
+                'st_last_name' => $validated['st_last_name'],
+                'st_gender' => $validated['st_gender'],
+                'st_dob' => $validated['st_dob'],
+                'st_blood_group' => $validated['st_blood_group'],
+                'st_bohra' => $validated['st_bohra'],
+                'st_its_id' => $validated['st_its_id'],
+                'st_house' => $validated['st_house'],
+                'st_wallet' => $validated['st_wallet'],
+                'st_deposit' => $validated['st_deposit'],
+                'st_gmail_address' => $validated['st_gmail_address'],
+                'st_mobile' => $validated['st_mobile'],
+                'st_external' => $validated['st_external'],
+                'st_on_roll' => $validated['st_on_roll'],
+                'st_year_of_admission' => $validated['st_year_of_admission'],
+                'st_admitted' => $validated['st_admitted'],
+                'st_admitted_class' => $validated['st_admitted_class'],
+                'st_flag' => $validated['st_flag'],
+                'user_token' => $userToken,
+            ]);
 
-        // Create student details record
-        StudentDetailsModel::create([
-            'st_id' => $student->id,
-            'aadhaar_no' => $validated['aadhaar_no'],
-            'residential_address1' => $validated['residential_address1'],
-            'residential_address2' => $validated['residential_address2'],
-            'residential_address3' => $validated['residential_address3'],
-            'city' => $validated['city'],
-            'state' => $validated['state'],
-            'country' => $validated['country'],
-            'pincode' => $validated['pincode'],
-            'class_group' => $validated['class_group'],
-            'f_name' => $validated['f_name'],
-            'f_email' => $validated['f_email'],
-            'f_contact' => $validated['f_contact'],
-            'f_occupation' => $validated['f_occupation'],
-            'f_business_name' => $validated['f_business_name'] ?? null,
-            'f_business_nature' => $validated['f_business_nature'] ?? null,
-            'f_business_address1' => $validated['f_business_address1'] ?? null,
-            'f_business_city' => $validated['f_business_city'] ?? null,
-            'f_business_state' => $validated['f_business_state'] ?? null,
-            'f_business_country' => $validated['f_business_country'] ?? null,
-            'f_business_pincode' => $validated['f_business_pincode'] ?? null,
-            'f_employer_name' => $validated['f_employer_name'] ?? null,
-            'f_designation' => $validated['f_designation'] ?? null,
-            'f_work_address1' => $validated['f_work_address1'] ?? null,
-            'f_work_city' => $validated['f_work_city'] ?? null,
-            'f_work_state' => $validated['f_work_state'] ?? null,
-            'f_work_country' => $validated['f_work_country'] ?? null,
-            'f_work_pincode' => $validated['f_work_pincode'] ?? null,
-            'm_name' => $validated['m_name'],
-            'm_email' => $validated['m_email'],
-            'm_contact' => $validated['m_contact'],
-            'm_occupation' => $validated['m_occupation'],
-            'm_business_name' => $validated['m_business_name'] ?? null,
-            'm_business_nature' => $validated['m_business_nature'] ?? null,
-            'm_business_address1' => $validated['m_business_address1'] ?? null,
-            'm_business_city' => $validated['m_business_city'] ?? null,
-            'm_business_state' => $validated['m_business_state'] ?? null,
-            'm_business_country' => $validated['m_business_country'] ?? null,
-            'm_business_pincode' => $validated['m_business_pincode'] ?? null,
-            'm_employer_name' => $validated['m_employer_name'] ?? null,
-            'm_designation' => $validated['m_designation'] ?? null,
-            'm_work_address1' => $validated['m_work_address1'] ?? null,
-            'm_work_city' => $validated['m_work_city'] ?? null,
-            'm_work_state' => $validated['m_work_state'] ?? null,
-            'm_work_country' => $validated['m_work_country'] ?? null,
-            'm_work_pincode' => $validated['m_work_pincode'] ?? null,
-        ]);
+            // Create student details record
+            StudentDetailsModel::create([
+                'st_id' => $student->id,
+                'aadhaar_no' => $validated['aadhaar_no'],
+                'residential_address1' => $validated['residential_address1'],
+                'residential_address2' => $validated['residential_address2'],
+                'residential_address3' => $validated['residential_address3'],
+                'city' => $validated['city'],
+                'state' => $validated['state'],
+                'country' => $validated['country'],
+                'pincode' => $validated['pincode'],
+                'class_group' => $validated['class_group'],
+                'f_name' => $validated['f_name'],
+                'f_email' => $validated['f_email'],
+                'f_contact' => $validated['f_contact'],
+                'f_occupation' => $validated['f_occupation'],
+                'f_business_name' => $validated['f_business_name'] ?? null,
+                'f_business_nature' => $validated['f_business_nature'] ?? null,
+                'f_business_address1' => $validated['f_business_address1'] ?? null,
+                'f_business_city' => $validated['f_business_city'] ?? null,
+                'f_business_state' => $validated['f_business_state'] ?? null,
+                'f_business_country' => $validated['f_business_country'] ?? null,
+                'f_business_pincode' => $validated['f_business_pincode'] ?? null,
+                'f_employer_name' => $validated['f_employer_name'] ?? null,
+                'f_designation' => $validated['f_designation'] ?? null,
+                'f_work_address1' => $validated['f_work_address1'] ?? null,
+                'f_work_city' => $validated['f_work_city'] ?? null,
+                'f_work_state' => $validated['f_work_state'] ?? null,
+                'f_work_country' => $validated['f_work_country'] ?? null,
+                'f_work_pincode' => $validated['f_work_pincode'] ?? null,
+                'm_name' => $validated['m_name'],
+                'm_email' => $validated['m_email'],
+                'm_contact' => $validated['m_contact'],
+                'm_occupation' => $validated['m_occupation'],
+                'm_business_name' => $validated['m_business_name'] ?? null,
+                'm_business_nature' => $validated['m_business_nature'] ?? null,
+                'm_business_address1' => $validated['m_business_address1'] ?? null,
+                'm_business_city' => $validated['m_business_city'] ?? null,
+                'm_business_state' => $validated['m_business_state'] ?? null,
+                'm_business_country' => $validated['m_business_country'] ?? null,
+                'm_business_pincode' => $validated['m_business_pincode'] ?? null,
+                'm_employer_name' => $validated['m_employer_name'] ?? null,
+                'm_designation' => $validated['m_designation'] ?? null,
+                'm_work_address1' => $validated['m_work_address1'] ?? null,
+                'm_work_city' => $validated['m_work_city'] ?? null,
+                'm_work_state' => $validated['m_work_state'] ?? null,
+                'm_work_country' => $validated['m_work_country'] ?? null,
+                'm_work_pincode' => $validated['m_work_pincode'] ?? null,
+            ]);
 
-        // Create user record
-        User::create([
-            'name' => $validated['st_first_name'] . ' ' . $validated['st_last_name'],
-            'email' => $validated['st_gmail_address'],
-            'password' => bcrypt($validated['st_roll_no']),
-            'role' => 'student',
-            'username' => $validated['st_gmail_address'],
-            'user_token' => $userToken,
-        ]);
+            // Create user record
+            User::create([
+                'name' => $validated['st_first_name'] . ' ' . $validated['st_last_name'],
+                'email' => $validated['st_gmail_address'],
+                'password' => bcrypt($validated['st_roll_no']),
+                'role' => 'student',
+                'username' => $validated['st_gmail_address'],
+                'user_token' => $userToken,
+            ]);
 
-        return response()->json([
-            'message' => 'Student registered successfully',
-            'data' => $student->toArray(),
-        ], 201);
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'Registration failed',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-}
-public function uploadFiles(Request $request)
-{
-    $request->validate([
-        'st_roll_no' => 'required|exists:t_students,st_roll_no',
-        'file_type' => 'required|array|min:1',
-        'file_type.*' => 'required|in:photo,birth_certificate,aadhar,attachment',
-        'file' => 'required|array|min:1',
-        'file.*' => 'required|file|mimes:jpeg,jpg,png,pdf|max:2048',
-    ]);
-
-    $studentRollNo = $request->input('st_roll_no');
-    $fileTypes = $request->input('file_type');
-    $files = $request->file('file');
-
-    try {
-        // Fetch the student using roll number
-        $student = StudentModel::where('st_roll_no', $studentRollNo)->first();
-
-        if (!$student) {
             return response()->json([
-                'success' => false,
-                'message' => 'Student not found.',
-            ], 404);
-        }
-
-        // Check if the student has a matching user by email
-        $user = User::where('email', $student->st_gmail_address)->first();
-
-        if (!$user) {
+                'message' => 'Student registered successfully',
+                'data' => $student->toArray(),
+            ], 201);
+        } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'No matching user found for the student email.',
-            ], 404);
+                'message' => 'Registration failed',
+                'error' => $e->getMessage(),
+            ], 500);
         }
+    }
 
-        $userToken = $student->user_token;
-        $directory = "uploads/students/{$userToken}";
+    public function uploadFiles(Request $request)
+    {
+        $request->validate([
+            'st_roll_no' => 'required|exists:t_students,st_roll_no',
+            'file_type' => 'required|array|min:1',
+            'file_type.*' => 'required|in:photo,birth_certificate,aadhar,attachment',
+            'file' => 'required|array|min:1',
+            'file.*' => 'required|file|mimes:jpeg,jpg,png,pdf|max:2048',
+        ]);
 
-        // Ensure directory exists
-        if (!Storage::disk('public')->exists($directory)) {
-            Storage::disk('public')->makeDirectory($directory);
-        }
+        $studentRollNo = $request->input('st_roll_no');
+        $fileTypes = $request->input('file_type');
+        $files = $request->file('file');
 
-        $uploadedFiles = [];
+        try {
+            // Fetch the student using roll number
+            $student = StudentModel::where('st_roll_no', $studentRollNo)->first();
 
-        foreach ($fileTypes as $index => $fileType) {
-            if (!isset($files[$index])) {
-                continue;
+            if (!$student) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Student not found.',
+                ], 404);
             }
 
-            $file = $files[$index];
-            $fileName = match ($fileType) {
-                'photo' => "{$studentRollNo}_photo.{$file->getClientOriginalExtension()}",
-                'birth_certificate' => "{$studentRollNo}_birth.{$file->getClientOriginalExtension()}",
-                'aadhar' => "{$studentRollNo}_aadhar.{$file->getClientOriginalExtension()}",
-                'attachment' => "{$studentRollNo}_attachment.{$file->getClientOriginalExtension()}",
-            };
+            // Check if the student has a matching user by email
+            $user = User::where('email', $student->st_gmail_address)->first();
 
-            $filePath = $file->storeAs($directory, $fileName, 'public');
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No matching user found for the student email.',
+                ], 404);
+            }
 
-            // Save file details in the uploads table (replace if exists)
-            $upload = UploadModel::updateOrCreate(
-                ['file_name' => $fileName],
-                [
-                    'file_ext' => $file->getClientOriginalExtension(),
-                    'file_url' => $filePath,
-                    'file_size' => $file->getSize(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
+            $userToken = $student->user_token;
+            $directory = "uploads/students/{$userToken}";
 
-            $uploadedFiles[] = [
-                'file_id' => $upload->id,
-                'file_name' => $upload->file_name,
-                'file_url' => Storage::url($filePath),
-            ];
+            // Ensure directory exists
+            if (!Storage::disk('public')->exists($directory)) {
+                Storage::disk('public')->makeDirectory($directory);
+            }
+
+            $uploadedFiles = [];
+
+            foreach ($fileTypes as $index => $fileType) {
+                if (!isset($files[$index])) {
+                    continue;
+                }
+
+                $file = $files[$index];
+                $fileName = match ($fileType) {
+                    'photo' => "{$studentRollNo}_photo.{$file->getClientOriginalExtension()}",
+                    'birth_certificate' => "{$studentRollNo}_birth.{$file->getClientOriginalExtension()}",
+                    'aadhar' => "{$studentRollNo}_aadhar.{$file->getClientOriginalExtension()}",
+                    'attachment' => "{$studentRollNo}_attachment.{$file->getClientOriginalExtension()}",
+                };
+
+                $filePath = $file->storeAs($directory, $fileName, 'public');
+
+                // Save file details in the uploads table (replace if exists)
+                $upload = UploadModel::updateOrCreate(
+                    ['file_name' => $fileName],
+                    [
+                        'file_ext' => $file->getClientOriginalExtension(),
+                        'file_url' => $filePath,
+                        'file_size' => $file->getSize(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+
+                $uploadedFiles[] = [
+                    'file_id' => $upload->id,
+                    'file_name' => $upload->file_name,
+                    'file_url' => Storage::url($filePath),
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Files uploaded successfully.',
+                'data' => $uploadedFiles,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File upload failed.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Files uploaded successfully.',
-            'data' => $uploadedFiles,
-        ], 201);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'File upload failed.',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
 
     // update
     public function update(Request $request, $id)
@@ -1011,554 +703,165 @@ public function uploadFiles(Request $request)
         }
     }
 
-    // Fetch all students with their details
-    // public function index($id = null)
-    // {
-    //     if ($id) {
-    //         // Fetch a specific student with details
-    //         $student = StudentModel::with('details')->find($id);
-        
-    //         if ($student) {
-    //             // Hide fields in the main student model
-    //             $student->makeHidden(['id', 'created_at', 'updated_at']);
-        
-    //             // Hide fields in the details relation
-    //             if ($student->details) {
-    //                 $student->details->makeHidden(['id', 'created_at', 'updated_at']);
-    //             }
-        
-    //             return response()->json([
-    //                 'message' => 'Student fetched successfully!',
-    //                 'data' => $student
-    //             ], 200);
-    //         }
-        
-    //         return response()->json(['message' => 'Student not found.'], 404);
-        
-    //     } else {
-    //         // Fetch all students with details
-    //         $students = StudentModel::with('details')->get();
-        
-    //         // Hide fields in each student model and its details
-    //         $students->each(function ($student) {
-    //             $student->makeHidden(['id', 'created_at', 'updated_at']);
-        
-    //             if ($student->details) {
-    //                 $student->details->makeHidden(['id', 'created_at', 'updated_at']);
-    //             }
-    //         });
-        
-    //         return $students->isNotEmpty()
-    //             ? response()->json([
-    //                 'message' => 'Students fetched successfully!',
-    //                 'data' => $students,
-    //                 'count' => $students->count()
-    //             ], 200)
-    //             : response()->json(['message' => 'No students available.'], 400);
-    //     }        
-    // }
-
-    // public function index($id = null)
-    // {
-    //     try {
-    //         // Step 1: Get the current academic year
-    //         $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-    //             ->where('ay_current', '1')
-    //             ->first();
-
-    //         if (!$currentAcademicYear) {
-    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-    //                 ->orderBy('id', 'desc')
-    //                 ->first();
-    //         }
-
-    //         if (!$currentAcademicYear) {
-    //             return response()->json(['message' => 'No academic year records found.'], 404);
-    //         }
-
-    //         if ($id) {
-    //             // Fetch a specific student's class details in the current academic year
-    //             $studentClass = $currentAcademicYear->studentClasses()
-    //                 ->where('st_id', $id)
-    //                 ->with(['student', 'classGroup'])
-    //                 ->first();
-
-    //             if (!$studentClass) {
-    //                 return response()->json(['message' => 'Student is not enrolled in the determined academic year.'], 404);
-    //             }
-
-    //             return response()->json([
-    //                 'message' => 'Student class name fetched successfully.',
-    //                 'data' => [
-    //                     'student_record' => $studentClass->student->makeHidden(['id', 'created_at', 'updated_at']),
-    //                     'academic_year' => $currentAcademicYear->ay_name,
-    //                     'class_name' => $studentClass->classGroup->cg_name ?? 'Class group not found',
-    //                 ],
-    //             ], 200);
-    //         } else {
-    //             // Fetch all student-class records for the determined academic year
-    //             $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
-
-    //             if ($studentClasses->isEmpty()) {
-    //                 return response()->json(['message' => 'No students enrolled in the determined academic year.'], 404);
-    //             }
-
-    //             // Map the data to include student details and class names
-    //             $data = $studentClasses->map(function ($studentClass) use ($currentAcademicYear) {
-    //                 return [
-    //                     'student_record' => $studentClass->student ? $studentClass->student->makeHidden(['id', 'created_at', 'updated_at']) : 'Student not found',
-    //                     'academic_year' => $currentAcademicYear->ay_name,
-    //                     'class_name' => $studentClass->classGroup->cg_name ?? 'Class group not found',
-    //                 ];
-    //             });
-
-    //             return response()->json([
-    //                 'message' => 'Student class names fetched successfully.',
-    //                 'academic_year' => $currentAcademicYear->ay_name,
-    //                 'data' => $data,
-    //             ], 200);
-    //         }
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'message' => 'An error occurred while fetching student class names.',
-    //             'error' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
-
-    // public function index($id = null)
-    // {
-    //     try {
-
-    //         // Validate the request for optional `ay_id`
-    //         $validated = $request->validate([
-    //             'ay_id' => 'nullable|integer|exists:t_academic_years,id',
-    //         ]);
-
-    //         // Determine the academic year to use
-    //         $currentAcademicYear = null;
-    //         if (!empty($validated['ay_id'])) {
-    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-    //                 ->where('id', $validated['ay_id'])
-    //                 ->first();
-    //         }
-    //         else {
-
-    //             // Step 1: Get the current academic year
-    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-    //                 ->where('ay_current', '1')
-    //                 ->first();
-
-    //             if (!$currentAcademicYear) {
-    //                 $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-    //                     ->orderBy('id', 'desc')
-    //                     ->first();
-    //             }
-
-    //         }
-
-    //         if (!$currentAcademicYear) {
-    //             return response()->json(['message' => 'No academic year records found.'], 404);
-    //         }
-
-    //         if ($id) {
-    //             // Fetch a specific student's class details in the current academic year
-    //             $studentClass = $currentAcademicYear->studentClasses()
-    //                 ->where('st_id', $id)
-    //                 ->with(['student', 'classGroup'])
-    //                 ->first();
-
-    //             if (!$studentClass) {
-    //                 return response()->json(['message' => 'Student is not enrolled in the determined academic year.'], 404);
-    //             }
-
-    //             // Format the student data
-    //             $studentData = $studentClass->student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
-    //             $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
-    //             $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
-    //             $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
-
-    //             return response()->json([
-    //                 'message' => 'Student class name fetched successfully.',
-    //                 'data' => $studentData,
-    //             ], 200);
-    //         } else {
-    //             // Fetch all student-class records for the determined academic year
-    //             $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
-
-    //             if ($studentClasses->isEmpty()) {
-    //                 return response()->json(['message' => 'No students enrolled in the determined academic year.'], 404);
-    //             }
-
-    //             // Map the data to include student details and class names
-    //             $data = $studentClasses->map(function ($studentClass) {
-    //                 $studentData = $studentClass->student ? $studentClass->student->makeHidden(['id', 'created_at', 'updated_at'])->toArray() : [];
-    //                 if (!empty($studentData)) {
-    //                     $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
-    //                     $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
-    //                 }
-    //                 $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
-    //                 return $studentData;
-    //             });
-
-    //             return response()->json([
-    //                 'message' => 'Student class names fetched successfully.',
-    //                 'academic_year' => $currentAcademicYear->ay_name,
-    //                 'data' => $data,
-    //             ], 200);
-    //         }
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'message' => 'An error occurred while fetching student class names.',
-    //             'error' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
-
-    // public function index(Request $request, $id = null)
-    // {
-    //     try {
-    //         // Validate the request for optional `ay_id`
-    //         $validated = $request->validate([
-    //             'ay_id' => 'nullable|integer|exists:t_academic_years,id',
-    //         ]);
-
-    //         // Determine the academic year to use
-    //         $currentAcademicYear = null;
-    //         if (!empty($validated['ay_id'])) {
-    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-    //                 ->where('id', $validated['ay_id'])
-    //                 ->first();
-    //         } else {
-    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-    //                 ->where('ay_current', '1')
-    //                 ->first();
-
-    //             if (!$currentAcademicYear) {
-    //                 $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-    //                     ->orderBy('id', 'desc')
-    //                     ->first();
-    //             }
-    //         }
-
-    //         if (!$currentAcademicYear) {
-    //             return response()->json(['message' => 'No academic year records found.'], 404);
-    //         }
-
-    //         if ($id) {
-    //             // Fetch a specific student's class details in the determined academic year
-    //             $studentClass = $currentAcademicYear->studentClasses()
-    //                 ->where('st_id', $id)
-    //                 ->with(['student', 'classGroup'])
-    //                 ->first();
-
-    //             if (!$studentClass) {
-    //                 return response()->json(['message' => 'Student is not enrolled in the determined academic year.', 'status' => 'false'], 404);
-    //             }
-
-    //             // Format the student data
-    //             $studentData = $studentClass->student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
-    //             $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
-    //             $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
-    //             $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
-
-    //             return response()->json([
-    //                 'message' => 'Student class name fetched successfully.',
-    //                 'data' => $studentData,
-    //                 'status' => 'true'
-    //             ], 200);
-    //         } else {
-    //             // Fetch all student-class records for the determined academic year
-    //             $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
-
-    //             if ($studentClasses->isEmpty()) {
-    //                 return response()->json(['message' => 'No students enrolled in the determined academic year.',  'status' => 'false'], 404);
-    //             }
-
-    //             // Map the data to include student details and class names
-    //             $data = $studentClasses->map(function ($studentClass) {
-    //                 $studentData = $studentClass->student ? $studentClass->student->makeHidden(['id', 'created_at', 'updated_at'])->toArray() : [];
-    //                 if (!empty($studentData)) {
-    //                     $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
-    //                     $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
-    //                 }
-    //                 $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
-    //                 return $studentData;
-    //             });
-
-    //             return response()->json([
-    //                 'message' => 'Student class names fetched successfully.',
-    //                 'academic_year' => $currentAcademicYear->ay_name,
-    //                 'data' => $data,
-    //                 'status' => 'true'
-    //             ], 200);
-    //         }
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'message' => 'An error occurred while fetching student class names.',
-    //             'error' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
-
-    // public function index(Request $request, $id = null)
-    // {
-    //     try {
-    //         // Validate the request for optional `ay_id`
-    //         $validated = $request->validate([
-    //             'ay_id' => 'nullable|integer|exists:t_academic_years,id',
-    //         ]);
-
-    //         // Determine the academic year to use
-    //         $currentAcademicYear = null;
-    //         if (!empty($validated['ay_id'])) {
-    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-    //                 ->where('id', $validated['ay_id'])
-    //                 ->first();
-    //         } else {
-    //             $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-    //                 ->where('ay_current', '1')
-    //                 ->first();
-
-    //             if (!$currentAcademicYear) {
-    //                 $currentAcademicYear = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup'])
-    //                     ->orderBy('id', 'desc')
-    //                     ->first();
-    //             }
-    //         }
-
-    //         if (!$currentAcademicYear) {
-    //             return response()->json(['message' => 'No academic year records found.'], 404);
-    //         }
-
-    //         if ($id) {
-    //             // Fetch a specific student's class details in the determined academic year
-    //             $studentClass = $currentAcademicYear->studentClasses()
-    //                 ->where('st_id', $id)
-    //                 ->with(['student', 'classGroup'])
-    //                 ->first();
-
-    //             if (!$studentClass) {
-    //                 return response()->json(['message' => 'Student is not enrolled in the determined academic year.', 'status' => 'false'], 404);
-    //             }
-
-    //             // Fetch student details and photo
-    //             $student = $studentClass->student;
-    //             $photo = $student->photo_id
-    //                 ? UploadModel::where('id', $student->photo_id)->value('file_url')
-    //                 : null;
-
-    //             // Format the student data
-    //             $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
-    //             $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
-    //             $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
-    //             $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
-    //             $studentData['photo'] = $photo;
-
-    //             return response()->json([
-    //                 'message' => 'Student class name fetched successfully.',
-    //                 'data' => $studentData,
-    //                 'status' => 'true'
-    //             ], 200);
-    //         } else {
-    //             // Fetch all student-class records for the determined academic year
-    //             $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup'])->get();
-
-    //             if ($studentClasses->isEmpty()) {
-    //                 return response()->json(['message' => 'No students enrolled in the determined academic year.',  'status' => 'false'], 404);
-    //             }
-
-    //             // Map the data to include student details, class names, and photos
-    //             $data = $studentClasses->map(function ($studentClass) {
-    //                 $student = $studentClass->student;
-
-    //                 if (!$student) {
-    //                     return null;
-    //                 }
-
-    //                 $photo = $student->photo_id
-    //                     ? UploadModel::where('id', $student->photo_id)->value('file_url')
-    //                     : null;
-
-    //                 $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
-    //                 $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
-    //                 $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
-    //                 $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
-    //                 $studentData['photo'] = $photo;
-
-    //                 return $studentData;
-    //             })->filter();
-
-    //             return response()->json([
-    //                 'message' => 'Student class names fetched successfully.',
-    //                 'academic_year' => $currentAcademicYear->ay_name,
-    //                 // 'data' => $data,
-    //                 'data' => array_slice($data->toArray(), 0, 10),
-    //                 'status' => 'true'
-    //                 // 'count' => count($data),
-    //             ], 200);
-    //         }
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'message' => 'An error occurred while fetching student class names.',
-    //             'error' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
-
     public function index(Request $request, $id = null)
-{
-    try {
-        // Validate the request for optional filters
-        $validated = $request->validate([
-            'ay_id' => 'nullable|integer|exists:t_academic_years,id',
-            'offset' => 'nullable|integer|min:0',
-            'limit' => 'nullable|integer|min:1|max:100', // Limit parameter with a max of 100
-            'search' => 'nullable|string|max:255', // Search for name or ITS ID
-            'bohra' => 'nullable|in:0,1',
-            'class_name' => 'nullable|string|max:255',
-            'gender' => 'nullable|in:M,F',
-            'dob_from' => 'nullable|date',
-            'dob_to' => 'nullable|date|after_or_equal:dob_from',
-            'roll_no' => 'nullable|string|max:255',
-        ]);
-
-        $offset = $validated['offset'] ?? 0;
-        $limit = $validated['limit'] ?? 10; // Default limit to 10
-
-        $query = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup']);
-
-        // Determine the academic year
-        $currentAcademicYear = $validated['ay_id']
-            ? $query->where('id', $validated['ay_id'])->first()
-            : $query->where('ay_current', '1')->first() ?? $query->orderBy('id', 'desc')->first();
-
-        if (!$currentAcademicYear) {
-            return response()->json(['message' => 'No academic year records found.'], 404);
-        }
-
-        if ($id) {
-            // Fetch a specific student's class details
-            $studentClass = $currentAcademicYear->studentClasses()
-                ->where('st_id', $id)
-                ->with(['student', 'classGroup'])
-                ->first();
-
-            if (!$studentClass) {
-                return response()->json(['message' => 'Student not enrolled in the determined academic year.', 'status' => 'false'], 404);
-            }
-
-            $student = $studentClass->student;
-            $photo = $student->photo_id
-                ? UploadModel::where('id', $student->photo_id)->value('file_url')
-                : null;
-
-            $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
-            $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
-            $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
-            $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
-            $studentData['photo'] = $photo;
-
-            return response()->json([
-                'code' => 200,
-                'status' => true,
-                'message' => 'Student class name fetched successfully.',
-                'data' => $studentData
+    {
+        try {
+            // Validate the request for optional filters
+            $validated = $request->validate([
+                'ay_id' => 'nullable|integer|exists:t_academic_years,id',
+                'offset' => 'nullable|integer|min:0',
+                'limit' => 'nullable|integer|min:1|max:100', // Limit parameter with a max of 100
+                'search' => 'nullable|string|max:255', // Search for name or ITS ID
+                'bohra' => 'nullable|in:0,1',
+                'cg_id' => 'nullable|string',
+                'gender' => 'nullable|in:M,F',
+                'dob_from' => 'nullable|date',
+                'dob_to' => 'nullable|date|after_or_equal:dob_from',
+                'roll_no' => 'nullable|string|max:255',
             ]);
-        } else {
-            // Fetch all student-class records and apply filters
-            $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup']);
 
-            // Apply filters
-            if (!empty($validated['search'])) {
-                $studentClasses->whereHas('student', function ($query) use ($validated) {
-                    $searchTerm = '%' . trim($validated['search']) . '%'; // Trim and wildcard the search term
-                    $query->whereRaw('LOWER(st_first_name) like ?', [strtolower($searchTerm)])
-                          ->orWhereRaw('LOWER(st_last_name) like ?', [strtolower($searchTerm)])
-                          ->orWhereRaw('LOWER(st_its_id) like ?', [strtolower($searchTerm)]);
-                });
+            $offset = $validated['offset'] ?? 0;
+            $limit = $validated['limit'] ?? 10; // Default limit to 10
+
+            $query = AcademicYearModel::with(['studentClasses.student', 'studentClasses.classGroup']);
+
+            // Determine the academic year
+            $currentAcademicYear = $validated['ay_id']
+                ? $query->where('id', $validated['ay_id'])->first()
+                : $query->where('ay_current', '1')->first() ?? $query->orderBy('id', 'desc')->first();
+
+            if (!$currentAcademicYear) {
+                return response()->json(['message' => 'No academic year records found.'], 404);
             }
 
-            if (isset($validated['bohra'])) {
-                $studentClasses->whereHas('student', function ($query) use ($validated) {
-                    $query->where('st_bohra', $validated['bohra']);
-                });
-            }
+            if ($id) {
+                // Fetch a specific student's class details
+                $studentClass = $currentAcademicYear->studentClasses()
+                    ->where('st_id', $id)
+                    ->with(['student', 'classGroup'])
+                    ->first();
 
-            if (!empty($validated['class_name'])) {
-                $studentClasses->whereHas('classGroup', function ($query) use ($validated) {
-                    $query->where('cg_name', 'like', '%' . $validated['class_name'] . '%');
-                });
-            }
-
-            if (!empty($validated['gender'])) {
-                $studentClasses->whereHas('student', function ($query) use ($validated) {
-                    $query->where('st_gender', $validated['gender']);
-                });
-            }
-
-            if (!empty($validated['dob_from']) || !empty($validated['dob_to'])) {
-                $studentClasses->whereHas('student', function ($query) use ($validated) {
-                    if (!empty($validated['dob_from'])) {
-                        $query->where('st_dob', '>=', $validated['dob_from']);
-                    }
-                    if (!empty($validated['dob_to'])) {
-                        $query->where('st_dob', '<=', $validated['dob_to']);
-                    }
-                });
-            }
-
-            if (!empty($validated['roll_no'])) {
-                $studentClasses->whereHas('student', function ($query) use ($validated) {
-                    $query->where('st_roll_no', $validated['roll_no']);
-                });
-            }
-
-            // Get the filtered results
-            $studentClasses = $studentClasses->get();
-
-            if ($studentClasses->isEmpty()) {
-                return response()->json(['message' => 'No students match the given criteria.', 'status' => 'false'], 404);
-            }
-
-            $data = $studentClasses->map(function ($studentClass) {
-                $student = $studentClass->student;
-
-                if (!$student) {
-                    return null;
+                if (!$studentClass) {
+                    return response()->json(['message' => 'Student not enrolled in the determined academic year.', 'status' => 'false'], 404);
                 }
 
+                $student = $studentClass->student;
                 $photo = $student->photo_id
                     ? UploadModel::where('id', $student->photo_id)->value('file_url')
                     : null;
 
-                $studentData = $student->makeHidden(['created_at', 'updated_at'])->toArray();
+                $studentData = $student->makeHidden(['id', 'created_at', 'updated_at'])->toArray();
                 $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
                 $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
                 $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
                 $studentData['photo'] = $photo;
 
-                return $studentData;
-            })->filter();
+                return response()->json([
+                    'code' => 200,
+                    'status' => true,
+                    'message' => 'Student class name fetched successfully.',
+                    'data' => $studentData
+                ]);
+            } else {
+                // Fetch all student-class records and apply filters
+                $studentClasses = $currentAcademicYear->studentClasses()->with(['student', 'classGroup']);
 
+                // Apply cg_id filter
+                if (!empty($validated['cg_id'])) {
+                    $cgIds = explode(',', $validated['cg_id']); // Convert comma-separated cg_id to an array
+                    $studentClasses->whereIn('cg_id', $cgIds);
+                }
+
+                // Apply filters
+                if (!empty($validated['search'])) {
+                    $studentClasses->whereHas('student', function ($query) use ($validated) {
+                        $searchTerm = '%' . trim($validated['search']) . '%'; // Trim and wildcard the search term
+                        $query->whereRaw('LOWER(st_first_name) like ?', [strtolower($searchTerm)])
+                            ->orWhereRaw('LOWER(st_last_name) like ?', [strtolower($searchTerm)])
+                            ->orWhereRaw('LOWER(st_its_id) like ?', [strtolower($searchTerm)]);
+                    });
+                }
+
+                if (isset($validated['bohra'])) {
+                    $studentClasses->whereHas('student', function ($query) use ($validated) {
+                        $query->where('st_bohra', $validated['bohra']);
+                    });
+                }
+
+                if (!empty($validated['class_name'])) {
+                    $studentClasses->whereHas('classGroup', function ($query) use ($validated) {
+                        $query->where('cg_name', 'like', '%' . $validated['class_name'] . '%');
+                    });
+                }
+
+                if (!empty($validated['gender'])) {
+                    $studentClasses->whereHas('student', function ($query) use ($validated) {
+                        $query->where('st_gender', $validated['gender']);
+                    });
+                }
+
+                if (!empty($validated['dob_from']) || !empty($validated['dob_to'])) {
+                    $studentClasses->whereHas('student', function ($query) use ($validated) {
+                        if (!empty($validated['dob_from'])) {
+                            $query->where('st_dob', '>=', $validated['dob_from']);
+                        }
+                        if (!empty($validated['dob_to'])) {
+                            $query->where('st_dob', '<=', $validated['dob_to']);
+                        }
+                    });
+                }
+
+                if (!empty($validated['roll_no'])) {
+                    $studentClasses->whereHas('student', function ($query) use ($validated) {
+                        $query->where('st_roll_no', $validated['roll_no']);
+                    });
+                }
+
+                // Get the filtered results
+                $studentClasses = $studentClasses->get();
+
+                if ($studentClasses->isEmpty()) {
+                    return response()->json(['message' => 'No students match the given criteria.', 'status' => 'false'], 404);
+                }
+
+                $data = $studentClasses->map(function ($studentClass) {
+                    $student = $studentClass->student;
+
+                    if (!$student) {
+                        return null;
+                    }
+
+                    $photo = $student->photo_id
+                        ? UploadModel::where('id', $student->photo_id)->value('file_url')
+                        : null;
+
+                    $studentData = $student->makeHidden(['created_at', 'updated_at'])->toArray();
+                    $studentData['st_gender'] = $studentData['st_gender'] === 'M' ? 'Male' : ($studentData['st_gender'] === 'F' ? 'Female' : null);
+                    $studentData['st_dob'] = $studentData['st_dob'] ? \Carbon\Carbon::parse($studentData['st_dob'])->format('d-m-Y') : null;
+                    $studentData['class_name'] = $studentClass->classGroup->cg_name ?? 'Class group not found';
+                    $studentData['photo'] = $photo;
+
+                    return $studentData;
+                })->filter();
+
+                return response()->json([
+                    'code' => 200,
+                    'status' => true,
+                    'message' => 'Student class names fetched successfully.',
+                    'academic_year' => $currentAcademicYear->ay_name,
+                    'data' => $data->slice($offset, $limit)->values(),
+                    'count' => $data->count()
+                ]);
+            }
+        } catch (\Exception $e) {
             return response()->json([
-                'code' => 200,
-                'status' => true,
-                'message' => 'Student class names fetched successfully.',
-                'academic_year' => $currentAcademicYear->ay_name,
-                'data' => $data->slice($offset, $limit)->values(),
-                'count' => $data->count()
+                'code' => 500,
+                'status' => false,
+                'message' => 'An error occurred while fetching student class names.',
+                'error' => $e->getMessage(),
             ]);
         }
-    } catch (\Exception $e) {
-        return response()->json([
-            'code' => 500,
-            'status' => false,
-            'message' => 'An error occurred while fetching student class names.',
-            'error' => $e->getMessage(),
-        ]);
     }
-}
 
 
     // csv
