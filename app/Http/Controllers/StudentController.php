@@ -1676,6 +1676,7 @@ class StudentController extends Controller
         //     'message' => 'Validation passed successfully.',
         // ], 200);
         return response()->json([
+            'code' => '200',
             'status' => 'success',
             'message' => 'Validation passed successfully.',
             'data' => $validated,
@@ -1715,6 +1716,7 @@ class StudentController extends Controller
         //     'message' => 'Validation passed successfully.',
         // ], 200);
         return response()->json([
+            'code' => '200',
             'status' => 'success',
             'message' => 'Validation passed successfully.',
             'data' => $validated,
