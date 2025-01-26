@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\PasswordUpdated;
 use Hash;
+use Illuminate\Support\Facades\DB;
+
 
 class UserController extends Controller
 {
@@ -110,4 +112,64 @@ class UserController extends Controller
             'message' => 'Password updated successfully!',
         ]);
     }
+    public function getBloodGroups()
+{
+    try {
+        // Fetch enum values from the database for the st_blood_group column
+        $result = \DB::select(\DB::raw("SHOW COLUMNS FROM student WHERE Field = 'st_blood_group'"));
+
+        // Extract the enum values
+        if (!empty($result)) {
+            $type = $result[0]->Type; // Get the column type (e.g., enum('A+', 'A-', ...))
+            preg_match("/^enum\('(.*)'\)$/", $type, $matches); // Extract values between enum('')
+            $bloodGroups = isset($matches[1]) ? explode("','", $matches[1]) : [];
+        } else {
+            $bloodGroups = [];
+        }
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Blood groups fetched successfully',
+            'data' => $bloodGroups
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching blood groups',
+            'error' => $e->getMessage()
+        ]);
+    }
+}
+public function getHouseOptions()
+{
+    try {
+        // Fetch enum values from the database for the st_house column
+        $result = \DB::select(\DB::raw("SHOW COLUMNS FROM student WHERE Field = 'st_house'"));
+
+        // Extract the enum values
+        if (!empty($result)) {
+            $type = $result[0]->Type; // Get the column type (e.g., enum('red', 'blue', ...))
+            preg_match("/^enum\('(.*)'\)$/", $type, $matches); // Extract values between enum('')
+            $houses = isset($matches[1]) ? explode("','", $matches[1]) : [];
+        } else {
+            $houses = [];
+        }
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'House options fetched successfully',
+            'data' => $houses
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching house options',
+            'error' => $e->getMessage()
+        ]);
+    }
+}
 }

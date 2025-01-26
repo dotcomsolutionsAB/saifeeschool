@@ -450,4 +450,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'dashboard']);
 
+    Route::get('/blood-groups', [UserController::class, 'getBloodGroups']);
+
+// Route for fetching house options
+    Route::get('/house-options', [UserController::class, 'getHouseOptions']);
+
     });
