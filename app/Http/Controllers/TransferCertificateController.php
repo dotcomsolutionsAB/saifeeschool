@@ -423,7 +423,7 @@ public function destroy($id)
 public function export(Request $request)
 {
     $validated = $request->validate([
-        'type' => 'nullable|required|in:excel,pdf', // Type of export
+        //'type' => 'nullable|required|in:excel,pdf', // Type of export
         'search' => 'nullable|string|max:255', // Search term for roll number or name
         'date_from' => 'nullable|date', // Start date filter
         'date_to' => 'nullable|date|after_or_equal:date_from', // End date filter
