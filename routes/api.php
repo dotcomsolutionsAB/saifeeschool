@@ -343,6 +343,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/details', [TransferCertificateController::class, 'getDetails'])
                 ->middleware(['check-api-permission:students.full']);       
 
+         Route::post('/export', [TransferCertificateController::class, 'export'])
+                ->middleware(['check-api-permission:students.full']); 
+
+
         Route::post('/{id?}', [TransferCertificateController::class, 'storeOrUpdate'])
                 ->middleware(['check-api-permission:students.full']);         // Add a new Purchase (Admin only)
 
@@ -352,9 +356,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/import', [TransferCertificateController::class, 'importCsv'])
                 ->middleware(['check-api-permission:students.full']); 
         
-        Route::post('/export', [TransferCertificateController::class, 'export'])
-                ->middleware(['check-api-permission:students.full']); 
-
+       
         
     });
 
