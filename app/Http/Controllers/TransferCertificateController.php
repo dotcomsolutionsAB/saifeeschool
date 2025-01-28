@@ -57,7 +57,7 @@ class TransferCertificateController extends Controller
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
                 'dob' => $dob,
-                'dob_words' => Carbon::parse($dob)->format('F j, Y'),
+                'dob_words' => "hello",
                 'promotion' => $validated['promotion'],
                 'status' => 1,
             ];
