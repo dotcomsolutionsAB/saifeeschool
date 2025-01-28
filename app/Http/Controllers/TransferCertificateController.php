@@ -425,12 +425,11 @@ public function destroy($id)
 public function export(Request $request)
 {
     $validated = $request->validate([
-        //'type' => 'nullable|required|in:excel,pdf', // Type of export
+        //'type' => 'required|in:excel,pdf', // Type of export
         'search' => 'nullable|string|max:255', // Search term for roll number or name
         'date_from' => 'nullable|date', // Start date filter
         'date_to' => 'nullable|date|after_or_equal:date_from', // End date filter
     ]);
-    $validated['type'] = 'excel';
 
     try {
         // Initialize query
@@ -481,11 +480,11 @@ public function export(Request $request)
         }
 
         // Export as Excel or PDF
-        if ($validated['type'] === 'excel') {
+       
             return $this->exportExcel($data);
-        }
+        
 
-        return $this->exportPdf($data);
+       // return $this->exportPdf($data);
 
     } catch (\Exception $e) {
         return response()->json([
