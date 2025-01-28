@@ -17,7 +17,7 @@ class TransferCertificateController extends Controller
     public function storeOrUpdate(Request $request, $id = null)
     {
         $validated = $request->validate([
-            'st_roll_no' => 'required|numeric', // Student roll number (used for registration_no and st_roll_no)
+            'st_roll_no' => 'required', // Student roll number (used for registration_no and st_roll_no)
             'name' => 'required|string|max:512', // Student name
             'father_name' => 'required|string|max:256', // Father's name
             'joining_class' => 'nullable|string|max:100', // Joining class
