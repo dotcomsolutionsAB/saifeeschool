@@ -15,91 +15,110 @@ class TransferCertificateController extends Controller
 {
     //
     public function storeOrUpdate(Request $request, $id = null)
-    {
-        $validated = $request->validate([
-            'st_roll_no' => 'required', // Student roll number (used for registration_no and st_roll_no)
-            'name' => 'required|string|max:512', // Student name
-            'father_name' => 'required|string|max:256', // Father's name
-            'joining_class' => 'nullable|string|max:100', // Joining class
-            'joining_date' => 'required|string', // Joining date
-            'leaving_date' => 'nullable|string', // Leaving date
-            'prev_school' => 'required|string|max:256', // Previous school
-            'character' => 'required|string|max:100', // Character
-            'class' => 'required|string|max:100', // Class
-            'stream' => 'nullable|string|max:100', // Stream
-            'date_from' => 'required|string', // Date from
-            'date_to' => 'nullable|string', // Date to
-            'dob' => 'required|string', // Date of birth
-            'promotion' => 'required|in:Not Applicable,Refused,Promoted', // Promotion status
-        ]);
+{
+    $validated = $request->validate([
+        'st_roll_no' => 'required|string|max:255', // Student roll number
+        'name' => 'required|string|max:512', // Student name
+        'father_name' => 'required|string|max:256', // Father's name
+        'joining_class' => 'nullable|string|max:100', // Joining class
+        'joining_date' => 'required|string', // Joining date
+        'leaving_date' => 'nullable|string', // Leaving date
+        'prev_school' => 'required|string|max:256', // Previous school
+        'character' => 'required|string|max:100', // Character
+        'class' => 'required|string|max:100', // Class
+        'stream' => 'nullable|string|max:100', // Stream
+        'date_from' => 'required|string', // Date from
+        'date_to' => 'nullable|string', // Date to
+        'dob' => 'required|string', // Date of birth
+        'promotion' => 'required|in:Not Applicable,Refused,Promoted', // Promotion status
+    ]);
 
-        try {
-            // Find all matching students by concatenating `st_first_name` and `st_last_name`
-            $students = StudentModel::whereRaw("CONCAT(st_first_name, ' ', st_last_name) = ?", [$validated['name']])->get();
+    try {
+        // Step 1: Find student by name
+        $students = StudentModel::whereRaw("CONCAT(st_first_name, ' ', st_last_name) = ?", [$validated['name']])->get();
 
-            if ($students->isEmpty()) {
-                return response()->json(['message' => 'No student found with the provided name.'], 404);
-            }
-
-            // Call the CounterController increment function for serial number
-            $counterRequest = new Request(['t_name' => 't_transfer_certificate']);
-            $counterController = new CounterController();
-            $incrementResponse = $counterController->increment($counterRequest);
-
-            if ($incrementResponse->getStatusCode() !== 200) {
-                return response()->json(['message' => 'Failed to increment serial number.'], 500);
-            }
-
-            $serialNo = $incrementResponse->getData()->data->number;
-
-            $data = [
-                'dated' => now()->toDateString(), // Current date
-                'serial_no' => $serialNo, // Unique serial number
-                'registration_no' => $validated['st_roll_no'], // Use st_roll_no for registration_no
-                'st_id' => $students->first()->id, // Assuming the first matched student
-                'st_roll_no' => $validated['st_roll_no'],
-                'name' => $validated['name'],
-                'father_name' => $validated['father_name'],
-                'joining_class' => $validated['joining_class'] ?? null,
-                'joining_date' => Carbon::createFromFormat('d.m.Y', $validated['joining_date'])->format('Y-m-d'),
-                'leaving_date' => $validated['leaving_date']
-                    ? Carbon::createFromFormat('d.m.Y', $validated['leaving_date'])->format('Y-m-d')
-                    : null,
-                'prev_school' => $validated['prev_school'],
-                'character' => $validated['character'],
-                'class' => $validated['class'],
-                'stream' => $validated['stream'] ?? null,
-                'date_from' => Carbon::createFromFormat('m/d/Y', $validated['date_from'])->format('Y-m-d'),
-                'date_to' => $validated['date_to']
-                    ? Carbon::createFromFormat('m/d/Y', $validated['date_to'])->format('Y-m-d')
-                    : null,
-                'dob' => Carbon::createFromFormat('m/d/Y', $validated['dob'])->format('Y-m-d'),
-                'dob_words' => Carbon::createFromFormat('Y-m-d', Carbon::createFromFormat('m/d/Y', $validated['dob'])->format('Y-m-d'))->format('F j, Y'),
-                'promotion' => $validated['promotion'],
-                'status' => 1, // Default status
-            ];
-
-            if ($id) {
-                // Update existing record
-                $record = TransferCertificateModel::findOrFail($id);
-                $record->update($data);
-            } else {
-                // Create a new record
-                $record = TransferCertificateModel::create($data);
-            }
-
+        if ($students->isEmpty()) {
             return response()->json([
-                'message' => $id ? 'Record updated successfully.' : 'Record created successfully.',
-                'data' => $record->makeHidden(['id', 'created_at', 'updated_at']),
-            ]);
-        } catch (\Exception $e) {
+                'code' => 404,
+                'status' => false,
+                'message' => 'No student found with the provided name.',
+                'data' => null,
+            ], 404);
+        }
+
+        // Step 2: Increment serial number using CounterController
+        $counterRequest = new Request(['t_name' => 't_transfer_certificate']);
+        $counterController = new CounterController();
+        $incrementResponse = $counterController->increment($counterRequest);
+
+        if ($incrementResponse->getStatusCode() !== 200) {
             return response()->json([
-                'message' => 'Failed to process record.',
-                'error' => $e->getMessage(),
+                'code' => 500,
+                'status' => false,
+                'message' => 'Failed to increment serial number.',
+                'data' => null,
             ], 500);
         }
-    }
 
+        $serialNo = $incrementResponse->getData()->data->number;
+
+        // Step 3: Prepare data for creation or update
+        $data = [
+            'dated' => now()->toDateString(),
+            'serial_no' => $serialNo,
+            'registration_no' => $validated['st_roll_no'],
+            'st_id' => $students->first()->id,
+            'st_roll_no' => $validated['st_roll_no'],
+            'name' => $validated['name'],
+            'father_name' => $validated['father_name'],
+            'joining_class' => $validated['joining_class'] ?? null,
+            'joining_date' => Carbon::createFromFormat('d.m.Y', $validated['joining_date'])->format('Y-m-d'),
+            'leaving_date' => $validated['leaving_date']
+                ? Carbon::createFromFormat('d.m.Y', $validated['leaving_date'])->format('Y-m-d')
+                : null,
+            'prev_school' => $validated['prev_school'],
+            'character' => $validated['character'],
+            'class' => $validated['class'],
+            'stream' => $validated['stream'] ?? null,
+            'date_from' => Carbon::createFromFormat('m/d/Y', $validated['date_from'])->format('Y-m-d'),
+            'date_to' => $validated['date_to']
+                ? Carbon::createFromFormat('m/d/Y', $validated['date_to'])->format('Y-m-d')
+                : null,
+            'dob' => Carbon::createFromFormat('m/d/Y', $validated['dob'])->format('Y-m-d'),
+            'dob_words' => Carbon::createFromFormat('m/d/Y', $validated['dob'])->format('F j, Y'),
+            'promotion' => $validated['promotion'],
+            'status' => 1,
+        ];
+
+        // Step 4: Create or update the record
+        if ($id) {
+            // Update existing record
+            $record = TransferCertificateModel::findOrFail($id);
+            $record->update($data);
+
+            $message = 'Record updated successfully.';
+        } else {
+            // Create a new record
+            $record = TransferCertificateModel::create($data);
+
+            $message = 'Record created successfully.';
+        }
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => $message,
+            'data' => $record->makeHidden(['created_at', 'updated_at']),
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while processing the record.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
     public function importCsv(Request $request)
     {
         ini_set('max_execution_time', 300); // Extend execution time for large files
