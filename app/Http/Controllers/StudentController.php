@@ -1447,17 +1447,22 @@ class StudentController extends Controller
 
     private function exportPdf(array $data)
     {
+        // Increase memory limit and execution time
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+    
         // Define the path for storing the file
         $directory = "exports";
         $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
-        $fullPath = storage_path("app/public/{$directory}/{$fileName}");
+        $storagePath = storage_path("app/public/{$directory}");
+        $fullPath = "{$storagePath}/{$fileName}";
     
         // Ensure the directory exists
-        if (!is_dir(dirname($fullPath))) {
-            mkdir(dirname($fullPath), 0755, true);
+        if (!is_dir($storagePath)) {
+            mkdir($storagePath, 0755, true);
         }
     
-        // Initialize mPDF
+        // Initialize mPDF with custom temp directory
         $mpdf = new \Mpdf\Mpdf([
             'format' => 'A4',
             'orientation' => 'P',
@@ -1467,36 +1472,51 @@ class StudentController extends Controller
             'margin_bottom' => 20,
             'margin_left' => 15,
             'margin_right' => 15,
+            'tempDir' => storage_path('app/mpdf_temp'), // Custom temporary directory
         ]);
     
         $mpdf->SetTitle('Student Export');
     
-        // Render HTML and write to PDF
-        $html = view('exports.students_pdf', compact('data'))->render();
-        $chunks = str_split($html, 50000);
+        try {
+            // Chunk data to process large datasets
+            $htmlChunks = collect($data)
+                ->chunk(100) // Process 100 records at a time
+                ->map(function ($chunk) {
+                    return view('exports.students_pdf', ['data' => $chunk])->render();
+                });
     
-        foreach ($chunks as $chunk) {
-            $mpdf->WriteHTML($chunk);
+            // Write each chunk to the PDF
+            foreach ($htmlChunks as $chunkHtml) {
+                $mpdf->WriteHTML($chunkHtml);
+            }
+    
+            // Save the PDF to the directory
+            $mpdf->Output($fullPath, \Mpdf\Output\Destination::FILE);
+    
+            // Generate the full file URL
+            $fullFileUrl = url("storage/{$directory}/{$fileName}");
+    
+            // Return file metadata
+            return response()->json([
+                'code' => 200,
+                'status' => true,
+                'message' => 'File available for download',
+                'data' => [
+                    'file_url' => $fullFileUrl,
+                    'file_name' => $fileName,
+                    'file_size' => filesize($fullPath),
+                    'content_type' => 'application/pdf',
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('PDF generation error: ' . $e->getMessage());
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'An error occurred while generating the PDF.',
+                'error' => $e->getMessage(),
+            ]);
         }
-    
-        // Save the PDF to the directory
-        $mpdf->Output($fullPath, \Mpdf\Output\Destination::FILE);
-    
-        // Generate the full file URL
-        $fullFileUrl = url('storage/' . $directory . '/' . $fileName);
-    
-        // Return file metadata
-        return response()->json([
-            'code' => 200,
-            'status' => true,
-            'message' => 'File available for download',
-            'data' => [
-                'file_url' => $fullFileUrl,
-                'file_name' => $fileName,
-                'file_size' => filesize($fullPath),
-                'content_type' => 'application/pdf',
-            ],
-        ]);
     }
     public function initiatePayment(Request $request)
     {
