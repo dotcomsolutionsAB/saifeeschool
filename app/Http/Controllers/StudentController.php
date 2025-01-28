@@ -1414,10 +1414,10 @@ class StudentController extends Controller
             ]);
         }
     }
-    private function exportExcel(array $data, string $userToken)
+    private function exportExcel(array $data)
     {
         // Define the path for storing the file
-        $directory = "exports/students/{$userToken}";
+        $directory = "exports/";
         $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
         $fullPath = "{$directory}/{$fileName}";
     
@@ -1445,10 +1445,10 @@ class StudentController extends Controller
         ]);
     }
 
-    private function exportPdf(array $data, string $userToken)
+    private function exportPdf(array $data)
     {
         // Define the path for storing the file
-        $directory = "exports/students/{$userToken}";
+        $directory = "exports/";
         $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
         $fullPath = storage_path("app/public/{$directory}/{$fileName}");
     
