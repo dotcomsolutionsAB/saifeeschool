@@ -379,101 +379,7 @@ public function getDetails(Request $request)
     }
 }
 
-public function export(Request $request)
-{
-    $validated = $request->validate([
-        'search' => 'nullable|string|max:255', // Search by Roll No or Name
-        'date_from' => 'nullable|date', // Filter by starting date
-        'date_to' => 'nullable|date|after_or_equal:date_from', // Filter by ending date
-    ]);
 
-    try {
-        // Build the query
-        $query = TransferCertificateModel::query();
-
-        // Apply filters
-        if (!empty($validated['search'])) {
-            $query->where(function ($subQuery) use ($validated) {
-                $searchTerm = '%' . trim($validated['search']) . '%';
-                $subQuery->where('st_roll_no', 'like', $searchTerm)
-                    ->orWhere('name', 'like', $searchTerm);
-            });
-        }
-
-        if (!empty($validated['date_from'])) {
-            $query->where('dated', '>=', $validated['date_from']);
-        }
-
-        if (!empty($validated['date_to'])) {
-            $query->where('dated', '<=', $validated['date_to']);
-        }
-
-        // Order by serial number descending
-        $records = $query->orderBy('serial_no', 'desc')->get();
-
-        // Map data for export
-        $data = $records->map(function ($record, $index) {
-            return [
-                'SN' => $record->serial_no,
-                'Date' => \Carbon\Carbon::parse($record->dated)->format('d-m-Y'),
-                'Roll No' => $record->st_roll_no,
-                'Name' => $record->name,
-                'Father Name' => $record->father_name,
-                'Joining Class' => $record->joining_class ?? '',
-                'Joining Date' => $record->joining_date ? \Carbon\Carbon::parse($record->joining_date)->format('d-m-Y') : '',
-                'Leaving Date' => $record->leaving_date ? \Carbon\Carbon::parse($record->leaving_date)->format('d-m-Y') : '',
-                'Previous School' => $record->prev_school ?? '',
-                'Character' => $record->character,
-                'Class' => $record->class,
-                'Stream' => $record->stream ?? '',
-                'Date From' => $record->date_from ? \Carbon\Carbon::parse($record->date_from)->format('d-m-Y') : '',
-                'Date To' => $record->date_to ? \Carbon\Carbon::parse($record->date_to)->format('d-m-Y') : '',
-                'DOB' => $record->dob ? \Carbon\Carbon::parse($record->dob)->format('Y-m-d') : '',
-                'Promotion' => $record->promotion,
-            ];
-        });
-
-        // Check if data is empty
-        if ($data->isEmpty()) {
-            return response()->json([
-                'code' => 404,
-                'status' => false,
-                'message' => 'No records found for the given filters.',
-            ], 404);
-        }
-
-        // Export to Excel
-        $fileName = 'TransferCertificates_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
-        \Maatwebsite\Excel\Facades\Excel::store(
-            new \App\Exports\GenericExport($data->toArray(), [
-                'SN', 'Date', 'Roll No', 'Name', 'Father Name', 'Joining Class', 'Joining Date',
-                'Leaving Date', 'Previous School', 'Character', 'Class', 'Stream', 'Date From',
-                'Date To', 'DOB', 'Promotion'
-            ]),
-            'exports/' . $fileName,
-            'public'
-        );
-
-        $fileUrl = url('storage/exports/' . $fileName);
-
-        return response()->json([
-            'code' => 200,
-            'status' => true,
-            'message' => 'File exported successfully.',
-            'data' => [
-                'file_url' => $fileUrl,
-                'file_name' => $fileName,
-            ],
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'code' => 500,
-            'status' => false,
-            'message' => 'An error occurred while exporting data.',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-}
 
 public function destroy($id)
 {
@@ -513,5 +419,149 @@ public function destroy($id)
             'error' => $e->getMessage(),
         ], 500);
     }
+}
+public function export(Request $request)
+{
+    $validated = $request->validate([
+        'type' => 'nullable|required|in:excel,pdf', // Type of export
+        'search' => 'nullable|string|max:255', // Search term for roll number or name
+        'date_from' => 'nullable|date', // Start date filter
+        'date_to' => 'nullable|date|after_or_equal:date_from', // End date filter
+    ]);
+    $validated['type'] = 'excel';
+
+    try {
+        // Initialize query
+        $query = TransferCertificateModel::query();
+
+        // Apply search filter
+        if (!empty($validated['search'])) {
+            $searchTerm = '%' . trim($validated['search']) . '%';
+            $query->where('st_roll_no', 'like', $searchTerm)
+                ->orWhere('name', 'like', $searchTerm);
+        }
+
+        // Apply date filters
+        if (!empty($validated['date_from'])) {
+            $query->where('dated', '>=', $validated['date_from']);
+        }
+        if (!empty($validated['date_to'])) {
+            $query->where('dated', '<=', $validated['date_to']);
+        }
+
+        // Order by serial number descending
+        $query->orderBy('serial_no', 'desc');
+
+        // Fetch and map data
+        $data = $query->get()->map(function ($record, $index) {
+            return [
+                'SN' => $record->serial_no,
+                'Date' => \Carbon\Carbon::parse($record->dated)->format('d-m-Y'),
+                'Roll No' => $record->st_roll_no,
+                'Name' => $record->name,
+                'Father Name' => $record->father_name,
+                'Joining Class' => $record->joining_class ?? '',
+                'Joining Date' => $record->joining_date ? \Carbon\Carbon::parse($record->joining_date)->format('d-m-Y') : '',
+                'Leaving Date' => $record->leaving_date ? \Carbon\Carbon::parse($record->leaving_date)->format('d-m-Y') : '',
+                'Previous School' => $record->prev_school ?? '',
+                'Character' => $record->character,
+                'Class' => $record->class,
+                'Stream' => $record->stream ?? '',
+                'Date From' => $record->date_from ? \Carbon\Carbon::parse($record->date_from)->format('d-m-Y') : '',
+                'Date To' => $record->date_to ? \Carbon\Carbon::parse($record->date_to)->format('d-m-Y') : '',
+                'DOB' => $record->dob ? \Carbon\Carbon::parse($record->dob)->format('Y-m-d') : '',
+                'Promotion' => $record->promotion,
+            ];
+        })->toArray();
+
+        if (empty($data)) {
+            return response()->json(['message' => 'No data available for export.'], 404);
+        }
+
+        // Export as Excel or PDF
+        if ($validated['type'] === 'excel') {
+            return $this->exportExcel($data);
+        }
+
+        return $this->exportPdf($data);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while exporting data.',
+            'error' => $e->getMessage(),
+        ]);
+    }
+}
+private function exportExcel(array $data)
+{
+    // Define the directory and file name
+    $directory = "exports";
+    $fileName = 'TransferCertificates_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
+    $fullPath = "{$directory}/{$fileName}";
+
+    // Use Maatwebsite to export the data
+    \Maatwebsite\Excel\Facades\Excel::store(
+        new \App\Exports\StudentsExport($data), // Replace this with your export class if necessary
+        $fullPath,
+        'public'
+    );
+
+    // Return metadata about the file
+    return response()->json([
+        'code' => 200,
+        'status' => true,
+        'message' => 'File available for download.',
+        'data' => [
+            'file_url' => url('storage/' . $fullPath),
+            'file_name' => $fileName,
+            'file_size' => Storage::disk('public')->size($fullPath),
+            'content_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ],
+    ]);
+}
+private function exportPdf(array $data)
+{
+    // Define the file name
+    $directory = "exports";
+    $fileName = 'TransferCertificates_' . now()->format('Y_m_d_H_i_s') . '.pdf';
+    $fullPath = storage_path("app/public/{$directory}/{$fileName}");
+
+    // Ensure directory exists
+    if (!is_dir(dirname($fullPath))) {
+        mkdir(dirname($fullPath), 0755, true);
+    }
+
+    // Generate the PDF using mPDF
+    $mpdf = new \Mpdf\Mpdf([
+        'format' => 'A4',
+        'orientation' => 'P',
+        'margin_header' => 10,
+        'margin_footer' => 10,
+        'margin_top' => 20,
+        'margin_bottom' => 20,
+        'margin_left' => 15,
+        'margin_right' => 15,
+    ]);
+
+    $mpdf->SetTitle('Transfer Certificate Export');
+    $html = view('exports.transfer_certificates', compact('data'))->render(); // Ensure you have this Blade file
+
+    $mpdf->WriteHTML($html);
+    $mpdf->Output($fullPath, \Mpdf\Output\Destination::FILE);
+
+    // Return metadata about the file
+    return response()->json([
+        'code' => 200,
+        'status' => true,
+        'message' => 'File available for download.',
+        'data' => [
+            'file_url' => url('storage/exports/' . $fileName),
+            'file_name' => $fileName,
+            'file_size' => filesize($fullPath),
+            'content_type' => 'application/pdf',
+        ],
+    ]);
 }
 }
