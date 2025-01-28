@@ -202,67 +202,71 @@ class TransferCertificateController extends Controller
 
     // Fetch Records
     public function index(Request $request)
-    {
-        try {
-            // Validate the request
-            $validated = $request->validate([
-                'search' => 'nullable|string|max:255', // Search for name or roll no
-                'leaving_date_from' => 'nullable|date', // Leaving date range start
-                'leaving_date_to' => 'nullable|date|after_or_equal:leaving_date_from', // Leaving date range end
-                'offset' => 'nullable|integer|min:0', // Pagination offset
-                'limit' => 'nullable|integer|min:1|max:100', // Pagination limit
-            ]);
-    
-            $offset = $validated['offset'] ?? 0;
-            $limit = $validated['limit'] ?? 10;
-    
-            // Start the query
-            $query = TransferCertificateModel::query();
-    
-            // Apply search filter (name or roll number)
-            if (!empty($validated['search'])) {
-                $searchTerm = '%' . strtolower($validated['search']) . '%';
-                $query->where(function ($subQuery) use ($searchTerm) {
-                    $subQuery->whereRaw('LOWER(name) like ?', [$searchTerm])
-                        ->orWhereRaw('LOWER(st_roll_no) like ?', [$searchTerm]);
-                });
-            }
-    
-            // Apply leaving date filters
-            if (!empty($validated['leaving_date_from']) || !empty($validated['leaving_date_to'])) {
-                $query->where(function ($subQuery) use ($validated) {
-                    if (!empty($validated['leaving_date_from'])) {
-                        $subQuery->where('leaving_date', '>=', $validated['leaving_date_from']);
-                    }
-                    if (!empty($validated['leaving_date_to'])) {
-                        $subQuery->where('leaving_date', '<=', $validated['leaving_date_to']);
-                    }
-                });
-            }
-    
-            // Fetch paginated results
-            $records = $query->orderBy('id')
-                ->offset($offset)
-                ->limit($limit)
-                ->get(['id', 'name','st_roll_no','joining_date', 'leaving_date']); // Select only required fields
-    
-            // Response
-            return response()->json([
-                'code' => 200,
-                'status' => true,
-                'message' => 'Student class names fetched successfully.',
-                'academic_year' => '2024-25', // Static value or replace with dynamic if applicable
-                'data' => $records,
-            ]);
-        } catch (\Exception $e) {
-            // Handle exceptions
-            return response()->json([
-                'code' => 500,
-                'status' => false,
-                'message' => 'An error occurred while fetching records.',
-                'error' => $e->getMessage(),
-            ]);
+{
+    try {
+        // Validate the request
+        $validated = $request->validate([
+            'search' => 'nullable|string|max:255', // Search for name or roll no
+            'leaving_date_from' => 'nullable|date', // Leaving date range start
+            'leaving_date_to' => 'nullable|date|after_or_equal:leaving_date_from', // Leaving date range end
+            'offset' => 'nullable|integer|min:0', // Pagination offset
+            'limit' => 'nullable|integer|min:1|max:100', // Pagination limit
+        ]);
+
+        $offset = $validated['offset'] ?? 0;
+        $limit = $validated['limit'] ?? 10;
+
+        // Start the query
+        $query = TransferCertificateModel::query();
+
+        // Apply search filter (name or roll number)
+        if (!empty($validated['search'])) {
+            $searchTerm = '%' . strtolower($validated['search']) . '%';
+            $query->where(function ($subQuery) use ($searchTerm) {
+                $subQuery->whereRaw('LOWER(name) like ?', [$searchTerm])
+                    ->orWhereRaw('LOWER(st_roll_no) like ?', [$searchTerm]);
+            });
         }
+
+        // Apply leaving date filters
+        if (!empty($validated['leaving_date_from']) || !empty($validated['leaving_date_to'])) {
+            $query->where(function ($subQuery) use ($validated) {
+                if (!empty($validated['leaving_date_from'])) {
+                    $subQuery->where('leaving_date', '>=', $validated['leaving_date_from']);
+                }
+                if (!empty($validated['leaving_date_to'])) {
+                    $subQuery->where('leaving_date', '<=', $validated['leaving_date_to']);
+                }
+            });
+        }
+
+        // Get the total count of records for pagination
+        $totalCount = $query->count();
+
+        // Fetch paginated results
+        $records = $query->orderBy('id')
+            ->offset($offset)
+            ->limit($limit)
+            ->get(['id', 'name','st_roll_no','joining_date', 'leaving_date']); // Select only required fields
+
+        // Response
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Transfer certificates fetched successfully.',
+             // Static value or replace with dynamic if applicable
+            'data' => $records,
+            'total' => $totalCount, // Include the total count for pagination
+        ]);
+    } catch (\Exception $e) {
+        // Handle exceptions
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching records.',
+            'error' => $e->getMessage(),
+        ]);
     }
+}
 
 }
