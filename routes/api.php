@@ -337,7 +337,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/view', [TransferCertificateController::class, 'index'])
                 ->middleware(['check-api-permission:students.full, students.view']);          // List all Purchase
                 
-        Route::post('/details', [TransferCertificateController::class, 'getStudentDetails'])
+        Route::post('/student-details', [TransferCertificateController::class, 'getStudentDetails'])
+                ->middleware(['check-api-permission:students.full']);       
+
+        Route::post('/details', [TransferCertificateController::class, 'getDetails'])
                 ->middleware(['check-api-permission:students.full']);       
 
         Route::post('/{id?}', [TransferCertificateController::class, 'storeOrUpdate'])

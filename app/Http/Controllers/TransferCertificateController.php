@@ -327,5 +327,31 @@ public function getStudentDetails(Request $request)
         ], 500);
     }
 }
+public function getDetails(Request $request)
+{
+    try {
+        // Validate the request to ensure 'id' is provided
+        $validated = $request->validate([
+            'id' => 'required|integer|exists:t_transfer_certificate,id',
+        ]);
+
+        // Fetch the record by ID
+        $record = TransferCertificateModel::findOrFail($validated['id']);
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Record fetched successfully.',
+            'data' => $record->makeHidden(['created_at', 'updated_at']), // Hide unnecessary fields
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 404,
+            'status' => false,
+            'message' => 'Record not found.',
+            'error' => $e->getMessage(),
+        ], 404);
+    }
+}
 
 }
