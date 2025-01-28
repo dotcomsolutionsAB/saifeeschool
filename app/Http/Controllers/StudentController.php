@@ -1415,35 +1415,35 @@ class StudentController extends Controller
         }
     }
     private function exportExcel(array $data)
-    {
-        $directory = storage_path('app/public/exports/');
-        $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
-    
-        // Ensure the directory exists
-        if (!is_dir($directory)) {
-            mkdir($directory, 0755, true); // Create directory with appropriate permissions
-        }
-    
-        // Save the file to the directory
-        \Maatwebsite\Excel\Facades\Excel::store(new \App\Exports\StudentsExport($data), 'public/exports/' . $fileName, \Maatwebsite\Excel\Excel::XLSX);
-    
-        $filePath = $directory . $fileName;
-    
-        // File metadata
-        return response()->json([
-            'code' => 200,
-            'status' => true,
-            'message' => 'File available for download',
-            'data' => [
-                'file_url' => asset('storage/exports/' . $fileName),
-                'file_name' => $fileName,
-                'file_size' => filesize($filePath),
-                'content_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            ],
-        ]);
+{
+    $directory = storage_path('app/public/exports/');
+    $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
+
+    // Ensure the directory exists
+    if (!is_dir($directory)) {
+        mkdir($directory, 0755, true);
     }
 
-    private function exportPdf(array $data)
+    // Save the file to the directory instead of downloading
+    \Maatwebsite\Excel\Facades\Excel::store(new \App\Exports\StudentsExport($data), 'public/exports/' . $fileName, \Maatwebsite\Excel\Excel::XLSX);
+
+    $filePath = $directory . $fileName;
+
+    // Return file metadata instead of downloading
+    return response()->json([
+        'code' => 200,
+        'status' => true,
+        'message' => 'File available for download',
+        'data' => [
+            'file_url' => asset('storage/exports/' . $fileName),
+            'file_name' => $fileName,
+            'file_size' => filesize($filePath),
+            'content_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ],
+    ]);
+}
+
+private function exportPdf(array $data)
 {
     $directory = storage_path('app/public/exports/');
     $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
@@ -1451,10 +1451,10 @@ class StudentController extends Controller
 
     // Ensure the directory exists
     if (!is_dir($directory)) {
-        mkdir($directory, 0755, true); // Create directory with appropriate permissions
+        mkdir($directory, 0755, true);
     }
 
-    // Initialize mPDF with configuration
+    // Initialize mPDF without triggering download
     $mpdf = new \Mpdf\Mpdf([
         'format' => 'A4',
         'orientation' => 'P',
@@ -1470,16 +1470,16 @@ class StudentController extends Controller
 
     // Render the HTML view
     $html = view('exports.students_pdf', compact('data'))->render();
-    $chunks = str_split($html, 50000); // Split the HTML into chunks of 50,000 characters
+    $chunks = str_split($html, 50000); // Split the HTML into manageable chunks
 
     foreach ($chunks as $chunk) {
         $mpdf->WriteHTML($chunk);
     }
 
-    // Save the file to the directory
+    // Save the PDF file to the directory
     $mpdf->Output($filePath, \Mpdf\Output\Destination::FILE);
 
-    // File metadata
+    // Return file metadata instead of downloading
     return response()->json([
         'code' => 200,
         'status' => true,
@@ -1492,7 +1492,6 @@ class StudentController extends Controller
         ],
     ]);
 }
-
     public function initiatePayment(Request $request)
     {
         $validated = $request->validate([
