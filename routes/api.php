@@ -356,7 +356,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/import', [TransferCertificateController::class, 'importCsv'])
                 ->middleware(['check-api-permission:students.full']); 
         
-       
+        Route::get('/print/{id}', [TransferCertificateController::class, 'printPdf'])
+                ->middleware(['check-api-permission:students.full']); 
+        
         
     });
 
