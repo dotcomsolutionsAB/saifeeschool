@@ -43,7 +43,10 @@ class TransferCertificateController extends Controller
     
             // Prepare data for saving
             $lastSerial = TransferCertificateModel::orderBy('id', 'desc')->value('serial_no') ?? 0;
-$serialNo = $lastSerial + 1;
+            if($id !=null)
+            $serialNo = $lastSerial + 1;
+            else
+            $serialNo =TransferCertificateModel::where('id',$id)->value('serial_no');
 
             $data = [
                 'serial_no' => $serialNo,
