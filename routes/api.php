@@ -351,6 +351,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
         Route::get('/import', [TransferCertificateController::class, 'importCsv'])
                 ->middleware(['check-api-permission:students.full']); 
+        
+        Route::post('/export', [TransferCertificateController::class, 'export'])
+                ->middleware(['check-api-permission:students.full']); 
+
+        
     });
 
     // New Admission Routes

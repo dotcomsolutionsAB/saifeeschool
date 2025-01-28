@@ -15,86 +15,108 @@ class TransferCertificateController extends Controller
 {
     //
     public function storeOrUpdate(Request $request, $id = null)
-    {
-        $validated = $request->validate([
-            'st_roll_no' => 'required|string|max:255',
-            'name' => 'required|string|max:512',
-            'father_name' => 'required|string|max:256',
-            'joining_class' => 'nullable|string|max:100',
-            'joining_date' => 'required|string',
-            'leaving_date' => 'nullable|string',
-            'prev_school' => 'required|string|max:256',
-            'character' => 'required|string|max:100',
-            'class' => 'required|string|max:100',
-            'stream' => 'nullable|string|max:100',
-            'date_from' => 'required|string',
-            'date_to' => 'nullable|string',
-            'dob' => 'required|string',
-            'promotion' => 'required|in:Not Applicable,Refused,Promoted',
-        ]);
-    
-        try {
-            // Parse dates with error handling
-            $joiningDate = $this->parseDate($validated['joining_date'], 'd-m-Y', 'joining_date');
-            $leavingDate = $this->parseDate($validated['leaving_date'], 'd-m-Y', 'leaving_date', true);
-            $dateFrom = $this->parseDate($validated['date_from'], 'm-d-Y', 'date_from');
-            $dateTo = $this->parseDate($validated['date_to'], 'm-d-Y', 'date_to', true);
-            $dob = $this->parseDate($validated['dob'], 'Y-m-d', 'dob');
-    
-            // Prepare data for saving
-            $lastSerial = TransferCertificateModel::orderBy('id', 'desc')->value('serial_no') ?? 0;
-            if($id !=null)
-            $serialNo = $lastSerial + 1;
-            else
-            $serialNo =TransferCertificateModel::where('id',$id)->value('serial_no');
+{
+    $validated = $request->validate([
+        'st_roll_no' => 'required|string|max:255',
+        'name' => 'required|string|max:512',
+        'father_name' => 'required|string|max:256',
+        'joining_class' => 'nullable|string|max:100',
+        'joining_date' => 'required|string',
+        'leaving_date' => 'nullable|string',
+        'prev_school' => 'required|string|max:256',
+        'character' => 'required|string|max:100',
+        'class' => 'required|string|max:100',
+        'stream' => 'nullable|string|max:100',
+        'date_from' => 'required|string',
+        'date_to' => 'nullable|string',
+        'dob' => 'required|string',
+        'promotion' => 'required|in:Not Applicable,Refused,Promoted',
+    ]);
 
-            $data = [
-                'serial_no' => $serialNo,
-                'dated' => now()->toDateString(),
-                'st_roll_no' => $validated['st_roll_no'],
-                'name' => $validated['name'],
-                'father_name' => $validated['father_name'],
-                'joining_class' => $validated['joining_class'],
-                'joining_date' => $joiningDate,
-                'leaving_date' => $leavingDate,
-                'prev_school' => $validated['prev_school'],
-                'character' => $validated['character'],
-                'class' => $validated['class'],
-                'stream' => $validated['stream'],
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
-                'dob' => $dob,
-                'dob_words' => "hello",
-                'promotion' => $validated['promotion'],
-                'status' => 1,
-            ];
-    
-            if ($id) {
-                // Update existing record
-                $record = TransferCertificateModel::findOrFail($id);
-                $record->update($data);
-                $message = 'Record updated successfully.';
-            } else {
-                // Create a new record
-                $record = TransferCertificateModel::create($data);
-                $message = 'Record created successfully.';
-            }
-    
+    try {
+        // Validation: Check if TC already exists for the provided roll number
+        $existingTC = TransferCertificateModel::where('st_roll_no', $validated['st_roll_no'])
+            ->when($id, function ($query, $id) {
+                return $query->where('id', '<>', $id); // Exclude the current record in case of update
+            })
+            ->exists();
+
+        if ($existingTC) {
             return response()->json([
-                'code' => 200,
-                'status' => true,
-                'message' => $message,
-                'data' => $record,
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'code' => 500,
+                'code' => 422,
                 'status' => false,
-                'message' => 'An error occurred while processing the record.',
-                'error' => $e->getMessage(),
-            ], 500);
+                'message' => 'A Transfer Certificate already exists for the provided roll number.',
+            ], 422);
         }
+
+        // Parse dates with error handling
+        $joiningDate = $this->parseDate($validated['joining_date'], 'd-m-Y', 'joining_date');
+        $leavingDate = $this->parseDate($validated['leaving_date'], 'd-m-Y', 'leaving_date', true);
+        $dateFrom = $this->parseDate($validated['date_from'], 'm-d-Y', 'date_from');
+        $dateTo = $this->parseDate($validated['date_to'], 'm-d-Y', 'date_to', true);
+        $dob = $this->parseDate($validated['dob'], 'Y-m-d', 'dob');
+
+        // Handle serial number logic
+        if ($id) {
+            // For update, retain the existing serial number
+            $serialNo = TransferCertificateModel::where('id', $id)->value('serial_no');
+            if (!$serialNo) {
+                throw new \Exception('Record not found or invalid serial number.');
+            }
+        } else {
+            // For create, increment the last serial number
+            $lastSerial = TransferCertificateModel::orderBy('id', 'desc')->value('serial_no') ?? 0;
+            $serialNo = $lastSerial + 1;
+        }
+
+        // Prepare data for saving
+        $data = [
+            'serial_no' => $serialNo,
+            'dated' => now()->toDateString(),
+            'st_roll_no' => $validated['st_roll_no'],
+            'name' => $validated['name'],
+            'father_name' => $validated['father_name'],
+            'joining_class' => $validated['joining_class'],
+            'joining_date' => $joiningDate,
+            'leaving_date' => $leavingDate,
+            'prev_school' => $validated['prev_school'],
+            'character' => $validated['character'],
+            'class' => $validated['class'],
+            'stream' => $validated['stream'],
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
+            'dob' => $dob,
+            'dob_words' => Carbon::parse($dob)->format('F j, Y'), // Convert DOB to readable words
+            'promotion' => $validated['promotion'],
+            'status' => 1,
+        ];
+
+        if ($id) {
+            // Update existing record
+            $record = TransferCertificateModel::findOrFail($id);
+            $record->update($data);
+            $message = 'Record updated successfully.';
+        } else {
+            // Create a new record
+            $record = TransferCertificateModel::create($data);
+            $message = 'Record created successfully.';
+        }
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => $message,
+            'data' => $record->makeHidden(['created_at', 'updated_at']),
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while processing the record.',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
     
     private function parseDate($date, $format, $fieldName, $nullable = false)
     {
@@ -357,4 +379,139 @@ public function getDetails(Request $request)
     }
 }
 
+public function export(Request $request)
+{
+    $validated = $request->validate([
+        'search' => 'nullable|string|max:255', // Search by Roll No or Name
+        'date_from' => 'nullable|date', // Filter by starting date
+        'date_to' => 'nullable|date|after_or_equal:date_from', // Filter by ending date
+    ]);
+
+    try {
+        // Build the query
+        $query = TransferCertificateModel::query();
+
+        // Apply filters
+        if (!empty($validated['search'])) {
+            $query->where(function ($subQuery) use ($validated) {
+                $searchTerm = '%' . trim($validated['search']) . '%';
+                $subQuery->where('st_roll_no', 'like', $searchTerm)
+                    ->orWhere('name', 'like', $searchTerm);
+            });
+        }
+
+        if (!empty($validated['date_from'])) {
+            $query->where('dated', '>=', $validated['date_from']);
+        }
+
+        if (!empty($validated['date_to'])) {
+            $query->where('dated', '<=', $validated['date_to']);
+        }
+
+        // Order by serial number descending
+        $records = $query->orderBy('serial_no', 'desc')->get();
+
+        // Map data for export
+        $data = $records->map(function ($record, $index) {
+            return [
+                'SN' => $record->serial_no,
+                'Date' => \Carbon\Carbon::parse($record->dated)->format('d-m-Y'),
+                'Roll No' => $record->st_roll_no,
+                'Name' => $record->name,
+                'Father Name' => $record->father_name,
+                'Joining Class' => $record->joining_class ?? '',
+                'Joining Date' => $record->joining_date ? \Carbon\Carbon::parse($record->joining_date)->format('d-m-Y') : '',
+                'Leaving Date' => $record->leaving_date ? \Carbon\Carbon::parse($record->leaving_date)->format('d-m-Y') : '',
+                'Previous School' => $record->prev_school ?? '',
+                'Character' => $record->character,
+                'Class' => $record->class,
+                'Stream' => $record->stream ?? '',
+                'Date From' => $record->date_from ? \Carbon\Carbon::parse($record->date_from)->format('d-m-Y') : '',
+                'Date To' => $record->date_to ? \Carbon\Carbon::parse($record->date_to)->format('d-m-Y') : '',
+                'DOB' => $record->dob ? \Carbon\Carbon::parse($record->dob)->format('Y-m-d') : '',
+                'Promotion' => $record->promotion,
+            ];
+        });
+
+        // Check if data is empty
+        if ($data->isEmpty()) {
+            return response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'No records found for the given filters.',
+            ], 404);
+        }
+
+        // Export to Excel
+        $fileName = 'TransferCertificates_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
+        \Maatwebsite\Excel\Facades\Excel::store(
+            new \App\Exports\GenericExport($data->toArray(), [
+                'SN', 'Date', 'Roll No', 'Name', 'Father Name', 'Joining Class', 'Joining Date',
+                'Leaving Date', 'Previous School', 'Character', 'Class', 'Stream', 'Date From',
+                'Date To', 'DOB', 'Promotion'
+            ]),
+            'exports/' . $fileName,
+            'public'
+        );
+
+        $fileUrl = url('storage/exports/' . $fileName);
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'File exported successfully.',
+            'data' => [
+                'file_url' => $fileUrl,
+                'file_name' => $fileName,
+            ],
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while exporting data.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+public function destroy($id)
+{
+    try {
+        // Get the last created record's ID
+        $lastId = TransferCertificateModel::orderBy('id', 'desc')->value('id');
+
+        // Check if the provided ID matches the last created ID
+        if ($id != $lastId) {
+            return response()->json([
+                'code' => 403,
+                'status' => false,
+                'message' => 'You can only delete the last created record.',
+            ], 403);
+        }
+
+        // Find and delete the record
+        $record = TransferCertificateModel::findOrFail($id);
+        $record->delete();
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Record deleted successfully.',
+        ], 200);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json([
+            'code' => 404,
+            'status' => false,
+            'message' => 'Record not found.',
+        ], 404);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while deleting the record.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
 }
