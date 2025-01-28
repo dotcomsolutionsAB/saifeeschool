@@ -42,7 +42,11 @@ class TransferCertificateController extends Controller
             $dob = $this->parseDate($validated['dob'], 'Y-m-d', 'dob');
     
             // Prepare data for saving
+            $lastSerial = TransferCertificateModel::orderBy('id', 'desc')->value('serial_no') ?? 0;
+$serialNo = $lastSerial + 1;
+
             $data = [
+                'serial_no' => $serialNo,
                 'dated' => now()->toDateString(),
                 'st_roll_no' => $validated['st_roll_no'],
                 'name' => $validated['name'],
