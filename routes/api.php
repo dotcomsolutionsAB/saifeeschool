@@ -336,6 +336,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('transfer_certificate')->group(function () {
         Route::post('/view', [TransferCertificateController::class, 'index'])
                 ->middleware(['check-api-permission:students.full, students.view']);          // List all Purchase
+                
+        Route::post('/details', [TransferCertificateController::class, 'getStudentDetails'])
+                ->middleware(['check-api-permission:students.full']);       
 
         Route::post('/{id?}', [TransferCertificateController::class, 'storeOrUpdate'])
                 ->middleware(['check-api-permission:students.full']);         // Add a new Purchase (Admin only)
