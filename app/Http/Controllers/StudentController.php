@@ -1324,45 +1324,40 @@ class StudentController extends Controller
         ]);
     
         try {
-            // Build the query
+            // Initialize query with relationships
             $query = StudentClassModel::with(['student', 'classGroup', 'academicYear']);
     
-            // Filter by Academic Year ID
+            // Apply filters
             if (!empty($validated['ay_id'])) {
                 $query->where('ay_id', $validated['ay_id']);
             }
     
-            // Filter by Class Group IDs
             if (!empty($validated['cg_id'])) {
-                $cgIds = explode(',', $validated['cg_id']); // Convert comma-separated IDs to array
+                $cgIds = explode(',', $validated['cg_id']); // Convert to array
                 $query->whereIn('cg_id', $cgIds);
             }
     
-            // Filter by Bohra status
             if (isset($validated['bohra'])) {
                 $query->whereHas('student', function ($subQuery) use ($validated) {
                     $subQuery->where('st_bohra', $validated['bohra']);
                 });
             }
     
-            // Filter by Gender
             if (!empty($validated['gender'])) {
                 $query->whereHas('student', function ($subQuery) use ($validated) {
                     $subQuery->where('st_gender', $validated['gender']);
                 });
             }
     
-            // Filter by Search Term (Name or ITS ID)
             if (!empty($validated['search'])) {
-                $query->whereHas('student', function ($subQuery) use ($validated) {
-                    $searchTerm = '%' . trim($validated['search']) . '%';
-                    $subQuery->whereRaw('LOWER(st_first_name) like ?', [strtolower($searchTerm)])
-                        ->orWhereRaw('LOWER(st_last_name) like ?', [strtolower($searchTerm)])
-                        ->orWhereRaw('LOWER(st_its_id) like ?', [strtolower($searchTerm)]);
+                $searchTerm = '%' . strtolower(trim($validated['search'])) . '%';
+                $query->whereHas('student', function ($subQuery) use ($searchTerm) {
+                    $subQuery->whereRaw('LOWER(st_first_name) like ?', [$searchTerm])
+                        ->orWhereRaw('LOWER(st_last_name) like ?', [$searchTerm])
+                        ->orWhereRaw('LOWER(st_its_id) like ?', [$searchTerm]);
                 });
             }
     
-            // Filter by Date of Birth Range
             if (!empty($validated['dob_from']) || !empty($validated['dob_to'])) {
                 $query->whereHas('student', function ($subQuery) use ($validated) {
                     if (!empty($validated['dob_from'])) {
@@ -1374,27 +1369,30 @@ class StudentController extends Controller
                 });
             }
     
-            // Get data and format it
-            $data = $query->get()->map(function ($studentClass, $index) {
-                $student = $studentClass->student;
+            // Process data using chunking to optimize memory usage
+            $data = [];
+            $query->chunk(500, function ($studentClasses) use (&$data) {
+                foreach ($studentClasses as $index => $studentClass) {
+                    $student = $studentClass->student;
     
-                if (!$student) {
-                    return [];
+                    if (!$student) {
+                        continue;
+                    }
+    
+                    $data[] = [
+                        'SN' => count($data) + 1,
+                        'Roll No' => $student->st_roll_no,
+                        'Name' => $student->st_first_name . ' ' . $student->st_last_name,
+                        'Class' => optional($studentClass->classGroup)->cg_name ?? 'Class group not found',
+                        'Gender' => $student->st_gender === 'M' ? 'Male' : ($student->st_gender === 'F' ? 'Female' : 'Not Specified'),
+                        'DOB' => $student->st_dob ? \Carbon\Carbon::parse($student->st_dob)->format('d-m-Y') : 'N/A',
+                        'ITS' => $student->st_its_id ?? 'N/A',
+                        'Mobile' => $student->st_mobile ?? 'N/A',
+                        'Bohra' => $student->st_bohra ? 'Yes' : 'No',
+                        'Academic Year' => optional($studentClass->academicYear)->ay_name ?? 'N/A',
+                    ];
                 }
-    
-                return [
-                    'SN' => $index + 1,
-                    'Roll No' => $student->st_roll_no,
-                    'Name' => $student->st_first_name . ' ' . $student->st_last_name,
-                    'Class' => $studentClass->classGroup->cg_name ?? 'Class group not found',
-                    'Gender' => $student->st_gender === 'M' ? 'Male' : ($student->st_gender === 'F' ? 'Female' : 'Not Specified'),
-                    'DOB' => $student->st_dob ? \Carbon\Carbon::parse($student->st_dob)->format('d-m-Y') : 'N/A',
-                    'ITS' => $student->st_its_id ?? 'N/A',
-                    'Mobile' => $student->st_mobile ?? 'N/A',
-                    'Bohra' => $student->st_bohra ? 'Yes' : 'No',
-                    'Academic Year' => $studentClass->academicYear->ay_name ?? 'N/A',
-                ];
-            })->filter()->values()->toArray();
+            });
     
             if (empty($data)) {
                 return response()->json(['message' => 'No data available for export.'], 404);
@@ -1406,6 +1404,7 @@ class StudentController extends Controller
             }
     
             return $this->exportPdf($data);
+    
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
@@ -1417,41 +1416,82 @@ class StudentController extends Controller
     }
     private function exportExcel(array $data)
     {
+        $directory = storage_path('app/public/exports/');
         $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
-
-        // return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\StudentsExport($data), $fileName);
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\StudentsExport($data), $fileName, \Maatwebsite\Excel\Excel::XLSX);
+    
+        // Ensure the directory exists
+        if (!is_dir($directory)) {
+            mkdir($directory, 0755, true); // Create directory with appropriate permissions
+        }
+    
+        // Save the file to the directory
+        \Maatwebsite\Excel\Facades\Excel::store(new \App\Exports\StudentsExport($data), 'public/exports/' . $fileName, \Maatwebsite\Excel\Excel::XLSX);
+    
+        $filePath = $directory . $fileName;
+    
+        // File metadata
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'File available for download',
+            'data' => [
+                'file_url' => asset('storage/exports/' . $fileName),
+                'file_name' => $fileName,
+                'file_size' => filesize($filePath),
+                'content_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ],
+        ]);
     }
 
     private function exportPdf(array $data)
-    {
-        $mpdf = new \Mpdf\Mpdf([
-            'format' => 'A4',
-            'orientation' => 'P',
-            'margin_header' => 10,
-            'margin_footer' => 10,
-            'margin_top' => 20,
-            'margin_bottom' => 20,
-            'margin_left' => 15,
-            'margin_right' => 15,
-        ]);
+{
+    $directory = storage_path('app/public/exports/');
+    $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
+    $filePath = $directory . $fileName;
 
-        $mpdf->SetTitle('Student Export');
-
-        // Split HTML into smaller chunks and process each chunk
-        $html = view('exports.students_pdf', compact('data'))->render();
-        $chunks = str_split($html, 50000); // Split the HTML into chunks of 50,000 characters
-
-        foreach ($chunks as $chunk) {
-            $mpdf->WriteHTML($chunk);
-        }
-
-        $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
-
-        return response()->streamDownload(function () use ($mpdf) {
-            $mpdf->Output();
-        }, $fileName);
+    // Ensure the directory exists
+    if (!is_dir($directory)) {
+        mkdir($directory, 0755, true); // Create directory with appropriate permissions
     }
+
+    // Initialize mPDF with configuration
+    $mpdf = new \Mpdf\Mpdf([
+        'format' => 'A4',
+        'orientation' => 'P',
+        'margin_header' => 10,
+        'margin_footer' => 10,
+        'margin_top' => 20,
+        'margin_bottom' => 20,
+        'margin_left' => 15,
+        'margin_right' => 15,
+    ]);
+
+    $mpdf->SetTitle('Student Export');
+
+    // Render the HTML view
+    $html = view('exports.students_pdf', compact('data'))->render();
+    $chunks = str_split($html, 50000); // Split the HTML into chunks of 50,000 characters
+
+    foreach ($chunks as $chunk) {
+        $mpdf->WriteHTML($chunk);
+    }
+
+    // Save the file to the directory
+    $mpdf->Output($filePath, \Mpdf\Output\Destination::FILE);
+
+    // File metadata
+    return response()->json([
+        'code' => 200,
+        'status' => true,
+        'message' => 'File available for download',
+        'data' => [
+            'file_url' => asset('storage/exports/' . $fileName),
+            'file_name' => $fileName,
+            'file_size' => filesize($filePath),
+            'content_type' => 'application/pdf',
+        ],
+    ]);
+}
 
     public function initiatePayment(Request $request)
     {
