@@ -456,22 +456,22 @@ public function export(Request $request)
         // Fetch and map data
         $data = $query->get()->map(function ($record, $index) {
             return [
-                'SN' => $record->serial_no,
-                'Date' => \Carbon\Carbon::parse($record->dated)->format('d-m-Y'),
-                'Roll No' => $record->st_roll_no,
-                'Name' => $record->name,
-                'Father Name' => $record->father_name,
-                'Joining Class' => $record->joining_class ?? '',
-                'Joining Date' => $record->joining_date ? \Carbon\Carbon::parse($record->joining_date)->format('d-m-Y') : '',
-                'Leaving Date' => $record->leaving_date ? \Carbon\Carbon::parse($record->leaving_date)->format('d-m-Y') : '',
-                'Previous School' => $record->prev_school ?? '',
-                'Character' => $record->character,
-                'Class' => $record->class,
-                'Stream' => $record->stream ?? '',
-                'Date From' => $record->date_from ? \Carbon\Carbon::parse($record->date_from)->format('d-m-Y') : '',
-                'Date To' => $record->date_to ? \Carbon\Carbon::parse($record->date_to)->format('d-m-Y') : '',
-                'DOB' => $record->dob ? \Carbon\Carbon::parse($record->dob)->format('Y-m-d') : '',
-                'Promotion' => $record->promotion,
+                'SN' => $record->serial_no, // Serial number
+                'Date' => \Carbon\Carbon::parse($record->dated)->format('d-m-Y'), // Date of record
+                'Roll No' => $record->st_roll_no, // Student roll number
+                'Name' => $record->name, // Student name
+                'Father Name' => $record->father_name, // Father's name
+                'Joining Class' => $record->joining_class ?? 'N/A', // Joining class
+                'Joining Date' => $record->joining_date ? \Carbon\Carbon::parse($record->joining_date)->format('d-m-Y') : 'N/A', // Joining date
+                'Leaving Date' => $record->leaving_date ? \Carbon\Carbon::parse($record->leaving_date)->format('d-m-Y') : 'N/A', // Leaving date
+                'Previous School' => $record->prev_school ?? 'N/A', // Previous school
+                'Character' => $record->character ?? 'N/A', // Character
+                'Class' => $record->class ?? 'N/A', // Class
+                'Stream' => $record->stream ?? 'N/A', // Stream
+                'Date From' => $record->date_from ? \Carbon\Carbon::parse($record->date_from)->format('d-m-Y') : 'N/A', // Date from
+                'Date To' => $record->date_to ? \Carbon\Carbon::parse($record->date_to)->format('d-m-Y') : 'N/A', // Date to
+                'DOB' => $record->dob ? \Carbon\Carbon::parse($record->dob)->format('d-m-Y') : 'N/A', // Date of birth
+                'Promotion' => $record->promotion ?? 'N/A', // Promotion
             ];
         })->toArray();
 
@@ -504,7 +504,7 @@ private function exportExcel(array $data)
 
     // Use Maatwebsite to export the data
     \Maatwebsite\Excel\Facades\Excel::store(
-        new \App\Exports\StudentsExport($data), // Replace this with your export class if necessary
+        new \App\Exports\TransferExport($data), // Replace this with your export class if necessary
         $fullPath,
         'public'
     );
