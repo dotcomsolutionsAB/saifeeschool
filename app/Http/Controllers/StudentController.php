@@ -1416,20 +1416,20 @@ class StudentController extends Controller
     }
     private function exportExcel(array $data)
     {
-        // Define the path for storing the file
-        $directory = "exports/";
+        // Define the directory and file name for storing the file
+        $directory = "exports";
         $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
         $fullPath = "{$directory}/{$fileName}";
     
-        // Store the file using the 'public' disk
-        $photoPath = \Maatwebsite\Excel\Facades\Excel::store(
+        // Store the file in the 'public' disk under the exports directory
+        \Maatwebsite\Excel\Facades\Excel::store(
             new \App\Exports\StudentsExport($data),
             $fullPath,
             'public'
         );
     
-        // Generate the full file URL
-        $fullFileUrl = url('storage/' . $photoPath);
+        // Generate the public URL for the file
+        $fullFileUrl = url('storage/' . $fullPath);
     
         // Return file metadata
         return response()->json([
@@ -1439,7 +1439,7 @@ class StudentController extends Controller
             'data' => [
                 'file_url' => $fullFileUrl,
                 'file_name' => $fileName,
-                'file_size' => Storage::disk('public')->size($photoPath),
+                'file_size' => Storage::disk('public')->size($fullPath),
                 'content_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ],
         ]);
@@ -1448,7 +1448,7 @@ class StudentController extends Controller
     private function exportPdf(array $data)
     {
         // Define the path for storing the file
-        $directory = "exports/";
+        $directory = "exports";
         $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
         $fullPath = storage_path("app/public/{$directory}/{$fileName}");
     
