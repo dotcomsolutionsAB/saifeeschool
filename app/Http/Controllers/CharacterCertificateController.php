@@ -157,7 +157,7 @@ class CharacterCertificateController extends Controller
             $records = $query->orderBy('id', 'desc')
                 ->offset($offset)
                 ->limit($limit)
-                ->get(['id','registration_no', 'st_roll_no', 'name', 'date', 'held_in']); // Select only required fields
+                ->get(['id','registration_no', 'st_roll_no', 'name', 'leaving_date', 'date_from']); // Select only required fields
     
             // Response
             return response()->json([
