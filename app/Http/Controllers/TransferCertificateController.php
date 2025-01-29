@@ -280,7 +280,7 @@ class TransferCertificateController extends Controller
             $records = $query->orderBy('id', 'desc')
                 ->offset($offset)
                 ->limit($limit)
-                ->get(['cc_no', 'st_roll_no', 'name', 'date', 'held_in']); // Select only required fields
+                ->get(['id','cc_no', 'st_roll_no', 'name', 'date', 'held_in']); // Select only required fields
     
             // Response
             return response()->json([
