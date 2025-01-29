@@ -111,17 +111,71 @@ class CharacterCertificateController extends Controller
     }
 
     // Fetch Records
-    public function index()
+    public function index(Request $request)
     {
-        // $records = CharacterCertificateModel::($request->perPage ?? 10);
-        $records = CharacterCertificateModel::orderBy('id')->get();
-
-        return response()->json([
-            'message' => 'Records fetched successfully.',
-            // 'data' => $records->makeHidden(['id', 'created_at', 'updated_at']),
-            'data' => array_slice($records->makeHidden(['id', 'created_at', 'updated_at'])->toArray(), 0, 3),
-            // 'count' => count($records),
-        ]);
+        try {
+            // Validate the request
+            $validated = $request->validate([
+                'search' => 'nullable|string|max:255', // Search for name or roll no
+                'date_from' => 'nullable|date', // Start date range
+                'date_to' => 'nullable|date|after_or_equal:date_from', // End date range
+                'offset' => 'nullable|integer|min:0', // Pagination offset
+                'limit' => 'nullable|integer|min:1|max:100', // Pagination limit
+            ]);
+    
+            $offset = $validated['offset'] ?? 0;
+            $limit = $validated['limit'] ?? 10;
+    
+            // Start the query
+            $query = CharacterCertificateModel::query();
+    
+            // Apply search filter (name or roll number)
+            if (!empty($validated['search'])) {
+                $searchTerm = '%' . strtolower($validated['search']) . '%';
+                $query->where(function ($subQuery) use ($searchTerm) {
+                    $subQuery->whereRaw('LOWER(name) like ?', [$searchTerm])
+                        ->orWhereRaw('LOWER(st_roll_no) like ?', [$searchTerm]);
+                });
+            }
+    
+            // Apply date filters
+            if (!empty($validated['date_from']) || !empty($validated['date_to'])) {
+                $query->where(function ($subQuery) use ($validated) {
+                    if (!empty($validated['date_from'])) {
+                        $subQuery->where('date', '>=', $validated['date_from']);
+                    }
+                    if (!empty($validated['date_to'])) {
+                        $subQuery->where('date', '<=', $validated['date_to']);
+                    }
+                });
+            }
+    
+            // Get the total count of records for pagination
+            $totalCount = $query->count();
+    
+            // Fetch paginated results
+            $records = $query->orderBy('id', 'desc')
+                ->offset($offset)
+                ->limit($limit)
+                ->get(['id','cc_no', 'st_roll_no', 'name', 'date', 'held_in']); // Select only required fields
+    
+            // Response
+            return response()->json([
+                'code' => 200,
+                'status' => true,
+                'message' => 'Character Certificates fetched successfully.',
+                'data' => $records,
+                'total' => $totalCount, // Include the total count for pagination
+            ]);
+        } catch (\Exception $e) {
+            // Handle exceptions
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'An error occurred while fetching records.',
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     // Delete Record
