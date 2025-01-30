@@ -34,82 +34,91 @@ class CharacterCertificateController extends Controller
     public function storeOrUpdate(Request $request, $id = null)
     {
         $validated = $request->validate([
-            'registration_no' => 'required|string|max:100',
-            'name' => 'required|string|max:512',
-            'joining_date' => 'required|date',
-            'leaving_date' => 'nullable|date',
-            'stream' => 'required|string|max:100',
-            'date_from' => 'required|string|max:100',
-            'dob' => 'required|date',
+            'st_roll_no' => 'required|string|max:100', // Student roll number
+            'name' => 'required|string|max:512', // Student name
+            'joining_date' => 'required|date', // Joining date
+            'leaving_date' => 'nullable|date', // Leaving date (optional)
+            'stream' => 'required|string|max:100', // Stream
+            'date_from' => 'required|string|max:100', // Date from
+            'dob' => 'required|date', // Date of birth
         ]);
-
+    
         try {
-            // Fetch student details
-            // $student = StudentModel::where('name', $validated['name'])->first();
-            // Find all matching students by concatenating `st_first_name` and `st_last_name`
-            $students = StudentModel::whereRaw("CONCAT(st_first_name, ' ', st_last_name) = ?", [$validated['name']])->get();
-
-            if ($students->isEmpty()) {
-                return response()->json(['message' => 'No student found with the provided name.'], 404);
+            // Check if a character certificate already exists for this roll number (to prevent duplicates)
+            $existingCertificate = CharacterCertificateModel::where('st_roll_no', $validated['st_roll_no'])->first();
+    
+            if (!$id && $existingCertificate) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => 'A Character Certificate already exists for this roll number.',
+                ], 400);
             }
-
-             // If multiple students found, filter by `st_flag = 1`
-            $student = $students->count() > 1
-            ? $students->where('st_flag', 1)->first()
-            : $students->first();
-
+    
+            // Find the student with the given roll number
+            $student = StudentModel::where('st_roll_no', $validated['st_roll_no'])->first();
+    
             if (!$student) {
-                return response()->json(['message' => 'No flagged student found.'], 404);
+                return response()->json([
+                    'code' => 404,
+                    'status' => false,
+                    'message' => 'No student found with the provided roll number.'
+                ], 404);
             }
-
-            // Call the CounterController increment function for serial number
-            $counterRequest = new Request(['t_name' => 't_character_certificate']);
-            $counterController = new CounterController();
-            $incrementResponse = $counterController->increment($counterRequest);
-
-            if ($incrementResponse->getStatusCode() !== 200) {
-                return response()->json(['message' => 'Failed to increment serial number.'], 500);
+    
+            // Fetch last serial number and increment by 1 for a new record
+            if (!$id) {
+                $lastSerialNo = CharacterCertificateModel::orderBy('serial_no', 'desc')->value('serial_no') ?? 0;
+                $serialNo = $lastSerialNo + 1;
+            } else {
+                // If updating, keep the existing serial_no
+                $serialNo = CharacterCertificateModel::where('id', $id)->value('serial_no');
             }
-
-            $serialNo = $incrementResponse->getData()->data->number;
-
+    
+            // Prepare the data to be inserted or updated
             $data = [
                 'dated' => now()->toDateString(), // Current date
-                // 'serial_no' => $validated['serial_no'] ?? CharacterCertificateModel::max('serial_no') + 1,
-                'serial_no' => $serialNo,
-                'registration_no' => $validated['registration_no'],
-                'st_id' => $student->id,
-                'st_roll_no' => $student->st_roll_no,
-                'name' => $validated['name'],
-                'joining_date' => Carbon::createFromFormat('d-m-Y', $validated['joining_date'])->format('Y-m-d'),
+                'serial_no' => $serialNo, // Auto-incremented for new records
+                'registration_no' => $validated['st_roll_no'], // Registration number is same as roll number
+                'st_id' => $student->id, // Student ID from database
+                'st_roll_no' => $validated['st_roll_no'], // Student roll number
+                'name' => $validated['name'], // Student name
+                'joining_date' => Carbon::createFromFormat('Y-m-d', $validated['joining_date'])->format('Y-m-d'),
                 'leaving_date' => $validated['leaving_date']
-                    ? Carbon::createFromFormat('d-m-Y', $validated['leaving_date'])->format('Y-m-d')
+                    ? Carbon::createFromFormat('Y-m-d', $validated['leaving_date'])->format('Y-m-d')
                     : null,
-                'stream' => $validated['stream'],
-                'date_from' => $validated['date_from'],
-                'dob' => $validated['dob'], // Already in Y-m-d format
-                // 'dob_words' => $this->convertDobToWords($validated['dob']),
-                'dob_words' => Carbon::createFromFormat('Y-m-d', $validated['dob'])->format('F j, Y')
+                'stream' => $validated['stream'], // Stream
+                'date_from' => $validated['date_from'], // Date from
+                'dob' => $validated['dob'], // Date of birth
+                'dob_words' => Carbon::createFromFormat('Y-m-d', $validated['dob'])->format('F j, Y'), // Convert DOB to words
             ];
-
+    
             if ($id) {
-                // Update existing record and retrieve the updated instance
+                // Update existing record
                 $record = CharacterCertificateModel::findOrFail($id);
                 $record->update($data);
+                $message = 'Record updated successfully.';
             } else {
                 // Create new record
                 $record = CharacterCertificateModel::create($data);
+                $message = 'Record created successfully.';
             }
     
             return response()->json([
-                'message' => $id ? 'Record updated successfully.' : 'Record created successfully.',
-                'data' => $record->makeHidden(['id', 'created_at', 'updated_at']),
-            ]);
+                'code' => 200,
+                'status' => true,
+                'message' => $message,
+                'data' => $record->makeHidden(['created_at', 'updated_at']),
+            ], 200);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to process record.', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'Failed to process record.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
-
     // Fetch Records
     public function index(Request $request)
     {
@@ -182,12 +191,33 @@ class CharacterCertificateController extends Controller
     public function destroy($id)
     {
         try {
-            $record = CharacterCertificateModel::findOrFail($id);
-            $record->delete();
-
-            return response()->json(['message' => 'Record deleted successfully.']);
+            // Get the last created record (highest ID)
+            $lastRecord = CharacterCertificateModel::orderBy('id', 'desc')->first();
+    
+            // Check if the provided ID matches the last record's ID
+            if (!$lastRecord || $lastRecord->id != $id) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => 'Only the last created record can be deleted.'
+                ], 400);
+            }
+    
+            // Delete the last record
+            $lastRecord->delete();
+    
+            return response()->json([
+                'code' => 200,
+                'status' => true,
+                'message' => 'Record deleted successfully.'
+            ], 200);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to delete record.', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'Failed to delete record.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -353,6 +383,215 @@ class CharacterCertificateController extends Controller
             ], 500);
         }
     }
+
+    public function getDetails(Request $request)
+{
+    try {
+        // Validate the request to ensure 'id' is provided
+        $validated = $request->validate([
+            'id' => 'required|integer|exists:character_certificates,id',
+        ]);
+
+        // Fetch the record by ID
+        $record = CharacterCertificateModel::findOrFail($validated['id']);
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Character certificate fetched successfully.',
+            'data' => $record->makeHidden(['created_at', 'updated_at']), // Hide unnecessary fields
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 404,
+            'status' => false,
+            'message' => 'Character certificate not found.',
+            'error' => $e->getMessage(),
+        ], 404);
+    }
+}
+public function printPdf(Request $request)
+{
+    try {
+        // Validate request to ensure 'id' is provided
+        $validated = $request->validate([
+            'id' => 'required|integer|exists:character_certificates,id',
+        ]);
+
+        // Fetch the record by ID
+        $record = CharacterCertificateModel::findOrFail($validated['id']);
+
+        // Prepare data for the PDF template
+        $data = [
+            'serial_no' => $record->serial_no,
+            'date' => \Carbon\Carbon::parse($record->dated)->format('d-m-Y'),
+            'roll_no' => $record->st_roll_no,
+            'name' => $record->name,
+            'registration_no' => $record->registration_no,
+            'joining_date' => $record->joining_date ? \Carbon\Carbon::parse($record->joining_date)->format('d-m-Y') : 'N/A',
+            'leaving_date' => $record->leaving_date ? \Carbon\Carbon::parse($record->leaving_date)->format('d-m-Y') : 'N/A',
+            'stream' => $record->stream ?? 'N/A',
+            'date_from' => $record->date_from ?? 'N/A',
+            'dob' => $record->dob ? \Carbon\Carbon::parse($record->dob)->format('d-m-Y') : 'N/A',
+            'dob_words' => $record->dob_words ?? 'N/A',
+        ];
+
+        // Define the file name and directory
+        $directory = "exports";
+        $fileName = 'CharacterCertificate_' . now()->format('Y_m_d_H_i_s') . '.pdf';
+        $fullPath = storage_path("app/public/{$directory}/{$fileName}");
+
+        // Ensure the directory exists
+        if (!is_dir(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
+        }
+
+        // Generate the PDF using mPDF
+        $mpdf = new \Mpdf\Mpdf([
+            'format' => 'A4',
+            'orientation' => 'P',
+            'margin_header' => 10,
+            'margin_footer' => 10,
+            'margin_top' => 20,
+            'margin_bottom' => 20,
+            'margin_left' => 15,
+            'margin_right' => 15,
+        ]);
+
+        // Set the title for the PDF
+        $mpdf->SetTitle('Character Certificate');
+
+        // Render the HTML template (Make sure you have a Blade file: resources/views/exports/character_certificate.blade.php)
+        $html = view('exports.character_certificate', compact('data'))->render();
+
+        // Write HTML to the PDF
+        $mpdf->WriteHTML($html);
+
+        // Output the PDF to a file
+        $mpdf->Output($fullPath, \Mpdf\Output\Destination::FILE);
+
+        // Return metadata about the file
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'PDF generated successfully.',
+            'data' => [
+                'file_url' => url('storage/exports/' . $fileName),
+                'file_name' => $fileName,
+                'file_size' => filesize($fullPath),
+                'content_type' => 'application/pdf',
+            ],
+        ]);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json([
+            'code' => 404,
+            'status' => false,
+            'message' => 'Record not found.',
+            'error' => $e->getMessage(),
+        ], 404);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while generating the PDF.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+public function export(Request $request)
+{
+    $validated = $request->validate([
+        //'type' => 'required|in:excel,pdf', // Type of export (if needed)
+        'search' => 'nullable|string|max:255', // Search term for roll number or name
+        'date_from' => 'nullable|date', // Start date filter
+        'date_to' => 'nullable|date|after_or_equal:date_from', // End date filter
+    ]);
+
+    try {
+        // Initialize query
+        $query = CharacterCertificateModel::query();
+
+        // Apply search filter (Search by roll number or name)
+        if (!empty($validated['search'])) {
+            $searchTerm = '%' . trim($validated['search']) . '%';
+            $query->where('st_roll_no', 'like', $searchTerm)
+                ->orWhere('name', 'like', $searchTerm);
+        }
+
+        // Apply date filters
+        if (!empty($validated['date_from'])) {
+            $query->where('dated', '>=', $validated['date_from']);
+        }
+        if (!empty($validated['date_to'])) {
+            $query->where('dated', '<=', $validated['date_to']);
+        }
+
+        // Order by serial number descending
+        $query->orderBy('serial_no', 'desc');
+
+        // Fetch and map data
+        $data = $query->get()->map(function ($record) {
+            return [
+                'SN' => $record->serial_no, // Serial number
+                'Date' => \Carbon\Carbon::parse($record->dated)->format('d-m-Y'), // Date of record
+                'Roll No' => $record->st_roll_no, // Student roll number
+                'Name' => $record->name, // Student name
+                'Registration No' => $record->registration_no, // Registration number
+                'Joining Date' => $record->joining_date ? \Carbon\Carbon::parse($record->joining_date)->format('d-m-Y') : 'N/A', // Joining date
+                'Leaving Date' => $record->leaving_date ? \Carbon\Carbon::parse($record->leaving_date)->format('d-m-Y') : 'N/A', // Leaving date
+                'Stream' => $record->stream ?? 'N/A', // Stream
+                'Date From' => $record->date_from ?? 'N/A', // Date from
+                'DOB' => $record->dob ? \Carbon\Carbon::parse($record->dob)->format('d-m-Y') : 'N/A', // Date of birth
+                'DOB (Words)' => $record->dob_words ?? 'N/A', // DOB in words
+            ];
+        })->toArray();
+
+        if (empty($data)) {
+            return response()->json(['message' => 'No data available for export.'], 404);
+        }
+
+        // Export as Excel or PDF
+        return $this->exportExcel($data);
+
+        // return $this->exportPdf($data); // Uncomment for PDF export if needed
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while exporting data.',
+            'error' => $e->getMessage(),
+        ]);
+    }
+}
+private function exportExcel(array $data)
+{
+    // Define the directory and file name
+    $directory = "exports";
+    $fileName = 'CharacterCertificates_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
+    $fullPath = "{$directory}/{$fileName}";
+
+    // Use Maatwebsite Excel to export data
+    \Maatwebsite\Excel\Facades\Excel::store(
+        new \App\Exports\CharacterExport($data), // Ensure you have this export class
+        $fullPath,
+        'public'
+    );
+
+    // Return metadata about the file
+    return response()->json([
+        'code' => 200,
+        'status' => true,
+        'message' => 'File available for download.',
+        'data' => [
+            'file_url' => url('storage/' . $fullPath),
+            'file_name' => $fileName,
+            'file_size' => Storage::disk('public')->size($fullPath),
+            'content_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ],
+    ]);
+}
 
 
 }

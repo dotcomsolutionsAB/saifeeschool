@@ -322,6 +322,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/register/{id?}', [CharacterCertificateController::class, 'storeOrUpdate'])
                 ->middleware(['check-api-permission:students.full']);         // Add a new Purchase (Admin only)
 
+         Route::post('/details', [CharacterCertificateController::class, 'getDetails'])
+                ->middleware(['check-api-permission:students.full']);       
+
+
         Route::delete('/{id}', [CharacterCertificateController::class, 'destroy'])
                 ->middleware(['check-api-permission:students.full']); // Delete a Purchase (Admin only)
     
@@ -329,6 +333,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 ->middleware(['check-api-permission:students.full']); 
 
         Route::post('/bulk', [CharacterCertificateController::class, 'bulkStore'])
+                ->middleware(['check-api-permission:students.full']); 
+
+        Route::get('/print/{id}', [CharacterCertificateController::class, 'printPdf'])
                 ->middleware(['check-api-permission:students.full']); 
     });
 
