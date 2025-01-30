@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use League\Csv\Reader;
 use League\Csv\Statement;
+use App\Models\StudentClassModel;
+use App\Models\StudentDetailsModel;
+use Illuminate\Support\Facades\Storage; 
+use Mpdf\Mpdf; 
+
 
 class CharacterCertificateController extends Controller
 {
@@ -306,7 +311,7 @@ class CharacterCertificateController extends Controller
         }
     }
 
-    public function bulkStore(Request $request)
+    public function bulk(Request $request)
     {
         $validated = $request->validate([
             'cg_id' => 'required|integer|exists:t_student_classes,cg_id', // Class Group ID

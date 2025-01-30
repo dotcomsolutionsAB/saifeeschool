@@ -335,7 +335,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/import', [CharacterCertificateController::class, 'importCsv'])
                 ->middleware(['check-api-permission:students.full']); 
 
-        Route::post('/bulk', [CharacterCertificateController::class, 'bulkStore'])
+        Route::post('/bulk', [CharacterCertificateController::class, 'bulk'])
                 ->middleware(['check-api-permission:students.full']); 
 
         Route::get('/print/{id}', [CharacterCertificateController::class, 'printPdf'])
