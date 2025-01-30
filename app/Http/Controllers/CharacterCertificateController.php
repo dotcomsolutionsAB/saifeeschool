@@ -395,7 +395,7 @@ class CharacterCertificateController extends Controller
     try {
         // Validate the request to ensure 'id' is provided
         $validated = $request->validate([
-            'id' => 'required|integer|exists:t_character_certificates,id',
+            'id' => 'required|integer|exists:t_character_certificate,id',
         ]);
 
         // Fetch the record by ID
