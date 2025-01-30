@@ -309,76 +309,77 @@ class CharacterCertificateController extends Controller
     public function bulkStore(Request $request)
     {
         $validated = $request->validate([
-            'records' => 'required|array',
-            'records.*.registration_no' => 'required|string|max:100',
-            'records.*.name' => 'required|string|max:512',
-            'records.*.joining_date' => 'required|date_format:d-m-Y',
-            'records.*.leaving_date' => 'nullable|date_format:d-m-Y',
-            'records.*.stream' => 'required|string|max:100',
-            'records.*.date_from' => 'required|string|max:100',
-            'records.*.dob' => 'required|date_format:Y-m-d',
+            'cg_id' => 'required|integer|exists:t_student_classes,cg_id', // Class Group ID
+            'leaving_date' => 'required|date_format:d-m-Y', // Leaving date
+            'stream' => 'required|string|max:100', // Stream
+            'date_from' => 'required|string|max:100', // Date from
         ]);
-
+    
         try {
-            $recordsData = $validated['records'];
+            // Fetch all students from the given class group (`cg_id`)
+            $students = StudentClassModel::where('cg_id', $validated['cg_id'])
+                ->with('student')
+                ->get()
+                ->pluck('student');
+    
+            if ($students->isEmpty()) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => false,
+                    'message' => 'No students found for the given class group.',
+                ], 404);
+            }
+    
             $createdRecords = [];
-
-            foreach ($recordsData as $record) {
-                // Fetch student details by name
-                $students = StudentModel::whereRaw("CONCAT(st_first_name, ' ', st_last_name) = ?", [$record['name']])->get();
-
-                if ($students->isEmpty()) {
-                    throw new \Exception("No student found with the provided name: " . $record['name']);
+    
+            foreach ($students as $student) {
+                // Ensure student data exists
+                if (!$student || !$student->st_roll_no) {
+                    continue;
                 }
-
-                // If multiple students found, filter by `st_flag = 1`
-                $student = $students->count() > 1
-                    ? $students->where('st_flag', 1)->first()
-                    : $students->first();
-
-                if (!$student) {
-                    throw new \Exception("No flagged student found for name: " . $record['name']);
+    
+                // Check if a Character Certificate already exists for the student (to prevent duplicates)
+                $existingCertificate = CharacterCertificateModel::where('st_roll_no', $student->st_roll_no)->exists();
+                if ($existingCertificate) {
+                    continue; // Skip this student if a certificate already exists
                 }
-
-                // Call the CounterController increment function for serial number
-                $counterRequest = new Request(['t_name' => 't_character_certificate']);
-                $counterController = new CounterController();
-                $incrementResponse = $counterController->increment($counterRequest);
-
-                if ($incrementResponse->getStatusCode() !== 200) {
-                    throw new \Exception("Failed to increment serial number.");
-                }
-
-                $serialNo = $incrementResponse->getData()->data->number;
-
+    
+                // Fetch the last issued certificate's serial number and increment it
+                $lastSerialNo = CharacterCertificateModel::orderBy('serial_no', 'desc')->value('serial_no') ?? 0;
+                $newSerialNo = $lastSerialNo + 1;
+    
+                // Prepare data for new Character Certificate
                 $data = [
                     'dated' => now()->toDateString(), // Current date
-                    'serial_no' => $serialNo, // Incremented serial number
-                    'registration_no' => $record['registration_no'],
+                    'serial_no' => $newSerialNo, // New Serial Number
+                    'registration_no' => $student->st_roll_no, // Registration No = Roll No
                     'st_id' => $student->id,
                     'st_roll_no' => $student->st_roll_no,
-                    'name' => $record['name'],
-                    'joining_date' => Carbon::createFromFormat('d-m-Y', $record['joining_date'])->format('Y-m-d'),
-                    'leaving_date' => isset($record['leaving_date']) && $record['leaving_date']
-                        ? Carbon::createFromFormat('d-m-Y', $record['leaving_date'])->format('Y-m-d')
-                        : null,
-                    'stream' => $record['stream'],
-                    'date_from' => $record['date_from'],
-                    'dob' => $record['dob'],
-                    'dob_words' => Carbon::createFromFormat('Y-m-d', $record['dob'])->format('F j, Y'),
+                    'name' => trim($student->st_first_name . ' ' . $student->st_last_name),
+                    'joining_date' => $student->st_admitted ? \Carbon\Carbon::parse($student->st_admitted)->format('Y-m-d') : null,
+                    'leaving_date' => \Carbon\Carbon::createFromFormat('d-m-Y', $validated['leaving_date'])->format('Y-m-d'),
+                    'stream' => $validated['stream'],
+                    'date_from' => $validated['date_from'],
+                    'dob' => $student->st_dob,
+                    'dob_words' => \Carbon\Carbon::parse($student->st_dob)->format('F j, Y'),
                 ];
-
+    
+                // Create the Character Certificate record
                 $createdRecord = CharacterCertificateModel::create($data);
                 $createdRecords[] = $createdRecord->makeHidden(['id', 'created_at', 'updated_at']);
             }
-
+    
             return response()->json([
-                'message' => 'Records created successfully.',
+                'code' => 201,
+                'status' => true,
+                'message' => 'Character Certificates created successfully.',
                 'data' => $createdRecords,
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Failed to process bulk creation.',
+                'code' => 500,
+                'status' => false,
+                'message' => 'Failed to process bulk Character Certificate creation.',
                 'error' => $e->getMessage(),
             ], 500);
         }
@@ -410,16 +411,14 @@ class CharacterCertificateController extends Controller
         ], 404);
     }
 }
-public function printPdf(Request $request)
+public function printPdf($id)
 {
     try {
         // Validate request to ensure 'id' is provided
-        $validated = $request->validate([
-            'id' => 'required|integer|exists:character_certificates,id',
-        ]);
+        
 
         // Fetch the record by ID
-        $record = CharacterCertificateModel::findOrFail($validated['id']);
+        $record = CharacterCertificateModel::findOrFail($id);
 
         // Prepare data for the PDF template
         $data = [

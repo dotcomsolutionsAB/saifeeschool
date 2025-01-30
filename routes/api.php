@@ -325,6 +325,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
          Route::post('/details', [CharacterCertificateController::class, 'getDetails'])
                 ->middleware(['check-api-permission:students.full']);       
 
+        Route::post('/export', [CharacterCertificateController::class, 'export'])
+                ->middleware(['check-api-permission:students.full']); 
+
 
         Route::delete('/{id}', [CharacterCertificateController::class, 'destroy'])
                 ->middleware(['check-api-permission:students.full']); // Delete a Purchase (Admin only)
