@@ -412,6 +412,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::get('/records', [DailyTransactionController::class, 'index'])
                 ->middleware(['check-api-permission:accounts.full, accounts.view']);
+        
+                Route::get('/modes', [DailyTransactionController::class, 'getDistinctPaymentModes'])
+                ->middleware(['check-api-permission:accounts.full, accounts.view']);
 
         Route::get('/export', [DailyTransactionController::class, 'exportToExcel'])
                 ->middleware(['check-api-permission:accounts.full, accounts.view']);

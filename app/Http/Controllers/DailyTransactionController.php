@@ -17,13 +17,19 @@ class DailyTransactionController extends Controller
     public function index(Request $request)
     {
         try {
-            // Validate the request
+            // Validate request input
             $validated = $request->validate([
-                'search' => 'nullable|string|max:255', // Search by Name, Roll No, ID, Reference No
+                'search' => 'nullable|string|max:255', // Search term (Name, Roll No, ID, Reference No)
                 'mode' => 'nullable|string|max:255', // Payment Mode filter
                 'date_from' => 'nullable|date', // Date from filter
                 'date_to' => 'nullable|date|after_or_equal:date_from', // Date to filter
+                'offset' => 'nullable|integer|min:0', // Pagination offset
+                'limit' => 'nullable|integer|min:1|max:100', // Limit (default 10, max 100)
             ]);
+    
+            // Set default pagination values
+            $offset = $validated['offset'] ?? 0;
+            $limit = $validated['limit'] ?? 10;
     
             // Start query with relationships
             $query = PGResponseModel::with(['student'])
@@ -56,12 +62,21 @@ class DailyTransactionController extends Controller
                 $query->whereDate('transaction_date', '<=', $validated['date_to']);
             }
     
-            // Fetch and map the results
-            $transactions = $query->get()->map(function ($transaction, $index) {
+            // Get total count for pagination
+            $totalCount = $query->count();
+    
+            // Fetch paginated results
+            $transactions = $query->offset($offset)->limit($limit)->get();
+    
+            // Calculate total amount for the current page
+            $totalAmountForPage = $transactions->sum('total_amount');
+    
+            // Map data
+            $formattedTransactions = $transactions->map(function ($transaction, $index) use ($offset) {
                 $student = $transaction->student;
     
                 return [
-                    'SN' => $index + 1,
+                    'SN' => $offset + $index + 1,
                     'Name' => $student ? "{$student->st_first_name} {$student->st_last_name}" : 'N/A',
                     'Roll No' => $student ? $student->st_roll_no : 'N/A',
                     'Date' => "{$transaction->transaction_date} {$transaction->transaction_time}",
@@ -72,14 +87,17 @@ class DailyTransactionController extends Controller
                 ];
             });
     
-            // Return response with transaction count
-            return $transactions->count() > 0 
+            // Return response with paginated data
+            return $formattedTransactions->count() > 0 
                 ? response()->json([
                     'code' => 200,
                     'status' => true,
                     'message' => 'Transactions fetched successfully.',
-                    'data' => $transactions,
-                    'count' => count($transactions),
+                    'data' => $formattedTransactions,
+                    'total' => $totalCount, // Total transactions matching the criteria
+                    'offset' => $offset,
+                    'limit' => $limit,
+                    'page_total_amount' => $totalAmountForPage, // Total amount for the current page of results
                 ])
                 : response()->json([
                     'code' => 404,
@@ -95,6 +113,38 @@ class DailyTransactionController extends Controller
             ]);
         }
     }
+    public function getDistinctPaymentModes()
+{
+    try {
+        // Fetch distinct payment modes from the table
+        $paymentModes = PGResponseModel::distinct()->pluck('payment_mode')->filter()->values();
+
+        // Check if any payment modes exist
+        if ($paymentModes->isEmpty()) {
+            return response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'No payment modes found.',
+            ]);
+        }
+
+        // Return response
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Payment modes fetched successfully.',
+            'data' => $paymentModes,
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching payment modes.',
+            'error' => $e->getMessage(),
+        ]);
+    }
+}
+    
     /**
      * Export transactions to Excel.
      */
