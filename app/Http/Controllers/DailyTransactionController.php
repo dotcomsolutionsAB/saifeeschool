@@ -16,38 +16,85 @@ class DailyTransactionController extends Controller
      */
     public function index(Request $request)
     {
-        $today = now()->toDateString();
-
-        // Fetch today's transactions and map with Student table
-
-        // DB::enableQueryLog();
-
-        $transactions = PGResponseModel::with('student')
-            ->whereDate('transaction_date', $today)
-            ->get()
-            ->map(function ($transaction, $index) {
+        try {
+            // Validate the request
+            $validated = $request->validate([
+                'search' => 'nullable|string|max:255', // Search by Name, Roll No, ID, Reference No
+                'mode' => 'nullable|string|max:255', // Payment Mode filter
+                'date_from' => 'nullable|date', // Date from filter
+                'date_to' => 'nullable|date|after_or_equal:date_from', // Date to filter
+            ]);
+    
+            // Start query with relationships
+            $query = PGResponseModel::with(['student'])
+                ->orderBy('transaction_date', 'desc')
+                ->orderBy('transaction_time', 'desc');
+    
+            // Apply search filters (search in Name, Roll No, ID, Reference No)
+            if (!empty($validated['search'])) {
+                $searchTerm = '%' . trim($validated['search']) . '%';
+    
+                $query->where(function ($subQuery) use ($searchTerm) {
+                    $subQuery->whereHas('student', function ($studentQuery) use ($searchTerm) {
+                        $studentQuery->whereRaw("LOWER(st_first_name) LIKE ?", [strtolower($searchTerm)])
+                            ->orWhereRaw("LOWER(st_last_name) LIKE ?", [strtolower($searchTerm)])
+                            ->orWhere('st_roll_no', 'like', $searchTerm);
+                    })->orWhere('reference_no', 'like', $searchTerm);
+                });
+            }
+    
+            // Apply payment mode filter
+            if (!empty($validated['mode'])) {
+                $query->where('payment_mode', $validated['mode']);
+            }
+    
+            // Apply date filters
+            if (!empty($validated['date_from'])) {
+                $query->whereDate('transaction_date', '>=', $validated['date_from']);
+            }
+            if (!empty($validated['date_to'])) {
+                $query->whereDate('transaction_date', '<=', $validated['date_to']);
+            }
+    
+            // Fetch and map the results
+            $transactions = $query->get()->map(function ($transaction, $index) {
+                $student = $transaction->student;
+    
                 return [
-                    'SN' =>  $index + 1,
-                    'Name' => $transaction->student
-                    ? $transaction->student->st_first_name . ' ' . $transaction->student->st_last_name
-                    : 'N/A',
-                    'Roll No' => $transaction->student ? $transaction->student->st_roll_no : 'N/A',
+                    'SN' => $index + 1,
+                    'Name' => $student ? "{$student->st_first_name} {$student->st_last_name}" : 'N/A',
+                    'Roll No' => $student ? $student->st_roll_no : 'N/A',
                     'Date' => "{$transaction->transaction_date} {$transaction->transaction_time}",
                     'Unique_Ref_No' => $transaction->unique_ref_number,
                     'Total_Amount' => $transaction->total_amount,
-                    'Status' => $this->mapResponseCode($transaction->response_code)['status'],
+                    'Status' => $transaction->response_code === 'E000' ? 'Success received successfully' : 'Pending',
                     'Mode' => $transaction->payment_mode,
                 ];
             });
-
-        // $queries = DB::getQueryLog();
-
-        // Return success if transactions exist, else return an error message
-        return $transactions->count() > 0 
-        ? response()->json(['status' => 'success', 'data' => $transactions, 'count' => count($transactions)]) 
-        : response()->json(['status' => 'error', 'message' => 'No transactions found for today.']);
+    
+            // Return response with transaction count
+            return $transactions->count() > 0 
+                ? response()->json([
+                    'code' => 200,
+                    'status' => true,
+                    'message' => 'Transactions fetched successfully.',
+                    'data' => $transactions,
+                    'count' => count($transactions),
+                ])
+                : response()->json([
+                    'code' => 404,
+                    'status' => false,
+                    'message' => 'No transactions found for the given criteria.',
+                ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'An error occurred while fetching transactions.',
+                'error' => $e->getMessage(),
+            ]);
         }
-
+    }
     /**
      * Export transactions to Excel.
      */
