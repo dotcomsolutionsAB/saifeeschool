@@ -901,7 +901,7 @@ class StudentController extends Controller
     
             // Fetch student photo (if exists)
             $photo = $student->photo_id
-                ? DB::table('uploads')->where('id', $student->photo_id)->value('file_url')
+                ? DB::table('t_uploads')->where('id', $student->photo_id)->value('file_url')
                 : null;
     
             // Fetch student details directly from t_student_details
