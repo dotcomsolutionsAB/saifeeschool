@@ -878,16 +878,14 @@ class StudentController extends Controller
             ]);
         }
     }
-    public function getStudentDetails(Request $request)
+    public function getStudentDetails(Request $request, $id )
 {
     try {
         // Validate the request to ensure 'student_id' is provided
-        $validated = $request->validate([
-            'id' => 'required|integer|exists:t_students,id',
-        ]);
+       
 
         // Fetch student details along with related student details
-        $student = StudentModel::with('studentDetails')->findOrFail($validated['student_id']);
+        $student = StudentModel::with('studentDetails')->findOrFail($id);
 
         // Fetch student photo if available
         $photo = $student->photo_id
