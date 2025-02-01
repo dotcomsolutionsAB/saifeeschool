@@ -878,15 +878,13 @@ class StudentController extends Controller
             ]);
         }
     }
-    public function getStudentDetails(Request $request)
+    public function getStudentDetails(Request $request,$id)
     {
         try {
             // Validate request
-            $validated = $request->validate([
-                'student_id' => 'required|integer|exists:t_students,id',
-            ]);
+           
     
-            $studentId = $validated['student_id'];
+            $studentId = $id;
     
             // Fetch student data directly from t_students
             $student = DB::table('t_students')
