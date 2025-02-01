@@ -52,13 +52,19 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/view', [StudentController::class, 'index'])
                 ->middleware(['check-api-permission:students.full, students.view']);          // List all students
 
-        Route::post('/view/{id}', [StudentController::class, 'index'])
+        Route::post('/view/{id}', [StudentController::class, 'getStudentDetails'])
                 ->middleware(['check-api-permission:students.full, students.view']);     // Get details of a single student
 
         Route::post('/register', [StudentController::class, 'register'])
                 ->middleware(['check-api-permission:students.full']);   
 
-         Route::post('/upload', [StudentController::class, 'uploadFiles'])
+        Route::post('/upload', [StudentController::class, 'uploadFiles'])
+                ->middleware(['check-api-permission:students.full']);   
+
+        Route::post('/pending_fees', [StudentController::class, 'getUnpaidFees'])
+                ->middleware(['check-api-permission:students.full']);   
+                
+         Route::post('/paid_fees', [StudentController::class, 'getPaidFees'])
                 ->middleware(['check-api-permission:students.full']);   
                 
                 // Add a new student (Admin only)
@@ -71,6 +77,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::post('/duplicate', [StudentController::class, 'fetch_duplicate'])
                 ->middleware(['check-api-permission:students.full']); // Get duplicate student roll
+
+                
 
         Route::post('/export', [StudentController::class, 'export'])
                 ->middleware(['check-api-permission:students.full, students.view']); // Get export student roll

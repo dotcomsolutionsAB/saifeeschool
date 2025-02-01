@@ -878,6 +878,99 @@ class StudentController extends Controller
             ]);
         }
     }
+    public function getStudentDetails(Request $request)
+{
+    try {
+        // Validate the request to ensure 'student_id' is provided
+        $validated = $request->validate([
+            'id' => 'required|integer|exists:t_students,id',
+        ]);
+
+        // Fetch student details along with related student details
+        $student = StudentModel::with('studentDetails')->findOrFail($validated['student_id']);
+
+        // Fetch student photo if available
+        $photo = $student->photo_id
+            ? UploadModel::where('id', $student->photo_id)->value('file_url')
+            : null;
+
+        // Prepare student data
+        $studentData = [
+            'student_id' => $student->id,
+            'roll_no' => $student->st_roll_no,
+            'name' => $student->st_first_name . ' ' . $student->st_last_name,
+            'gender' => $student->st_gender === 'M' ? 'Male' : ($student->st_gender === 'F' ? 'Female' : 'Not Specified'),
+            'dob' => $student->st_dob ? \Carbon\Carbon::parse($student->st_dob)->format('d-m-Y') : 'N/A',
+            'blood_group' => $student->st_blood_group ?? 'N/A',
+            'bohra_status' => $student->st_bohra == 1 ? 'Yes' : 'No',
+            'its_id' => $student->st_its_id ?? 'N/A',
+            'house' => $student->st_house ?? 'N/A',
+            'wallet_balance' => $student->st_wallet,
+            'deposit' => $student->st_deposit,
+            'email' => $student->st_gmail_address ?? 'N/A',
+            'mobile' => $student->st_mobile ?? 'N/A',
+            'external' => $student->st_external == 1 ? 'Yes' : 'No',
+            'on_roll' => $student->st_on_roll == 1 ? 'Yes' : 'No',
+            'year_of_admission' => $student->st_year_of_admission,
+            'admitted' => $student->st_admitted,
+            'admitted_class' => $student->st_admitted_class,
+            'photo' => $photo,
+        ];
+
+        // Fetch student details (if available)
+        $studentDetails = $student->studentDetails;
+
+        if ($studentDetails) {
+            $studentData['aadhaar_no'] = $studentDetails->aadhaar_no;
+            $studentData['residential_address'] = trim("{$studentDetails->residential_address1} {$studentDetails->residential_address2} {$studentDetails->residential_address3}");
+            $studentData['city'] = $studentDetails->city;
+            $studentData['state'] = $studentDetails->state;
+            $studentData['country'] = $studentDetails->country;
+            $studentData['pincode'] = $studentDetails->pincode;
+            $studentData['father_name'] = $studentDetails->f_name;
+            $studentData['father_email'] = $studentDetails->f_email;
+            $studentData['father_contact'] = $studentDetails->f_contact;
+            $studentData['father_occupation'] = $studentDetails->f_occupation;
+            $studentData['mother_name'] = $studentDetails->m_name;
+            $studentData['mother_email'] = $studentDetails->m_email;
+            $studentData['mother_contact'] = $studentDetails->m_contact;
+            $studentData['mother_occupation'] = $studentDetails->m_occupation;
+        } else {
+            // If student details are missing, return empty fields
+            $studentData = array_merge($studentData, [
+                'aadhaar_no' => null,
+                'residential_address' => null,
+                'city' => null,
+                'state' => null,
+                'country' => null,
+                'pincode' => null,
+                'father_name' => null,
+                'father_email' => null,
+                'father_contact' => null,
+                'father_occupation' => null,
+                'mother_name' => null,
+                'mother_email' => null,
+                'mother_contact' => null,
+                'mother_occupation' => null,
+            ]);
+        }
+
+        // Return response
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Student details fetched successfully.',
+            'data' => $studentData,
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching student details.',
+            'error' => $e->getMessage(),
+        ]);
+    }
+}
 
     // public function index(Request $request, $id = null)
     // {
@@ -1787,5 +1880,95 @@ class StudentController extends Controller
             'data' => $validated,
         ], 200);
     }
+    public function getUnpaidFees(Request $request)
+    {
+        try {
+            // Validate request
+            $validated = $request->validate([
+                'st_id' => 'required|integer|exists:t_fees,st_id',
+            ]);
+    
+            // Fetch unpaid fees (`f_paid = 0`)
+            $fees = FeeModel::where('st_id', $validated['st_id'])
+                ->where('f_paid', 0)
+                ->get()
+                ->map(function ($fee) {
+                    return [
+                        'id' => $fee->id, // Unique fee entry ID
+                        'fpp_id' => $fee->fpp_id, // Fee Plan ID
+                        'fpp_name' => $fee->fpp_name, // Fee type
+                        'fpp_due_date' => date('d-m-Y', $fee->fpp_due_date), // Convert UNIX timestamp
+                        'fpp_amount' => $fee->fpp_amount, // Base amount
+                        'fpp_late_fee' => $fee->fpp_late_fee, // Late fee
+                        'f_late_fee_applicable' => $fee->f_late_fee_applicable, // Is late fee applicable?
+                        'f_concession' => $fee->f_concession, // Concession
+                        'total_amount' => ($fee->fpp_amount + $fee->f_late_fee_applicable) - $fee->f_concession, // Final amount
+                    ];
+                });
+    
+            return response()->json([
+                'code' => 200,
+                'status' => true,
+                'message' => 'Unpaid fees fetched successfully.',
+                'data' => $fees,
+                'total_unpaid' => $fees->sum('total_amount'), // Total unpaid amount
+                'count' => $fees->count(), // Count of unpaid fees
+            ]);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'An error occurred while fetching unpaid fees.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getPaidFees(Request $request)
+{
+    try {
+        // Validate request
+        $validated = $request->validate([
+            'st_id' => 'required|integer|exists:t_fees,st_id',
+        ]);
+
+        // Fetch paid fees (`f_paid = 1`)
+        $fees = FeeModel::where('st_id', $validated['st_id'])
+            ->where('f_paid', 1)
+            ->get()
+            ->map(function ($fee) {
+                return [
+                    'id' => $fee->id, // Unique fee entry ID
+                    'fpp_id' => $fee->fpp_id, // Fee Plan ID
+                    'fpp_name' => $fee->fpp_name, // Fee type
+                    'fpp_due_date' => date('d-m-Y', $fee->fpp_due_date), // Convert UNIX timestamp
+                    'fpp_amount' => $fee->fpp_amount, // Base amount
+                    'fpp_late_fee' => $fee->fpp_late_fee, // Late fee
+                    'f_late_fee_applicable' => $fee->f_late_fee_applicable, // Is late fee applicable?
+                    'f_concession' => $fee->f_concession, // Concession
+                    'total_amount' => ($fee->fpp_amount + $fee->f_late_fee_applicable) - $fee->f_concession, // Final amount
+                    'date_paid' => $fee->f_paid_date ? date('d-m-Y', strtotime($fee->f_paid_date)) : 'N/A', // Payment date
+                ];
+            });
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Paid fees fetched successfully.',
+            'data' => $fees,
+            'total_paid' => $fees->sum('total_amount'), // Total paid amount
+            'count' => $fees->count(), // Count of paid fees
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching paid fees.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
 
 }
