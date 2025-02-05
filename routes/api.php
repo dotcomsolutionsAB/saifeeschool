@@ -324,7 +324,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Character Certificate Routes
     Route::prefix('character_certificate')->group(function () {
-        Route::get('/view', [CharacterCertificateController::class, 'index'])
+        Route::post('/view', [CharacterCertificateController::class, 'index'])
                 ->middleware(['check-api-permission:students.full, students.view']);          // List all Purchase
 
         Route::post('/register/{id?}', [CharacterCertificateController::class, 'storeOrUpdate'])
