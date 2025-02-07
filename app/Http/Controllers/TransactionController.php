@@ -88,115 +88,94 @@ class TransactionController extends Controller
 
    
     public function index(Request $request)
-    {
-        try {
-            // Validate filters
-            $validated = $request->validate([
-                'search'    => 'nullable|string|max:255', // Search by roll no or name
-                'cg_id'     => 'nullable|string', // Multiple class IDs (comma-separated)
-                'date_from' => 'nullable|date', // Start date
-                'date_to'   => 'nullable|date|after_or_equal:date_from', // End date
-                'offset'    => 'nullable|integer|min:0',
-                'limit'     => 'nullable|integer|min:1|max:100',
-            ]);
-    
-            // Set pagination defaults
-            $offset = $validated['offset'] ?? 0;
-            $limit  = $validated['limit'] ?? 10;
-    
-            // Start query from transactions table (t_txns)
-            $query = TransactionModel::with(['student', 'txnType'])
-                ->join('t_students', 't_txns.st_id', '=', 't_students.id')
-                ->leftJoin('t_student_classes', 't_students.id', '=', 't_student_classes.st_id')
-                ->leftJoin('t_class_groups', 't_student_classes.cg_id', '=', 't_class_groups.id')
-                ->leftJoin('t_txn_types', 't_txns.txn_type_id', '=', 't_txn_types.id')
-                ->leftJoin('t_fees', 't_txns.f_id', '=', 't_fees.id');
-    
-            // Apply search filter (Student Roll No or Name)
-            if (!empty($validated['search'])) {
-                $searchTerm = '%' . trim($validated['search']) . '%';
-                $query->where(function ($q) use ($searchTerm) {
-                    $q->where('t_students.st_roll_no', 'LIKE', $searchTerm)
-                      ->orWhere('t_students.st_first_name', 'LIKE', $searchTerm)
-                      ->orWhere('t_students.st_last_name', 'LIKE', $searchTerm);
-                });
-            }
-    
-            // Apply class filter (Multiple `cg_id` values)
-            if (!empty($validated['cg_id'])) {
-                $cgIds = explode(',', $validated['cg_id']); // Convert comma-separated IDs to array
-                $query->whereIn('t_student_classes.cg_id', $cgIds);
-            }
-    
-            // Apply date filter
-            if (!empty($validated['date_from'])) {
-                $query->whereDate('t_txns.txn_date', '>=', $validated['date_from']);
-            }
-            if (!empty($validated['date_to'])) {
-                $query->whereDate('t_txns.txn_date', '<=', $validated['date_to']);
-            }
-    
-            // Fetch transactions with required data
-            $transactions = $query
-                ->select([
-                    't_students.st_roll_no',
-                    't_students.id as student_id',
-                    't_students.st_first_name',
-                    't_students.st_last_name',
-                    't_class_groups.cg_name as class_name',
-                    't_txns.txn_amount as amount',
-                    't_txns.txn_mode as mode',
-                    't_txns.txn_date',
-                    't_txns.txn_time',
-                    't_txns.txn_reason',
-                    't_fees.fpp_name as fee_name',
-                    't_txn_types.txn_type_name',
-                    't_txn_types.txn_type_from',
-                    't_txn_types.txn_type_to',
-                    't_txns.f_id'
-                ])
-                ->orderBy('t_txns.txn_date', 'desc')
-                ->get();
-    
-            // Transform data with correct narration
-            $transactions = $transactions->map(function ($txn) {
-                return [
-                    'student_roll_no' => $txn->st_roll_no,
-                    'student_id'      => $txn->student_id,
-                    'student_name'    => $txn->st_first_name . ' ' . $txn->st_last_name,
-                    'class'           => $txn->class_name ?? 'N/A',
-                    'amount'          => $txn->amount,
-                    'mode'            => $txn->mode,
-                    'txn_date'        => $txn->txn_date,
-                    'txn_time'        => $txn->txn_time,
-                    'txn_from'        => $txn->txn_type_from,
-                    'txn_to'          => $txn->txn_type_to,
-                    'narration'       => $txn->f_id ? $txn->fee_name : "Payment from student"
-                ];
+{
+    try {
+        // Validate filters
+        $validated = $request->validate([
+            'search'    => 'nullable|string|max:255', // Search by roll no or name
+            'cg_id'     => 'nullable|string', // Multiple class IDs (comma-separated)
+            'date_from' => 'nullable|date', // Start date
+            'date_to'   => 'nullable|date|after_or_equal:date_from', // End date
+            'offset'    => 'nullable|integer|min:0',
+            'limit'     => 'nullable|integer|min:1|max:100',
+        ]);
+
+        // Set pagination defaults
+        $offset = $validated['offset'] ?? 0;
+        $limit  = $validated['limit'] ?? 10;
+
+        // Start query using DB::table() for performance
+        $query = DB::table('t_txns as txn')
+            ->join('t_students as stu', 'txn.st_id', '=', 'stu.id')
+            ->leftJoin('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
+            ->leftJoin('t_class_groups as cg', 'sc.cg_id', '=', 'cg.id')
+            ->leftJoin('t_txn_types as tt', 'txn.txn_type_id', '=', 'tt.id')
+            ->leftJoin('t_fees as f', 'txn.f_id', '=', 'f.id')
+            ->selectRaw("
+                stu.st_roll_no,
+                stu.id as student_id,
+                CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS student_name,
+                COALESCE(cg.cg_name, 'N/A') AS class_name,
+                txn.txn_amount as amount,
+                txn.txn_mode as mode,
+                txn.txn_date,
+                txn.txn_time,
+                tt.txn_type_from AS txn_from,
+                tt.txn_type_to AS txn_to,
+                COALESCE(f.fpp_name, 'Payment from student') AS narration
+            ");
+
+        // Apply search filter (Student Roll No or Name)
+        if (!empty($validated['search'])) {
+            $searchTerm = '%' . trim($validated['search']) . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('stu.st_roll_no', 'LIKE', $searchTerm)
+                  ->orWhere('stu.st_first_name', 'LIKE', $searchTerm)
+                  ->orWhere('stu.st_last_name', 'LIKE', $searchTerm);
             });
-    
-            // Paginate results
-            $total_count = $transactions->count();
-            $transactions = $transactions->slice($offset, $limit)->values();
-    
-            return response()->json([
-                'code'      => 200,
-                'status'    => true,
-                'message'   => 'Transactions fetched successfully.',
-                'data'      => $transactions,
-                'total'     => $total_count,
-                'count'     => count($transactions),
-            ]);
-    
-        } catch (\Exception $e) {
-            return response()->json([
-                'code'    => 500,
-                'status'  => false,
-                'message' => 'An error occurred while fetching transactions.',
-                'error'   => $e->getMessage(),
-            ], 500);
         }
-    }    public function importCsv(Request $request)
+
+        // Apply class filter (Multiple `cg_id` values)
+        if (!empty($validated['cg_id'])) {
+            $cgIds = explode(',', $validated['cg_id']); // Convert comma-separated IDs to array
+            $query->whereIn('sc.cg_id', $cgIds);
+        }
+
+        // Apply date filter
+        if (!empty($validated['date_from'])) {
+            $query->whereDate('txn.txn_date', '>=', $validated['date_from']);
+        }
+        if (!empty($validated['date_to'])) {
+            $query->whereDate('txn.txn_date', '<=', $validated['date_to']);
+        }
+
+        // Optimize by limiting & paginating results
+        $total_count = $query->count();
+        $transactions = $query
+            ->orderBy('txn.txn_date', 'desc')
+            ->offset($offset)
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'code'      => 200,
+            'status'    => true,
+            'message'   => 'Transactions fetched successfully.',
+            'data'      => $transactions,
+            'total'     => $total_count,
+            'count'     => count($transactions),
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code'    => 500,
+            'status'  => false,
+            'message' => 'An error occurred while fetching transactions.',
+            'error'   => $e->getMessage(),
+        ], 500);
+    }
+}
+   public function importCsv(Request $request)
     {
         ini_set('max_execution_time', 300); // 5 minutes
         ini_set('memory_limit', '1024M');   // 1GB
