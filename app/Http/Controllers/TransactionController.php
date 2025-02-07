@@ -361,7 +361,7 @@ class TransactionController extends Controller
         ], 500);
     }
 }
-public function index(Request $request)
+public function index2(Request $request)
 {
     try {
         // Validate filters
