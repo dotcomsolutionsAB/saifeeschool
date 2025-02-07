@@ -13,6 +13,7 @@ use App\Models\StudentModel;
 class TransactionController extends Controller
 {
     //
+
     // public function importCsv(Request $request)
     // {
     //     // Increase memory and execution time limits for handling large files
@@ -85,6 +86,117 @@ class TransactionController extends Controller
     //     }
     // }
 
+   
+    public function index(Request $request)
+{
+    try {
+        // Validate filters
+        $validated = $request->validate([
+            'search'    => 'nullable|string|max:255', // Search by roll no or name
+            'cg_id'     => 'nullable|string', // Multiple class IDs (comma-separated)
+            'date_from' => 'nullable|date', // Start date
+            'date_to'   => 'nullable|date|after_or_equal:date_from', // End date
+            'offset'    => 'nullable|integer|min:0',
+            'limit'     => 'nullable|integer|min:1|max:100',
+        ]);
+
+        // Set pagination defaults
+        $offset = $validated['offset'] ?? 0;
+        $limit  = $validated['limit'] ?? 10;
+
+        // Start query from transactions table
+        $query = TransactionModel::with(['student', 'txnType'])
+            ->join('t_students', 't_transactions.st_id', '=', 't_students.id')
+            ->leftJoin('t_student_classes', 't_students.id', '=', 't_student_classes.st_id')
+            ->leftJoin('t_class_groups', 't_student_classes.cg_id', '=', 't_class_groups.id')
+            ->leftJoin('t_txn_types', 't_transactions.txn_type_id', '=', 't_txn_types.id')
+            ->leftJoin('t_fees', 't_transactions.f_id', '=', 't_fees.id');
+
+        // Apply search filter (Student Roll No or Name)
+        if (!empty($validated['search'])) {
+            $searchTerm = '%' . trim($validated['search']) . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('t_students.st_roll_no', 'LIKE', $searchTerm)
+                  ->orWhere('t_students.st_first_name', 'LIKE', $searchTerm)
+                  ->orWhere('t_students.st_last_name', 'LIKE', $searchTerm);
+            });
+        }
+
+        // Apply class filter (Multiple `cg_id` values)
+        if (!empty($validated['cg_id'])) {
+            $cgIds = explode(',', $validated['cg_id']); // Convert comma-separated IDs to array
+            $query->whereIn('t_student_classes.cg_id', $cgIds);
+        }
+
+        // Apply date filter
+        if (!empty($validated['date_from'])) {
+            $query->whereDate('t_transactions.txn_date', '>=', $validated['date_from']);
+        }
+        if (!empty($validated['date_to'])) {
+            $query->whereDate('t_transactions.txn_date', '<=', $validated['date_to']);
+        }
+
+        // Fetch transactions with required data
+        $transactions = $query
+            ->select([
+                't_students.st_roll_no',
+                't_students.id as student_id',
+                't_students.st_first_name',
+                't_students.st_last_name',
+                't_class_groups.cg_name as class_name',
+                't_transactions.txn_amount as amount',
+                't_transactions.txn_mode as mode',
+                't_transactions.txn_date',
+                't_transactions.txn_time',
+                't_transactions.txn_reason',
+                't_fees.fpp_name as fee_name',
+                't_txn_types.txn_type_name',
+                't_txn_types.txn_type_from',
+                't_txn_types.txn_type_to',
+                't_transactions.f_id'
+            ])
+            ->orderBy('t_transactions.txn_date', 'desc')
+            ->get();
+
+        // Transform data with correct narration
+        $transactions = $transactions->map(function ($txn) {
+            return [
+                'student_roll_no' => $txn->st_roll_no,
+                'student_id'      => $txn->student_id,
+                'student_name'    => $txn->st_first_name . ' ' . $txn->st_last_name,
+                'class'           => $txn->class_name ?? 'N/A',
+                'amount'          => $txn->amount,
+                'mode'            => $txn->mode,
+                'txn_date'        => $txn->txn_date,
+                'txn_time'        => $txn->txn_time,
+                'txn_from'        => $txn->txn_type_from,
+                'txn_to'          => $txn->txn_type_to,
+                'narration'       => $txn->f_id ? $txn->fee_name : "Payment from student"
+            ];
+        });
+
+        // Paginate results
+        $total_count = $transactions->count();
+        $transactions = $transactions->slice($offset, $limit)->values();
+
+        return response()->json([
+            'code'      => 200,
+            'status'    => true,
+            'message'   => 'Transactions fetched successfully.',
+            'data'      => $transactions,
+            'total'     => $total_count,
+            'count'     => count($transactions),
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code'    => 500,
+            'status'  => false,
+            'message' => 'An error occurred while fetching transactions.',
+            'error'   => $e->getMessage(),
+        ], 500);
+    }
+}
     public function importCsv(Request $request)
     {
         ini_set('max_execution_time', 300); // 5 minutes
