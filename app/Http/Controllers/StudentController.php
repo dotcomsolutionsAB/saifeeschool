@@ -1945,7 +1945,7 @@ class StudentController extends Controller
         }
     }
 
-    public function getUnpaidFees(Request $request)
+    public function getPaidFees(Request $request)
     {
         try {
             // Validate request
@@ -1958,9 +1958,9 @@ class StudentController extends Controller
             $offset = $validated['offset'] ?? 0;
             $limit = $validated['limit'] ?? 10; // Default limit to 10
     
-            // Fetch unpaid fees (`f_paid = 0`)
+            // Fetch paid fees (`f_paid = 1`)
             $fees = FeeModel::where('st_id', $validated['st_id'])
-                ->where('f_paid', '0')
+                ->where('f_paid', '1')
                 ->get()
                 ->map(function ($fee) {
                     return [
@@ -1973,23 +1973,24 @@ class StudentController extends Controller
                         'f_late_fee_applicable' => $fee->f_late_fee_applicable, // Is late fee applicable?
                         'f_concession' => $fee->f_concession, // Concession
                         'total_amount' => ($fee->fpp_amount + $fee->f_late_fee_applicable) - $fee->f_concession, // Final amount
+                        'date_paid' => $fee->f_paid_date ? date('d-m-Y', strtotime($fee->f_paid_date)) : 'N/A', // Payment date
                     ];
                 });
     
             return response()->json([
                 'code' => 200,
                 'status' => true,
-                'message' => 'Unpaid fees fetched successfully.',
+                'message' => 'Paid fees fetched successfully.',
                 'data' => $fees->slice($offset, $limit)->values(), // Apply offset and limit
-                'total_unpaid' => $fees->sum('total_amount'), // Total unpaid amount
-                'count' => $fees->count(), // Total number of unpaid fees
+                'total_paid' => $fees->sum('total_amount'), // Total paid amount
+                'count' => $fees->count(), // Total number of paid fees
             ]);
     
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
                 'status' => false,
-                'message' => 'An error occurred while fetching unpaid fees.',
+                'message' => 'An error occurred while fetching paid fees.',
                 'error' => $e->getMessage(),
             ], 500);
         }
