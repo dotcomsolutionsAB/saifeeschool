@@ -336,7 +336,7 @@ public function getStudentDetails(Request $request)
             'st_dob' => $student->st_dob,
             'st_admitted' => $student->st_admitted,
             'st_admitted_class' => $student->st_admitted_class,
-            'fathers_name' => $fatherName ?? 'N/A', // Return 'N/A' if father's name is not found
+            'father_name' => $fatherName ?? 'N/A', // Return 'N/A' if father's name is not found
         ];
 
         return response()->json([

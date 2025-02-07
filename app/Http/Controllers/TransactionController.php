@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use League\Csv\Reader;
 use League\Csv\Statement;
+use App\Models\StudentModel;
 
 class TransactionController extends Controller
 {
@@ -161,4 +162,112 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Failed to import CSV.', 'error' => $e->getMessage()], 500);
         }
     }
+    public function addMoneyToWallet(Request $request)
+{
+    try {
+        // Validate request data
+        $validated = $request->validate([
+            'st_id'       => 'required|integer|exists:t_students,id',
+            'amount'      => 'required|numeric|min:1',
+            'type'        => 'required|in:draft,pg,neft,transport', // Allowed types
+            'date'        => 'required|date',
+            'comments'    => 'nullable|string|max:255',
+
+            // Conditional validation based on type
+            'bank_name'   => 'required_if:type,draft|string|max:255',
+            'draft_no'    => 'required_if:type,draft|string|max:50',
+            'draft_date'  => 'required_if:type,draft|date',
+
+            'transaction_id'   => 'required_if:type,pg,neft|string|max:255',
+            'transaction_date' => 'required_if:type,pg,neft|date',
+
+            'receipt_no'  => 'required_if:type,transport|string|max:255',
+        ]);
+
+        // Fetch student details
+        $student = StudentModel::find($validated['st_id']);
+
+        if (!$student) {
+            return response()->json([
+                'code'    => 404,
+                'status'  => false,
+                'message' => 'Student not found.',
+            ], 404);
+        }
+
+        // Define transaction mode based on type
+        $txnMode = match ($validated['type']) {
+            'draft'    => 'draft',
+            'pg'       => 'pg',
+            'neft'     => 'neft',
+            'transport'=> 'transport',
+            default    => 'internal',
+        };
+
+        // Prepare `txn_reason` JSON data
+        $txnDetails = [
+            'comments' => $validated['comments'] ?? null, // Include user comments
+        ];
+
+        if ($validated['type'] === 'draft') {
+            $txnDetails['bank_name'] = $validated['bank_name'];
+            $txnDetails['draft_no'] = $validated['draft_no'];
+            $txnDetails['draft_date'] = $validated['draft_date'];
+        } elseif (in_array($validated['type'], ['pg', 'neft'])) {
+            $txnDetails['transaction_id'] = $validated['transaction_id'];
+            $txnDetails['transaction_date'] = $validated['transaction_date'];
+        } elseif ($validated['type'] === 'transport') {
+            $txnDetails['receipt_no'] = $validated['receipt_no'];
+        }
+
+        // Convert to JSON and store in txn_reason
+        $txnReason = json_encode($txnDetails);
+
+        // Create a new transaction record in `t_transactions`
+        $transaction = new TransactionModel();
+        $transaction->st_id         = $validated['st_id'];
+        $transaction->sch_id        = 1; // Always remains 1
+        $transaction->txn_type_id   = 1; // Always 1
+        $transaction->txn_date      = $validated['date'];
+        $transaction->txn_time      = now()->format('H:i:s');
+        $transaction->txn_mode      = $txnMode;
+        $transaction->txn_amount    = $validated['amount'];
+        $transaction->txn_reason    = $txnReason; // Store additional fields in JSON format
+        $transaction->f_id          = null;
+        $transaction->f_normal      = 0;
+        $transaction->f_late        = 0;
+        $transaction->txn_tagged_to_id = null;
+        $transaction->date          = now();
+
+        $transaction->save();
+
+        // Update student's wallet balance
+        $student->st_wallet += $validated['amount'];
+        $student->save();
+
+        return response()->json([
+            'code'    => 200,
+            'status'  => true,
+            'message' => 'Money added to wallet successfully.',
+            'data'    => [
+                'student_id'  => $validated['st_id'],
+                'new_balance' => $student->st_wallet,
+                'transaction' => [
+                    'txn_id'     => $transaction->id,
+                    'txn_amount' => $transaction->txn_amount,
+                    'txn_mode'   => $transaction->txn_mode,
+                    'txn_reason' => json_decode($transaction->txn_reason, true), // Convert JSON back for response
+                ],
+            ],
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code'    => 500,
+            'status'  => false,
+            'message' => 'An error occurred while adding money to wallet.',
+            'error'   => $e->getMessage(),
+        ], 500);
+    }
+}
 }
