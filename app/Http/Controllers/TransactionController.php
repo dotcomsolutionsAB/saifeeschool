@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Log;
 use League\Csv\Reader;
 use League\Csv\Statement;
 use App\Models\StudentModel;
+use App\Models\PGResponseModel;
 
 class TransactionController extends Controller
 {
@@ -367,71 +368,59 @@ public function index2(Request $request)
         $validated = $request->validate([
             'search' => 'nullable|string|max:255', // Search term (Name, Roll No, ID, Reference No)
             'mode' => 'nullable|string|max:255', // Payment Mode filter
-            'status' => 'nullable|in:success,pending', // Filter by status
+            'status' => 'nullable|in:success,pending', // Filter by Status
             'date_from' => 'nullable|date', // Date from filter
             'date_to' => 'nullable|date|after_or_equal:date_from', // Date to filter
             'offset' => 'nullable|integer|min:0', // Pagination offset
             'limit' => 'nullable|integer|min:1|max:100', // Limit (default 10, max 100)
         ]);
 
-        // Set default pagination values
+        // Set pagination defaults
         $offset = $validated['offset'] ?? 0;
         $limit = $validated['limit'] ?? 10;
 
-        // Start query with necessary joins
-        $query = DB::table('t_pg_responses as pg')
-            ->join('t_students as stu', 'pg.st_id', '=', 'stu.id')
-            ->leftJoin('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
-            ->leftJoin('t_class_groups as cg', 'sc.cg_id', '=', 'cg.id')
-            ->selectRaw("
-                stu.st_roll_no,
-                stu.id as student_id,
-                CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS student_name,
-                COALESCE(cg.cg_name, 'N/A') AS class_name,
-                pg.transaction_date,
-                pg.transaction_time,
-                pg.unique_ref_number,
-                pg.total_amount,
-                pg.response_code,
-                pg.payment_mode
-            ")
-            ->orderBy('pg.transaction_date', 'desc')
-            ->orderBy('pg.transaction_time', 'desc');
+        // Start query from PGResponseModel (t_pg_responses)
+        $query = PGResponseModel::query()
+            ->with(['student.classGroup']) // Ensure student relation exists
+            ->orderBy('transaction_date', 'desc')
+            ->orderBy('transaction_time', 'desc');
 
-        // Apply search filter (Student Name, Roll No, Reference No)
+        // Apply search filters (Search by Name, Roll No, Reference No)
         if (!empty($validated['search'])) {
             $searchTerm = '%' . trim($validated['search']) . '%';
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('stu.st_roll_no', 'LIKE', $searchTerm)
-                  ->orWhere('stu.st_first_name', 'LIKE', $searchTerm)
-                  ->orWhere('stu.st_last_name', 'LIKE', $searchTerm)
-                  ->orWhere('pg.unique_ref_number', 'LIKE', $searchTerm);
+
+            $query->where(function ($subQuery) use ($searchTerm) {
+                $subQuery->whereHas('student', function ($studentQuery) use ($searchTerm) {
+                    $studentQuery->whereRaw("LOWER(st_first_name) LIKE ?", [strtolower($searchTerm)])
+                        ->orWhereRaw("LOWER(st_last_name) LIKE ?", [strtolower($searchTerm)])
+                        ->orWhere('st_roll_no', 'LIKE', $searchTerm);
+                })->orWhere('unique_ref_number', 'LIKE', $searchTerm);
             });
         }
 
         // Apply payment mode filter
         if (!empty($validated['mode'])) {
-            $query->where('pg.payment_mode', $validated['mode']);
+            $query->where('payment_mode', $validated['mode']);
         }
 
         // Apply status filter
         if (!empty($validated['status'])) {
             if ($validated['status'] === 'success') {
-                $query->where('pg.response_code', 'E000');
+                $query->where('response_code', 'E000');
             } else {
-                $query->where('pg.response_code', '<>', 'E000'); // Any response code except 'E000'
+                $query->where('response_code', '<>', 'E000'); // Any response code except 'E000'
             }
         }
 
         // Apply date filters
         if (!empty($validated['date_from'])) {
-            $query->whereDate('pg.transaction_date', '>=', $validated['date_from']);
+            $query->whereDate('transaction_date', '>=', $validated['date_from']);
         }
         if (!empty($validated['date_to'])) {
-            $query->whereDate('pg.transaction_date', '<=', $validated['date_to']);
+            $query->whereDate('transaction_date', '<=', $validated['date_to']);
         }
 
-        // Get total count before applying pagination
+        // Get total count for pagination
         $totalCount = $query->count();
 
         // Fetch paginated results
@@ -440,13 +429,16 @@ public function index2(Request $request)
         // Calculate total amount for the current page
         $totalAmountForPage = $transactions->sum('total_amount');
 
-        // Format transactions data
+        // Format transactions
         $formattedTransactions = $transactions->map(function ($transaction, $index) use ($offset) {
+            $student = $transaction->student;
+            $className = $student && $student->classGroup ? $student->classGroup->cg_name : 'N/A';
+
             return [
                 'SN' => $offset + $index + 1,
-                'Name' => $transaction->student_name,
-                'Roll No' => $transaction->st_roll_no,
-                'Class' => $transaction->class_name,
+                'Name' => $student ? "{$student->st_first_name} {$student->st_last_name}" : 'N/A',
+                'Roll No' => $student ? $student->st_roll_no : 'N/A',
+                'Class' => $className,
                 'Date' => "{$transaction->transaction_date} {$transaction->transaction_time}",
                 'Unique_Ref_No' => $transaction->unique_ref_number,
                 'Total_Amount' => $transaction->total_amount,
@@ -465,13 +457,14 @@ public function index2(Request $request)
                 'total' => $totalCount, // Total transactions matching the criteria
                 'offset' => $offset,
                 'limit' => $limit,
-                'page_total_amount' => $totalAmountForPage, // Total amount for the current page of results
+                'page_total_amount' => $totalAmountForPage, // Total amount for the current page
             ])
             : response()->json([
                 'code' => 404,
                 'status' => false,
                 'message' => 'No transactions found for the given criteria.',
             ]);
+
     } catch (\Exception $e) {
         return response()->json([
             'code' => 500,
