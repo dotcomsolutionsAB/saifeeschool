@@ -922,7 +922,7 @@ class FeeController extends Controller
 
         // **Filter by Payment Status**
         if (!empty($validated['status'])) {
-            $query->where('fees.f_paid', $validated['status'] === 'paid' ? 1 : 0);
+            $query->where('fees.f_paid', $validated['status'] === 'paid' ? '1' : '0');
         }
 
         // **Filter by Academic Year**
