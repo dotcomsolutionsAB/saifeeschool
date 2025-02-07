@@ -361,7 +361,7 @@ class TransactionController extends Controller
         ], 500);
     }
 }
-public function index2(Request $request)
+public function index(Request $request)
 {
     try {
         // Validate filters
@@ -369,7 +369,7 @@ public function index2(Request $request)
             'search'    => 'nullable|string|max:255', // Search by Roll No, Name, or Reference No
             'cg_id'     => 'nullable|string', // Multiple class IDs (comma-separated)
             'mode'      => 'nullable|string|max:255', // Payment Mode filter
-            'status'    => 'nullable|in:success,pending', // Filter by Status (E000 = Success, others = Pending)
+            'status'    => 'nullable|in:success,pending', // Filter by Status
             'date_from' => 'nullable|date', // Start date filter
             'date_to'   => 'nullable|date|after_or_equal:date_from', // End date filter
             'offset'    => 'nullable|integer|min:0', // Pagination offset
@@ -380,33 +380,9 @@ public function index2(Request $request)
         $offset = $validated['offset'] ?? 0;
         $limit = $validated['limit'] ?? 10;
 
-        // **Query for Regular Transactions (`t_txns`)**
-        $txnQuery = DB::table('t_txns as txn')
-            ->join('t_students as stu', 'txn.st_id', '=', 'stu.id')
-            ->leftJoin('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
-            ->leftJoin('t_class_groups as cg', 'sc.cg_id', '=', 'cg.id')
-            ->leftJoin('t_txn_types as tt', 'txn.txn_type_id', '=', 'tt.id')
-            ->leftJoin('t_fees as f', 'txn.f_id', '=', 'f.id')
-            ->selectRaw("
-                stu.st_roll_no,
-                stu.id as student_id,
-                CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS student_name,
-                COALESCE(cg.cg_name, 'N/A') AS class_name,
-                txn.txn_amount as amount,
-                txn.txn_mode as mode,
-                txn.txn_date AS transaction_date,
-                txn.txn_time AS transaction_time,
-                tt.txn_type_from AS txn_from,
-                tt.txn_type_to AS txn_to,
-                COALESCE(f.fpp_name, 'Payment from student') AS narration,
-                NULL AS unique_ref_number,
-                NULL AS total_amount,
-                'txn' AS source_table
-            ");
-
         // **Query for PG Transactions (`t_pg_responses`)**
-        $pgQuery = DB::table('t_pg_responses as pg')
-            ->join('t_students as stu', 'pg.student_id', '=', 'stu.id') // Ensure correct column name
+        $query = DB::table('t_pg_responses as pg')
+            ->join('t_students as stu', 'pg.submerchant_id', '=', 'stu.id') // Corrected student reference
             ->leftJoin('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
             ->leftJoin('t_class_groups as cg', 'sc.cg_id', '=', 'cg.id')
             ->selectRaw("
@@ -414,63 +390,52 @@ public function index2(Request $request)
                 stu.id as student_id,
                 CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS student_name,
                 COALESCE(cg.cg_name, 'N/A') AS class_name,
-                NULL AS amount,
                 pg.payment_mode AS mode,
                 pg.transaction_date,
                 pg.transaction_time,
-                NULL AS txn_from,
-                NULL AS txn_to,
-                NULL AS narration,
                 pg.unique_ref_number,
                 pg.total_amount,
-                'pg' AS source_table
-            ");
+                pg.response_code
+            ")
+            ->orderBy('pg.transaction_date', 'desc')
+            ->orderBy('pg.transaction_time', 'desc');
 
-        // **Combine Both Queries Using `union`**
-        $query = $txnQuery->union($pgQuery);
-
-        // **Apply Filters**
-        $query = DB::table(DB::raw("({$query->toSql()}) as transactions"))
-            ->mergeBindings($query)
-            ->orderBy('transaction_date', 'desc')
-            ->orderBy('transaction_time', 'desc');
-
-        // **Search Filter (Roll No, Name, Reference No)**
+        // **Apply Search Filter (Roll No, Name, Reference No)**
         if (!empty($validated['search'])) {
             $searchTerm = '%' . trim($validated['search']) . '%';
             $query->where(function ($q) use ($searchTerm) {
-                $q->where('st_roll_no', 'LIKE', $searchTerm)
+                $q->where('stu.st_roll_no', 'LIKE', $searchTerm)
                   ->orWhere('student_name', 'LIKE', $searchTerm)
-                  ->orWhere('unique_ref_number', 'LIKE', $searchTerm);
+                  ->orWhere('pg.unique_ref_number', 'LIKE', $searchTerm);
             });
         }
 
-        // **Class Filter (Multiple `cg_id` values)**
+        // **Apply Class Filter (`cg_id`)**
         if (!empty($validated['cg_id'])) {
             $cgIds = explode(',', $validated['cg_id']);
-            $query->whereIn('cg_id', $cgIds);
+            $query->whereIn('sc.cg_id', $cgIds);
         }
 
-        // **Payment Mode Filter**
+        // **Apply Payment Mode Filter**
         if (!empty($validated['mode'])) {
-            $query->where('mode', $validated['mode']);
+            $query->where('pg.payment_mode', $validated['mode']);
         }
 
-        // **Status Filter (`E000` = Success, others = Pending)**
+        // **Apply Status Filter (`E000` = Success, others = Pending)**
         if (!empty($validated['status'])) {
             if ($validated['status'] === 'success') {
-                $query->where('response_code', 'E000');
+                $query->where('pg.response_code', 'E000');
             } else {
-                $query->where('response_code', '<>', 'E000'); // Any response code except 'E000'
+                $query->where('pg.response_code', '<>', 'E000'); // Any response code except 'E000'
             }
         }
 
-        // **Date Filters**
+        // **Apply Date Filters**
         if (!empty($validated['date_from'])) {
-            $query->whereDate('transaction_date', '>=', $validated['date_from']);
+            $query->whereDate('pg.transaction_date', '>=', $validated['date_from']);
         }
         if (!empty($validated['date_to'])) {
-            $query->whereDate('transaction_date', '<=', $validated['date_to']);
+            $query->whereDate('pg.transaction_date', '<=', $validated['date_to']);
         }
 
         // **Get Total Count for Pagination**
@@ -491,7 +456,7 @@ public function index2(Request $request)
                 'Class' => $transaction->class_name,
                 'Date' => "{$transaction->transaction_date} {$transaction->transaction_time}",
                 'Unique_Ref_No' => $transaction->unique_ref_number,
-                'Total_Amount' => $transaction->total_amount ?: $transaction->amount,
+                'Total_Amount' => $transaction->total_amount,
                 'Status' => $transaction->response_code === 'E000' ? 'Success' : 'Pending',
                 'Mode' => $transaction->mode,
             ];
