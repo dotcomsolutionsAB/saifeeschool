@@ -234,8 +234,8 @@ class TransactionController extends Controller
         $transaction->txn_amount    = $validated['amount'];
         $transaction->txn_reason    = $txnReason; // Store additional fields in JSON format
         $transaction->f_id          = null;
-        $transaction->f_normal      = 0;
-        $transaction->f_late        = 0;
+        $transaction->f_normal      = '0';
+        $transaction->f_late        = '0';
         $transaction->txn_tagged_to_id = null;
         $transaction->date          = now();
 
