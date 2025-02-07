@@ -379,45 +379,58 @@ public function index2(Request $request)
         $offset = $validated['offset'] ?? 0;
         $limit = $validated['limit'] ?? 10;
 
-        // Start query from PGResponseModel (t_pg_responses)
-        $query = PGResponseModel::query()
-            ->with(['student.classGroup']) // Ensure student relation exists
-            ->orderBy('transaction_date', 'desc')
-            ->orderBy('transaction_time', 'desc');
+        // Start query using DB::table() for performance
+        $query = DB::table('t_pg_responses as pg')
+            ->join('t_students as stu', 'pg.st_id', '=', 'stu.id')
+            ->leftJoin('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
+            ->leftJoin('t_class_groups as cg', 'sc.cg_id', '=', 'cg.id')
+            ->selectRaw("
+                stu.st_roll_no,
+                stu.id as student_id,
+                CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS student_name,
+                COALESCE(cg.cg_name, 'N/A') AS class_name,
+                pg.transaction_date,
+                pg.transaction_time,
+                pg.unique_ref_number,
+                pg.total_amount,
+                pg.response_code,
+                pg.payment_mode
+            ")
+            ->orderBy('pg.transaction_date', 'desc')
+            ->orderBy('pg.transaction_time', 'desc');
 
         // Apply search filters (Search by Name, Roll No, Reference No)
         if (!empty($validated['search'])) {
             $searchTerm = '%' . trim($validated['search']) . '%';
 
-            $query->where(function ($subQuery) use ($searchTerm) {
-                $subQuery->whereHas('student', function ($studentQuery) use ($searchTerm) {
-                    $studentQuery->whereRaw("LOWER(st_first_name) LIKE ?", [strtolower($searchTerm)])
-                        ->orWhereRaw("LOWER(st_last_name) LIKE ?", [strtolower($searchTerm)])
-                        ->orWhere('st_roll_no', 'LIKE', $searchTerm);
-                })->orWhere('unique_ref_number', 'LIKE', $searchTerm);
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('stu.st_roll_no', 'LIKE', $searchTerm)
+                  ->orWhere('stu.st_first_name', 'LIKE', $searchTerm)
+                  ->orWhere('stu.st_last_name', 'LIKE', $searchTerm)
+                  ->orWhere('pg.unique_ref_number', 'LIKE', $searchTerm);
             });
         }
 
         // Apply payment mode filter
         if (!empty($validated['mode'])) {
-            $query->where('payment_mode', $validated['mode']);
+            $query->where('pg.payment_mode', $validated['mode']);
         }
 
         // Apply status filter
         if (!empty($validated['status'])) {
             if ($validated['status'] === 'success') {
-                $query->where('response_code', 'E000');
+                $query->where('pg.response_code', 'E000');
             } else {
-                $query->where('response_code', '<>', 'E000'); // Any response code except 'E000'
+                $query->where('pg.response_code', '<>', 'E000'); // Any response code except 'E000'
             }
         }
 
         // Apply date filters
         if (!empty($validated['date_from'])) {
-            $query->whereDate('transaction_date', '>=', $validated['date_from']);
+            $query->whereDate('pg.transaction_date', '>=', $validated['date_from']);
         }
         if (!empty($validated['date_to'])) {
-            $query->whereDate('transaction_date', '<=', $validated['date_to']);
+            $query->whereDate('pg.transaction_date', '<=', $validated['date_to']);
         }
 
         // Get total count for pagination
@@ -431,14 +444,11 @@ public function index2(Request $request)
 
         // Format transactions
         $formattedTransactions = $transactions->map(function ($transaction, $index) use ($offset) {
-            $student = $transaction->student;
-            $className = $student && $student->classGroup ? $student->classGroup->cg_name : 'N/A';
-
             return [
                 'SN' => $offset + $index + 1,
-                'Name' => $student ? "{$student->st_first_name} {$student->st_last_name}" : 'N/A',
-                'Roll No' => $student ? $student->st_roll_no : 'N/A',
-                'Class' => $className,
+                'Name' => $transaction->student_name,
+                'Roll No' => $transaction->st_roll_no,
+                'Class' => $transaction->class_name,
                 'Date' => "{$transaction->transaction_date} {$transaction->transaction_time}",
                 'Unique_Ref_No' => $transaction->unique_ref_number,
                 'Total_Amount' => $transaction->total_amount,
