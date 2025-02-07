@@ -418,10 +418,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::prefix('transactions')->group(function () {
 
-        Route::get('/records', [DailyTransactionController::class, 'index'])
+        Route::post('/records', [DailyTransactionController::class, 'index'])
                 ->middleware(['check-api-permission:accounts.full, accounts.view']);
              
-    Route::get('/payment-attempts', [DailyTransactionController::class, 'index2'])
+    Route::post('/payment-attempts', [DailyTransactionController::class, 'index2'])
                 ->middleware(['check-api-permission:accounts.full, accounts.view']);
         
 
