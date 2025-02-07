@@ -898,9 +898,10 @@ class FeeController extends Controller
                 fees.fpp_name AS fee_name,
                 fees.fpp_amount AS base_amount,
                 fees.fpp_due_date AS due_date,
-                IF(fees.f_late_fee_applicable = 1, fees.fpp_late_fee, 0) AS late_fee,
-                (fees.fpp_amount + IF(fees.f_late_fee_applicable = 1, fees.fpp_late_fee, 0)) AS total_amount,
-                fees.f_paid AS payment_status
+                IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, '0') AS late_fee,
+                fees.f_concession AS concession,
+                (fees.fpp_amount + IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, 0) - IFNULL(fees.f_concession, 0)) AS total_amount,
+                IF(fees.f_paid = '1', '1', '0') AS payment_status
             ")
             ->orderBy('fees.fpp_due_date', 'asc');
 
@@ -969,14 +970,15 @@ class FeeController extends Controller
         // **Format Response**
         $formattedTransactions = $transactions->map(function ($transaction, $index) use ($offset) {
             return [
-                'SN' => $offset + $index + 1,
+                'SN' => (string)($offset + $index + 1),
                 'Name' => $transaction->student_name,
                 'Roll No' => $transaction->st_roll_no,
                 'Fee Name' => $transaction->fee_name,
-                'Base Amount' => $transaction->base_amount,
+                'Base Amount' => (string) $transaction->base_amount,
                 'Due Date' => $transaction->due_date,
-                'Late Fee' => $transaction->late_fee,
-                'Total Amount' => $transaction->total_amount,
+                'Late Fee' => (string) $transaction->late_fee,
+                'Concession' => (string) ($transaction->concession ?? '0'),
+                'Total Amount' => (string) $transaction->total_amount,
                 'Status' => $transaction->payment_status === '1' ? 'Paid' : 'Unpaid',
             ];
         });
@@ -989,10 +991,10 @@ class FeeController extends Controller
                 'message' => 'Fees data fetched successfully.',
                 'data' => $formattedTransactions,
                 'total' => $totalCount,
-                'offset' => $offset,
-                'limit' => $limit,
-                'page_total_due' => $totalDueAmount,  // Total Unpaid Amount in Current Page
-                'page_total_paid' => $totalPaidAmount, // Total Paid Amount in Current Page
+                'offset' => (string) $offset,
+                'limit' => (string) $limit,
+                'page_total_due' => (string) $totalDueAmount,  // Total Unpaid Amount in Current Page
+                'page_total_paid' => (string) $totalPaidAmount, // Total Paid Amount in Current Page
             ])
             : response()->json([
                 'code' => 404,
