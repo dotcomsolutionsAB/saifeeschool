@@ -868,5 +868,146 @@ class FeeController extends Controller
     //     // Output PDF
     //     return $mpdf->Output('Pending_Fees.pdf', 'I'); // 'I' for inline view, 'D' for download
     // }
+    public function index_all(Request $request)
+{
+    try {
+        // Validate request input
+        $validated = $request->validate([
+            'search'    => 'nullable|string|max:255', // Search by Roll No or Name
+            'cg_id'     => 'nullable|string', // Class ID (comma-separated)
+            'status'    => 'nullable|in:paid,unpaid', // Payment Status filter
+            'year'      => 'nullable|integer', // Academic Year filter
+            'date_from' => 'nullable|date', // Start date filter
+            'date_to'   => 'nullable|date|after_or_equal:date_from', // End date filter
+            'type'      => 'nullable|in:monthly,admission,one_time,recurring', // Fee Type filter
+            'offset'    => 'nullable|integer|min:0', // Pagination offset
+            'limit'     => 'nullable|integer|min:1|max:100', // Limit (default: 10, max: 100)
+        ]);
+
+        // Set pagination defaults
+        $offset = $validated['offset'] ?? 0;
+        $limit = $validated['limit'] ?? 10;
+
+        // **Start Query from `t_fees` Table**
+        $query = DB::table('t_fees as fees')
+            ->join('t_students as stu', 'fees.st_id', '=', 'stu.id')
+            ->leftJoin('t_class_groups as cg', 'fees.cg_id', '=', 'cg.id')
+            ->selectRaw("
+                stu.st_roll_no,
+                CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS student_name,
+                fees.fpp_name AS fee_name,
+                fees.fpp_amount AS base_amount,
+                fees.fpp_due_date AS due_date,
+                IF(fees.f_late_fee_applicable = 1, fees.fpp_late_fee, 0) AS late_fee,
+                (fees.fpp_amount + IF(fees.f_late_fee_applicable = 1, fees.fpp_late_fee, 0)) AS total_amount,
+                fees.f_paid AS payment_status
+            ")
+            ->orderBy('fees.fpp_due_date', 'asc');
+
+        // **Search Filter (Roll No or Name)**
+        if (!empty($validated['search'])) {
+            $searchTerm = '%' . trim($validated['search']) . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('stu.st_roll_no', 'LIKE', $searchTerm)
+                  ->orWhere('stu.st_first_name', 'LIKE', $searchTerm)
+                  ->orWhere('stu.st_last_name', 'LIKE', $searchTerm);
+            });
+        }
+
+        // **Filter by Class ID**
+        if (!empty($validated['cg_id'])) {
+            $cgIds = explode(',', $validated['cg_id']);
+            $query->whereIn('fees.cg_id', $cgIds);
+        }
+
+        // **Filter by Payment Status**
+        if (!empty($validated['status'])) {
+            $query->where('fees.f_paid', $validated['status'] === 'paid' ? 1 : 0);
+        }
+
+        // **Filter by Academic Year**
+        if (!empty($validated['year'])) {
+            $query->where('fees.fpp_year_no', $validated['year']);
+        }
+
+        // **Filter by Date Range**
+        if (!empty($validated['date_from'])) {
+            $query->whereDate('fees.fpp_due_date', '>=', $validated['date_from']);
+        }
+        if (!empty($validated['date_to'])) {
+            $query->whereDate('fees.fpp_due_date', '<=', $validated['date_to']);
+        }
+
+        // **Filter by Fee Type**
+        if (!empty($validated['type'])) {
+            switch ($validated['type']) {
+                case 'monthly':
+                    $query->where('fees.fp_recurring', '1')->where('fees.fp_main_monthly_fee', '1');
+                    break;
+                case 'admission':
+                    $query->where('fees.fp_main_admission_fee', '1');
+                    break;
+                case 'one_time':
+                    $query->where('fees.fp_recurring', '0')->where('fees.fp_main_monthly_fee', '1');
+                    break;
+                case 'recurring':
+                    $query->where('fees.fp_recurring', '1')->where('fees.fp_main_monthly_fee', '0');
+                    break;
+            }
+        }
+
+        // **Get Total Count for Pagination**
+        $totalCount = $query->count();
+
+        // **Fetch Paginated Results**
+        $transactions = $query->offset($offset)->limit($limit)->get();
+
+        // **Calculate Total Due & Total Paid Amount for the Current Page**
+        $totalDueAmount = $transactions->where('payment_status', '0')->sum('total_amount');  // Unpaid fees
+        $totalPaidAmount = $transactions->where('payment_status', '1')->sum('total_amount'); // Paid fees
+
+        // **Format Response**
+        $formattedTransactions = $transactions->map(function ($transaction, $index) use ($offset) {
+            return [
+                'SN' => $offset + $index + 1,
+                'Name' => $transaction->student_name,
+                'Roll No' => $transaction->st_roll_no,
+                'Fee Name' => $transaction->fee_name,
+                'Base Amount' => $transaction->base_amount,
+                'Due Date' => $transaction->due_date,
+                'Late Fee' => $transaction->late_fee,
+                'Total Amount' => $transaction->total_amount,
+                'Status' => $transaction->payment_status === '1' ? 'Paid' : 'Unpaid',
+            ];
+        });
+
+        // **Return API Response**
+        return $formattedTransactions->count() > 0
+            ? response()->json([
+                'code' => 200,
+                'status' => true,
+                'message' => 'Fees data fetched successfully.',
+                'data' => $formattedTransactions,
+                'total' => $totalCount,
+                'offset' => $offset,
+                'limit' => $limit,
+                'page_total_due' => $totalDueAmount,  // Total Unpaid Amount in Current Page
+                'page_total_paid' => $totalPaidAmount, // Total Paid Amount in Current Page
+            ])
+            : response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'No fees found for the given criteria.',
+            ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching fees data.',
+            'error' => $e->getMessage(),
+        ]);
+    }
+}
 
 }
