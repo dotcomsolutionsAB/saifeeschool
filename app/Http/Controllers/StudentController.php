@@ -235,9 +235,28 @@ class StudentController extends Controller
             ]);
     
             $studentId = $validated['st_id'];
-    
-            // Find User by `st_id` (stored in `username` column)
-            $user = User::where('username', $studentId)->first();
+
+            // Find student's roll number using st_id
+            $student = StudentModel::where('id', $studentId)->first();
+            
+            if (!$student) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => false,
+                    'message' => 'Student not found.',
+                ], 404);
+            }
+            
+            // Find user using st_roll_no in username column
+            $user = User::where('username', $student->st_roll_no)->first();
+            
+            if (!$user) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => false,
+                    'message' => 'User not found for this student roll number.',
+                ], 404);
+            }
     
             // Generate `user_token` if null
             if (!$user->user_token) {
