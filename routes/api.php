@@ -126,8 +126,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Academic Year Routes
     Route::prefix('academic_year')->group(function () {
-        Route::post('/', [AcademicYearController::class, 'create']);         // Add a new teacher (Admin only)
-        Route::get('/view/{id}', [AcademicYearController::class, 'update']);     // Update a teacher (Admin only)
+        Route::post('/', [AcademicYearController::class, 'createOrUpdate']);         // Add a new teacher (Admin only)
+          
+        Route::post('/current', [AcademicYearController::class, 'toggleCurrentYear']); 
         Route::get('/view/{id?}', [AcademicYearController::class, 'index']);  // Fetch all or specific teacher
         Route::delete('/{id}', [AcademicYearController::class, 'destroy']); // Delete a teacher
 

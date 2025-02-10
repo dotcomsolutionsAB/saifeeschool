@@ -13,43 +13,126 @@ class AcademicYearController extends Controller
 {
     //
     // Create a new Academic Year
-    public function create(Request $request)
+
+
+    public function createOrUpdate(Request $request)
     {
-        // Validation rules
-        $validated = $request->validate([
-            'sch_id' => 'required|string|max:10',
-            'ay_name' => 'required|string|max:100',
-            'ay_start_year' => 'required|string|max:100',
-            'ay_start_month' => 'required|string|max:10',
-            'ay_end_year' => 'required|string|max:10',
-            'ay_end_month' => 'required|string|max:10',
-            'ay_current' => 'required|string|in:0,1',
-        ]);
-
         try {
-            // Create a new academic year
-            // $academicYear = AcademicYearModel::create($validated);
-            $academicYear = AcademicYearModel::create([
-                'sch_id' => $validated['sch_id'],
-                'ay_name' => $validated['ay_name'],
-                'ay_start_year' => $validated['ay_start_year'],
-                'ay_start_month' => $validated['ay_start_month'],
-                'ay_end_year' => $validated['ay_end_year'],
-                'ay_end_month' => $validated['ay_end_month'],
-                'ay_current' => $validated['ay_current'],
+            // Validate input
+            $validated = $request->validate([
+                'ay_id' => 'nullable|integer|exists:t_academic_years,id', // Required only for update
+                'ay_name' => 'required|string|max:100',
+                'start_date' => 'required|date', // Accepts full date (YYYY-MM-DD)
+                'end_date' => 'required|date|after:start_date', // Must be after start_date
             ]);
-
+    
+            // Extract year and month from start and end dates
+            $startYear = Carbon::parse($validated['start_date'])->year;
+            $startMonth = Carbon::parse($validated['start_date'])->month;
+            $endYear = Carbon::parse($validated['end_date'])->year;
+            $endMonth = Carbon::parse($validated['end_date'])->month;
+    
+            // Check if an academic year with the same range already exists (for create only)
+            if (empty($validated['ay_id'])) {
+                $existingYear = AcademicYearModel::where('ay_start_year', $startYear)
+                    ->where('ay_end_year', $endYear)
+                    ->first();
+    
+                if ($existingYear) {
+                    return response()->json([
+                        'code' => 400,
+                        'status' => false,
+                        'message' => 'An academic year with this date range already exists.',
+                    ], 400);
+                }
+            }
+    
+            // If `ay_id` is provided, update the existing academic year
+            if (!empty($validated['ay_id'])) {
+                $academicYear = AcademicYearModel::find($validated['ay_id']);
+    
+                if (!$academicYear) {
+                    return response()->json([
+                        'code' => 404,
+                        'status' => false,
+                        'message' => 'Academic year not found.',
+                    ], 404);
+                }
+    
+                // Update academic year details
+                $academicYear->update([
+                    'ay_name' => $validated['ay_name'],
+                    'ay_start_year' => $startYear,
+                    'ay_start_month' => $startMonth,
+                    'ay_end_year' => $endYear,
+                    'ay_end_month' => $endMonth,
+                ]);
+    
+                return response()->json([
+                    'code' => 200,
+                    'status' => true,
+                    'message' => 'Academic year updated successfully',
+                    'data' => $academicYear->makeHidden(['created_at', 'updated_at']),
+                ], 200);
+            }
+    
+            // If `ay_id` is blank, create a new academic year
+            $academicYear = AcademicYearModel::create([
+                'sch_id' => '1', // Fixed School ID
+                'ay_name' => $validated['ay_name'],
+                'ay_start_year' => $startYear,
+                'ay_start_month' => $startMonth,
+                'ay_end_year' => $endYear,
+                'ay_end_month' => $endMonth,
+                'ay_current' => '0', // Default to not current
+            ]);
+    
             return response()->json([
+                'code' => 201,
+                'status' => true,
                 'message' => 'Academic year created successfully',
-                'data' => $academicYear->makeHidden(['id', 'created_at', 'updated_at'])
+                'data' => $academicYear->makeHidden(['created_at', 'updated_at']),
             ], 201);
+    
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Failed to create academic year',
-                'error' => $e->getMessage()
+                'code' => 500,
+                'status' => false,
+                'message' => 'Failed to create or update academic year',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
+
+    public function toggleCurrentYear(Request $request)
+{
+    try {
+        // Validate input
+        $validated = $request->validate([
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+        ]);
+
+        // Set all academic years to '0' (not current)
+        AcademicYearModel::where('ay_current', '1')->update(['ay_current' => '0']);
+
+        // Set the selected academic year to '1' (current)
+        AcademicYearModel::where('id', $validated['ay_id'])->update(['ay_current' => '1']);
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Current academic year updated successfully',
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'Failed to update current academic year',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
 
     // Update an existing Academic Year
     public function update(Request $request, $id)
@@ -96,7 +179,7 @@ class AcademicYearController extends Controller
     }
 
     // Fetch all academic years or a specific one
-    
+
     public function index($id = null)
     {
         try {
