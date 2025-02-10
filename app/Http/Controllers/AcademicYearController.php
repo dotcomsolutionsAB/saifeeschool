@@ -15,6 +15,8 @@ class AcademicYearController extends Controller
     // Create a new Academic Year
 
 
+
+
     public function createOrUpdate(Request $request)
     {
         try {
@@ -32,19 +34,23 @@ class AcademicYearController extends Controller
             $endYear = Carbon::parse($validated['end_date'])->year;
             $endMonth = Carbon::parse($validated['end_date'])->month;
     
-            // Check if an academic year with the same range already exists (for create only)
-            if (empty($validated['ay_id'])) {
-                $existingYear = AcademicYearModel::where('ay_start_year', $startYear)
-                    ->where('ay_end_year', $endYear)
-                    ->first();
+            // Check for an existing academic year with the same details
+            $query = AcademicYearModel::where('ay_name', $validated['ay_name'])
+                ->where('ay_start_year', $startYear)
+                ->where('ay_end_year', $endYear);
     
-                if ($existingYear) {
-                    return response()->json([
-                        'code' => 400,
-                        'status' => false,
-                        'message' => 'An academic year with this date range already exists.',
-                    ], 400);
-                }
+            if (!empty($validated['ay_id'])) {
+                $query->where('id', '!=', $validated['ay_id']); // Exclude current record when updating
+            }
+    
+            $existingYear = $query->first();
+    
+            if ($existingYear) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => 'An academic year with this name or date range already exists.',
+                ], 400);
             }
     
             // If `ay_id` is provided, update the existing academic year
@@ -103,7 +109,6 @@ class AcademicYearController extends Controller
             ], 500);
         }
     }
-
     public function toggleCurrentYear(Request $request)
 {
     try {
