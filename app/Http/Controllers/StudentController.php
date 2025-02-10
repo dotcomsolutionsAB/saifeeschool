@@ -2019,6 +2019,7 @@ public function applyConcession(Request $request)
         // Find the fee entry
         $fee = FeeModel::where('id', $validated['fee_id'])
             ->where('st_id', $validated['st_id'])
+            ->where('f_paid', '0')
             ->first();
 
         if (!$fee) {
