@@ -1960,12 +1960,16 @@ public function getPaidFees(Request $request)
         $offset = $validated['offset'] ?? 0;
         $limit = $validated['limit'] ?? 10; // Default limit to 10
 
-        // Fetch paid fees (`f_paid = '1'`)
-        $fees = FeeModel::where('st_id', $validated['st_id'])
+        // Fetch paid fees (`f_paid = '1'`), ordered by `f_paid_date` DESC
+        $query = FeeModel::where('st_id', $validated['st_id'])
             ->where('f_paid', '1')
-            ->offset($offset)
-            ->limit($limit)
-            ->get()
+            ->orderByDesc('f_paid_date');
+
+        // Get total count of paid fees before applying limit
+        $totalCount = $query->count();
+
+        // Apply pagination (offset & limit)
+        $fees = $query->offset($offset)->limit($limit)->get()
             ->map(function ($fee) {
                 return [
                     'id' => (string) $fee->id, // Unique fee entry ID
@@ -1977,7 +1981,7 @@ public function getPaidFees(Request $request)
                     'f_late_fee_applicable' => (string) $fee->f_late_fee_applicable, // Is late fee applicable?
                     'f_concession' => (string) ($fee->f_concession ?? '0'), // Concession
                     'total_amount' => (string) (($fee->fpp_amount + ($fee->f_late_fee_applicable == '1' ? $fee->fpp_late_fee : 0)) - ($fee->f_concession ?? 0)), // Final amount
-                    'date_paid' => $fee->f_paid_date ?? 'N/A', // Payment date (already in datetime format)
+                    'date_paid' => $fee->f_paid_date ?? 'N/A', // Payment date
                 ];
             });
 
@@ -1986,8 +1990,11 @@ public function getPaidFees(Request $request)
             'status' => true,
             'message' => 'Paid fees fetched successfully.',
             'data' => $fees,
-            'total_paid' => (string) $fees->sum('total_amount'), // Total paid amount
-            'count' => (string) $fees->count(), // Total number of paid fees
+            'total_paid' => (string) $fees->sum('total_amount'), // Total paid amount in current page
+            'count' => (string) $fees->count(), // Number of paid fees in current page
+            'total_count' => (string) $totalCount, // Total count of paid fees (without pagination)
+            'offset' => (string) $offset,
+            'limit' => (string) $limit
         ]);
 
     } catch (\Exception $e) {
@@ -1999,6 +2006,75 @@ public function getPaidFees(Request $request)
         ], 500);
     }
 }
+public function applyConcession(Request $request)
+{
+    try {
+        // Validate request input
+        $validated = $request->validate([
+            'fee_id' => 'required|integer|exists:t_fees,id',
+            'st_id' => 'required|integer|exists:t_fees,st_id',
+            'concession_amount' => 'required|numeric|min:0', // Concession must be >= 0
+        ]);
 
+        // Find the fee entry
+        $fee = FeeModel::where('id', $validated['fee_id'])
+            ->where('st_id', $validated['st_id'])
+            ->first();
+
+        if (!$fee) {
+            return response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'Fee record not found.',
+            ], 404);
+        }
+
+        // Apply the concession
+        $fee->f_concession = $validated['concession_amount'];
+
+        // Recalculate total amount (base amount + applicable late fee - concession)
+        $total = ($fee->fpp_amount + ($fee->f_late_fee_applicable == '1' ? $fee->fpp_late_fee : 0)) - $fee->f_concession;
+
+        // Ensure total amount is not negative
+        if ($total < 0) {
+            return response()->json([
+                'code' => 400,
+                'status' => false,
+                'message' => 'Concession amount cannot exceed total fee amount.',
+            ], 400);
+        }
+
+        // Save changes
+        $fee->updated_at = now(); // Update timestamp
+        $fee->save();
+
+        // Return updated fee details
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Concession applied successfully.',
+            'data' => [
+                'id' => (string) $fee->id,
+                'st_id' => (string) $fee->st_id,
+                'fpp_id' => (string) $fee->fpp_id,
+                'fpp_name' => $fee->fpp_name,
+                'fpp_due_date' => $fee->fpp_due_date,
+                'fpp_amount' => (string) $fee->fpp_amount,
+                'fpp_late_fee' => (string) $fee->fpp_late_fee,
+                'f_late_fee_applicable' => (string) $fee->f_late_fee_applicable,
+                'f_concession' => (string) $fee->f_concession,
+                'total_amount' => (string) $total,
+            ],
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while applying the concession.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
    
 }

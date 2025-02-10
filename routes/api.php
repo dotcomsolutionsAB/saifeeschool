@@ -66,6 +66,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 
          Route::post('/paid_fees', [StudentController::class, 'getPaidFees'])
                 ->middleware(['check-api-permission:students.full']);   
+        
+        Route::post('/apply_concession', [StudentController::class, 'applyConcession'])
+                ->middleware(['check-api-permission:students.full']);   
                 
                 // Add a new student (Admin only)
 
