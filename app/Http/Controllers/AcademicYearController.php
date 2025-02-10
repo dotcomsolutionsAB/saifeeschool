@@ -94,7 +94,7 @@ class AcademicYearController extends Controller
             ]);
     
             return response()->json([
-                'code' => 201,
+                'code' => 200,
                 'status' => true,
                 'message' => 'Academic year created successfully',
                 'data' => $academicYear->makeHidden(['created_at', 'updated_at']),
@@ -275,19 +275,33 @@ class AcademicYearController extends Controller
     public function destroy($id)
     {
         try {
+            // Find the academic year by ID
             $academicYear = AcademicYearModel::find($id);
-
+    
+            // If not found, return a 404 response
             if (!$academicYear) {
-                return response()->json(['message' => 'Academic year not present.'], 404);
+                return response()->json([
+                    'code' => 404,
+                    'status' => false,
+                    'message' => 'Academic year not found.',
+                ], 404);
             }
-
+    
+            // Delete the academic year
             $academicYear->delete();
-
-            return response()->json(['message' => 'Academic year deleted successfully!'], 200);
+    
+            return response()->json([
+                'code' => 200,
+                'status' => true,
+                'message' => 'Academic year deleted successfully!',
+            ], 200);
+    
         } catch (\Exception $e) {
             return response()->json([
+                'code' => 500,
+                'status' => false,
                 'message' => 'Failed to delete academic year.',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
