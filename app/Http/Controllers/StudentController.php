@@ -1896,104 +1896,109 @@ class StudentController extends Controller
         ], 200);
     }
     public function getUnpaidFees(Request $request)
-    {
-        try {
-            // Validate request
-            $validated = $request->validate([
-                'st_id' => 'required|integer|exists:t_fees,st_id',
-                'offset' => 'nullable|integer|min:0',
-                'limit' => 'nullable|integer|min:1|max:100', // Limit max to 100
-            ]);
-    
-            $offset = $validated['offset'] ?? 0;
-            $limit = $validated['limit'] ?? 10; // Default limit to 10
-    
-            // Fetch unpaid fees (`f_paid = 0`)
-            $fees = FeeModel::where('st_id', $validated['st_id'])
-                ->where('f_paid', '0')
-                ->get()
-                ->map(function ($fee) {
-                    return [
-                        'id' => $fee->id, // Unique fee entry ID
-                        'fpp_id' => $fee->fpp_id, // Fee Plan ID
-                        'fpp_name' => $fee->fpp_name, // Fee type
-                        'fpp_due_date' => date('d-m-Y', $fee->fpp_due_date), // Convert UNIX timestamp
-                        'fpp_amount' => $fee->fpp_amount, // Base amount
-                        'fpp_late_fee' => $fee->fpp_late_fee, // Late fee
-                        'f_late_fee_applicable' => $fee->f_late_fee_applicable, // Is late fee applicable?
-                        'f_concession' => $fee->f_concession, // Concession
-                        'total_amount' => ($fee->fpp_amount + $fee->f_late_fee_applicable) - $fee->f_concession, // Final amount
-                    ];
-                });
-    
-            return response()->json([
-                'code' => 200,
-                'status' => true,
-                'message' => 'Unpaid fees fetched successfully.',
-                'data' => $fees->slice($offset, $limit)->values(), // Apply offset and limit
-                'total_unpaid' => $fees->sum('total_amount'), // Total unpaid amount
-                'count' => $fees->count(), // Total number of unpaid fees
-            ]);
-    
-        } catch (\Exception $e) {
-            return response()->json([
-                'code' => 500,
-                'status' => false,
-                'message' => 'An error occurred while fetching unpaid fees.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
+{
+    try {
+        // Validate request
+        $validated = $request->validate([
+            'st_id' => 'required|integer|exists:t_fees,st_id',
+            'offset' => 'nullable|integer|min:0',
+            'limit' => 'nullable|integer|min:1|max:100', // Limit max to 100
+        ]);
 
-    public function getPaidFees(Request $request)
-    {
-        try {
-            // Validate request
-            $validated = $request->validate([
-                'st_id' => 'required|integer|exists:t_fees,st_id',
-                'offset' => 'nullable|integer|min:0',
-                'limit' => 'nullable|integer|min:1|max:100', // Limit max to 100
-            ]);
-    
-            $offset = $validated['offset'] ?? 0;
-            $limit = $validated['limit'] ?? 10; // Default limit to 10
-    
-            // Fetch paid fees (`f_paid = 1`)
-            $fees = FeeModel::where('st_id', $validated['st_id'])
-                ->where('f_paid', '1')
-                ->get()
-                ->map(function ($fee) {
-                    return [
-                        'id' => $fee->id, // Unique fee entry ID
-                        'fpp_id' => $fee->fpp_id, // Fee Plan ID
-                        'fpp_name' => $fee->fpp_name, // Fee type
-                        'fpp_due_date' => date('d-m-Y', $fee->fpp_due_date), // Convert UNIX timestamp
-                        'fpp_amount' => $fee->fpp_amount, // Base amount
-                        'fpp_late_fee' => $fee->fpp_late_fee, // Late fee
-                        'f_late_fee_applicable' => $fee->f_late_fee_applicable, // Is late fee applicable?
-                        'f_concession' => $fee->f_concession, // Concession
-                        'total_amount' => ($fee->fpp_amount + $fee->f_late_fee_applicable) - $fee->f_concession, // Final amount
-                        'date_paid' => $fee->f_paid_date ? date('d-m-Y', strtotime($fee->f_paid_date)) : 'N/A', // Payment date
-                    ];
-                });
-    
-            return response()->json([
-                'code' => 200,
-                'status' => true,
-                'message' => 'Paid fees fetched successfully.',
-                'data' => $fees->slice($offset, $limit)->values(), // Apply offset and limit
-                'total_paid' => $fees->sum('total_amount'), // Total paid amount
-                'count' => $fees->count(), // Total number of paid fees
-            ]);
-    
-        } catch (\Exception $e) {
-            return response()->json([
-                'code' => 500,
-                'status' => false,
-                'message' => 'An error occurred while fetching paid fees.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
+        $offset = $validated['offset'] ?? 0;
+        $limit = $validated['limit'] ?? 10; // Default limit to 10
 
+        // Fetch unpaid fees (`f_paid = '0'`)
+        $fees = FeeModel::where('st_id', $validated['st_id'])
+            ->where('f_paid', '0')
+            ->offset($offset)
+            ->limit($limit)
+            ->get()
+            ->map(function ($fee) {
+                return [
+                    'id' => (string) $fee->id, // Unique fee entry ID
+                    'fpp_id' => (string) $fee->fpp_id, // Fee Plan ID
+                    'fpp_name' => $fee->fpp_name, // Fee type
+                    'fpp_due_date' => $fee->fpp_due_date, // Date is already in datetime format
+                    'fpp_amount' => (string) $fee->fpp_amount, // Base amount
+                    'fpp_late_fee' => (string) $fee->fpp_late_fee, // Late fee
+                    'f_late_fee_applicable' => (string) $fee->f_late_fee_applicable, // Is late fee applicable?
+                    'f_concession' => (string) ($fee->f_concession ?? '0'), // Concession
+                    'total_amount' => (string) (($fee->fpp_amount + ($fee->f_late_fee_applicable == '1' ? $fee->fpp_late_fee : 0)) - ($fee->f_concession ?? 0)), // Final amount
+                ];
+            });
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Unpaid fees fetched successfully.',
+            'data' => $fees,
+            'total_unpaid' => (string) $fees->sum('total_amount'), // Total unpaid amount
+            'count' => (string) $fees->count(), // Total number of unpaid fees
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching unpaid fees.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+public function getPaidFees(Request $request)
+{
+    try {
+        // Validate request
+        $validated = $request->validate([
+            'st_id' => 'required|integer|exists:t_fees,st_id',
+            'offset' => 'nullable|integer|min:0',
+            'limit' => 'nullable|integer|min:1|max:100', // Limit max to 100
+        ]);
+
+        $offset = $validated['offset'] ?? 0;
+        $limit = $validated['limit'] ?? 10; // Default limit to 10
+
+        // Fetch paid fees (`f_paid = '1'`)
+        $fees = FeeModel::where('st_id', $validated['st_id'])
+            ->where('f_paid', '1')
+            ->offset($offset)
+            ->limit($limit)
+            ->get()
+            ->map(function ($fee) {
+                return [
+                    'id' => (string) $fee->id, // Unique fee entry ID
+                    'fpp_id' => (string) $fee->fpp_id, // Fee Plan ID
+                    'fpp_name' => $fee->fpp_name, // Fee type
+                    'fpp_due_date' => $fee->fpp_due_date, // Date is already in datetime format
+                    'fpp_amount' => (string) $fee->fpp_amount, // Base amount
+                    'fpp_late_fee' => (string) $fee->fpp_late_fee, // Late fee
+                    'f_late_fee_applicable' => (string) $fee->f_late_fee_applicable, // Is late fee applicable?
+                    'f_concession' => (string) ($fee->f_concession ?? '0'), // Concession
+                    'total_amount' => (string) (($fee->fpp_amount + ($fee->f_late_fee_applicable == '1' ? $fee->fpp_late_fee : 0)) - ($fee->f_concession ?? 0)), // Final amount
+                    'date_paid' => $fee->f_paid_date ?? 'N/A', // Payment date (already in datetime format)
+                ];
+            });
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Paid fees fetched successfully.',
+            'data' => $fees,
+            'total_paid' => (string) $fees->sum('total_amount'), // Total paid amount
+            'count' => (string) $fees->count(), // Total number of paid fees
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching paid fees.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+   
 }
