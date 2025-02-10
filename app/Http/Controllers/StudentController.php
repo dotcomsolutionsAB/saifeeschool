@@ -341,7 +341,7 @@ class StudentController extends Controller
             return [
                 'file_id' => (string) $file->id,
                 'file_name' => $file->file_name,
-                'file_url' => Storage::url($file->file_url),
+                'file_url' => url(Storage::url($file->file_url)),
                 'file_ext' => $file->file_ext,
                 'file_size' => (string) $file->file_size,
                 'uploaded_at' => $file->created_at->format('Y-m-d H:i:s'),
