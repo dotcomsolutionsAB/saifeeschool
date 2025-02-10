@@ -9,32 +9,7 @@ use League\Csv\Statement;
 
 class FeePlanController extends Controller
 {
-    //
-    // Fetch all records or a specific record by ID
-    // public function index($id = null)
-    // {
-    //     if ($id) {
-    //         $feePlan = FeePlanModel::find($id);
-
-    //         if ($feePlan) {
-    //             return response()->json([
-    //                 'message' => 'Fee plan fetched successfully!',
-    //                 'data' => $feePlan->makeHidden(['created_at', 'updated_at'])
-    //             ], 200);
-    //         }
-    //         return response()->json(['message' => 'Fee plan not found.'], 404);
-    //     }
-
-    //     $feePlans = FeePlanModel::all()->makeHidden(['created_at', 'updated_at']);
-
-    //     return $feePlans->isNotEmpty()
-    //         ? response()->json([
-    //             'message' => 'Fee plans fetched successfully!',
-    //             'data' => $feePlans,
-    //             'count' => $feePlans->count()
-    //         ], 200)
-    //         : response()->json(['message' => 'No fee plans available.'], 400);
-    // }
+    
     public function index(Request $request, $id = null)
     {
         if (!$id) {
@@ -76,6 +51,72 @@ class FeePlanController extends Controller
         return response()->json(['message' => 'Fee plan not found.'], 404);
     }
 
+    public function viewAll(Request $request)
+{
+    try {
+        // Validate filters
+        $validated = $request->validate([
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+            'type'  => 'nullable|string|in:monthly,admission,one_time,recurring',
+        ]);
+
+        $ay_id = $validated['ay_id'];
+
+        // Base query to fetch fee plans
+        $query = DB::table('t_fee_plans as fees')
+            ->leftJoin('t_fee_plan_periods as fpp', function ($join) use ($ay_id) {
+                $join->on('fees.id', '=', 'fpp.fp_id')
+                    ->where('fpp.ay_id', '=', $ay_id);
+            })
+            ->select(
+                'fees.id as fp_id',
+                'fees.fp_name',
+                DB::raw('MAX(fpp.fpp_due_date) as last_due_date'),
+                DB::raw('MAX(fpp.fpp_amount) as last_fpp_amount'),
+                DB::raw('MAX(fpp.fpp_order_no) as last_fpp_order_no'),
+                DB::raw('(SELECT COUNT(DISTINCT st_id) FROM t_fees WHERE fpp_id = fpp.id) AS applied_students')
+            )
+            ->where('fees.ay_id', $ay_id)
+            ->groupBy('fees.id', 'fees.fp_name');
+
+        // Apply type filters
+        if (!empty($validated['type'])) {
+            switch ($validated['type']) {
+                case 'monthly':
+                    $query->where('fees.fp_recurring', '1')->where('fees.fp_main_monthly_fee', '1');
+                    break;
+                case 'admission':
+                    $query->where('fees.fp_main_admission_fee', '1');
+                    break;
+                case 'one_time':
+                    $query->where('fees.fp_recurring', '0')->where('fees.fp_main_monthly_fee', '1');
+                    break;
+                case 'recurring':
+                    $query->where('fees.fp_recurring', '1')->where('fees.fp_main_monthly_fee', '0');
+                    break;
+            }
+        }
+
+        // Fetch data
+        $feePlans = $query->orderBy('last_fpp_order_no', 'desc')->get();
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Fee plans with periods fetched successfully!',
+            'data' => $feePlans,
+            'count' => $feePlans->count(),
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching fee plans with periods.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
 
 
     // Create a new record
