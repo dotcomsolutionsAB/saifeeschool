@@ -94,51 +94,95 @@ class AcademicYearController extends Controller
     }
 
     // Fetch all academic years or a specific one
+    use Carbon\Carbon;
+    use Illuminate\Support\Facades\DB;
+    
     public function index($id = null)
     {
-        if ($id) {
-            // Fetch specific record
-            $academicYear = AcademicYearModel::find($id);
-
-            if ($academicYear) {
+        try {
+            if ($id) {
+                // Fetch specific academic year
+                $academicYear = AcademicYearModel::find($id);
+    
+                if (!$academicYear) {
+                    return response()->json([
+                        'code' => 200,
+                        'status' => true,
+                        'data' => [],
+                        'message' => 'Academic year not found'
+                    ], 200);
+                }
+    
+                // Convert start & end month to month names
+                $academicYear->ay_start_month = Carbon::createFromFormat('m', $academicYear->ay_start_month)->format('F');
+                $academicYear->ay_end_month = Carbon::createFromFormat('m', $academicYear->ay_end_month)->format('F');
+    
+                // Count total classes & fee plans associated with this academic year
+                $totalClasses = DB::table('t_class_groups')->where('ay_id', $academicYear->id)->count();
+                $totalFeePlans = DB::table('t_fee_plans')->where('ay_id', $academicYear->id)->count();
+    
+                return response()->json([
+                    'code' => 200,
+                    'status' => true,
+                    'message' => 'Academic year fetched successfully',
+                    'data' => [
+                        'ay_id' => (string) $academicYear->id,
+                        'sch_id' => (string) $academicYear->sch_id,
+                        'ay_name' => $academicYear->ay_name,
+                        'ay_start_year' => (string) $academicYear->ay_start_year,
+                        'ay_start_month' => $academicYear->ay_start_month,
+                        'ay_end_year' => (string) $academicYear->ay_end_year,
+                        'ay_end_month' => $academicYear->ay_end_month,
+                        'ay_current' => (string) $academicYear->ay_current,
+                        'total_classes' => (string) $totalClasses,
+                        'total_fee_plans' => (string) $totalFeePlans,
+                    ]
+                ], 200);
+            } else {
+                // Fetch all academic years
+                $academicYears = AcademicYearModel::all();
+    
+                if ($academicYears->isEmpty()) {
+                    return response()->json([
+                        'code' => 200,
+                        'status' => true,
+                        'data' => [],
+                        'message' => 'No academic years available.'
+                    ], 200);
+                }
+    
+                // Map through academic years, converting month numbers to names & counting related data
+                $formattedAcademicYears = $academicYears->map(function ($year) {
+                    return [
+                        'ay_id' => (string) $year->id,
+                        'sch_id' => (string) $year->sch_id,
+                        'ay_name' => $year->ay_name,
+                        'ay_start_year' => (string) $year->ay_start_year,
+                        'ay_start_month' => Carbon::createFromFormat('m', $year->ay_start_month)->format('F'),
+                        'ay_end_year' => (string) $year->ay_end_year,
+                        'ay_end_month' => Carbon::createFromFormat('m', $year->ay_end_month)->format('F'),
+                        'ay_current' => (string) $year->ay_current,
+                        'total_classes' => (string) DB::table('t_class_groups')->where('ay_id', $year->id)->count(),
+                        'total_fee_plans' => (string) DB::table('t_fee_plans')->where('ay_id', $year->id)->count(),
+                    ];
+                });
+    
                 return response()->json([
                     'code' => 200,
                     'status' => true,
                     'message' => 'Academic years fetched successfully',
-                    'data' => $academicYear->makeHidden(['id', 'created_at', 'updated_at'])
+                    'data' => $formattedAcademicYears
                 ], 200);
             }
-
+        } catch (\Exception $e) {
             return response()->json([
-                'code' => 200,
-                'status'=> true,
-                'data'=>[],
-                'message' => 'Academic year not found'
-            ], 200);
-        } else {
-            // Fetch all records
-            $academicYears = AcademicYearModel::all();
-
-            $academicYears->each(function ($year) {
-                $year->makeHidden(['created_at', 'updated_at']);
-            });
-
-            return $academicYears->isNotEmpty()
-                ? response()->json([
-                    'code' => 200,
-                    'status' => true,
-                    'message' => 'Academic years fetched successfully',
-                    'data' => array_slice($academicYears->toArray(), 0, 10)
-                ], 200)
-                : response()->json([
-                    'code' => 200,
-                    'status'=> true,
-                    'data'=>[],
-                    'message' => 'No academic years available.'
-                ], 200);
+                'code' => 500,
+                'status' => false,
+                'message' => 'An error occurred while fetching academic years.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
-
     // Delete an Academic Year
     public function destroy($id)
     {
