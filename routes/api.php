@@ -60,6 +60,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::post('/upload', [StudentController::class, 'uploadFiles'])
                 ->middleware(['check-api-permission:students.full']);   
+        
+        Route::post('/files', [StudentController::class, 'getFiles'])
+                ->middleware(['check-api-permission:students.full']);   
 
         Route::post('/pending_fees', [StudentController::class, 'getUnpaidFees'])
                 ->middleware(['check-api-permission:students.full']);   

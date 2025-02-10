@@ -220,98 +220,130 @@ class StudentController extends Controller
         }
     }
 
+  
+    
     public function uploadFiles(Request $request)
     {
-        $request->validate([
-            'st_roll_no' => 'required|exists:t_students,st_roll_no',
-            'file_type' => 'required|array|min:1',
-            'file_type.*' => 'required|in:photo,birth_certificate,aadhar,attachment',
-            'file' => 'required|array|min:1',
-            'file.*' => 'required|file|mimes:jpeg,jpg,png,pdf|max:2048',
-        ]);
-
-        $studentRollNo = $request->input('st_id');
-        $fileTypes = $request->input('file_type');
-        $files = $request->file('file');
-
         try {
-            // Fetch the student using roll number
-            $student = StudentModel::where('st_id', $studentRollNo)->first();
-
-            if (!$student) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Student not found.',
-                ], 404);
+            // Validate request
+            $validated = $request->validate([
+                'st_id' => 'required|integer|exists:t_students,id',
+                'file_name' => 'required|array|min:1|max:5', // Up to 5 files in one request
+                'file_name.*' => 'required|string|max:255', // File name must be a string
+                'file' => 'required|array|min:1|max:5',
+                'file.*' => 'required|file|max:5120', // Max 5MB file size
+            ]);
+    
+            $studentId = $validated['st_id'];
+    
+            // Find User by `st_id` (stored in `username` column)
+            $user = User::where('username', $studentId)->first();
+    
+            // Generate `user_token` if null
+            if (!$user->user_token) {
+                $randomString = Str::random(10); // Generate a random string
+                $user->user_token = md5($studentId . $randomString . time()); // Generate MD5 hash
+                $user->save(); // Update user record
             }
-
-            // Check if the student has a matching user by email
-            $user = User::where('email', $student->st_gmail_address)->first();
-
-            if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No matching user found for the student email.',
-                ], 404);
-            }
-
-            $userToken = $student->user_token;
+    
+            $userToken = $user->user_token;
             $directory = "uploads/students/{$userToken}";
-
+    
             // Ensure directory exists
             if (!Storage::disk('public')->exists($directory)) {
                 Storage::disk('public')->makeDirectory($directory);
             }
-
+    
             $uploadedFiles = [];
-
-            foreach ($fileTypes as $index => $fileType) {
-                if (!isset($files[$index])) {
-                    continue;
-                }
-
-                $file = $files[$index];
-                $fileName = match ($fileType) {
-                    'photo' => "{$studentRollNo}_photo.{$file->getClientOriginalExtension()}",
-                    'birth_certificate' => "{$studentRollNo}_birth.{$file->getClientOriginalExtension()}",
-                    'aadhar' => "{$studentRollNo}_aadhar.{$file->getClientOriginalExtension()}",
-                    'attachment' => "{$studentRollNo}_attachment.{$file->getClientOriginalExtension()}",
-                };
-
+    
+            // Process each uploaded file
+            foreach ($validated['file'] as $index => $file) {
+                $fileName = "{$studentId}_" . time() . "_{$validated['file_name'][$index]}.{$file->getClientOriginalExtension()}";
                 $filePath = $file->storeAs($directory, $fileName, 'public');
-
-                // Save file details in the uploads table (replace if exists)
-                $upload = UploadModel::updateOrCreate(
-                    ['file_name' => $fileName],
-                    [
-                        'file_ext' => $file->getClientOriginalExtension(),
-                        'file_url' => $filePath,
-                        'file_size' => $file->getSize(),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]
-                );
-
+    
+                // Save file details in `uploads` table
+                $upload = UploadModel::create([
+                    'st_id' => $studentId,
+                    'file_name' => $fileName,
+                    'file_ext' => $file->getClientOriginalExtension(),
+                    'file_url' => $filePath,
+                    'file_size' => $file->getSize(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+    
                 $uploadedFiles[] = [
-                    'file_id' => $upload->id,
+                    'file_id' => (string) $upload->id,
                     'file_name' => $upload->file_name,
                     'file_url' => Storage::url($filePath),
+                    'file_ext' => $upload->file_ext,
                 ];
             }
-
+    
             return response()->json([
+                'code' => 200,
                 'success' => true,
                 'message' => 'Files uploaded successfully.',
                 'data' => $uploadedFiles,
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
+                'code' => 500,
                 'success' => false,
                 'message' => 'File upload failed.',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
+
+    public function getFiles(Request $request)
+{
+    try {
+        // Validate request
+        $validated = $request->validate([
+            'st_id' => 'required|integer|exists:t_students,id',
+        ]);
+
+        $studentId = $validated['st_id'];
+
+        // Retrieve all files associated with the student
+        $files = UploadModel::where('st_id', $studentId)->get();
+
+        if ($files->isEmpty()) {
+            return response()->json([
+                'code' => 404,
+                'success' => true,
+                'message' => 'No files found for the student.',
+                'data' => [],
+            ], 200);
+        }
+
+        $formattedFiles = $files->map(function ($file) {
+            return [
+                'file_id' => (string) $file->id,
+                'file_name' => $file->file_name,
+                'file_url' => Storage::url($file->file_url),
+                'file_ext' => $file->file_ext,
+                'file_size' => (string) $file->file_size,
+                'uploaded_at' => $file->created_at->format('Y-m-d H:i:s'),
+            ];
+        });
+
+        return response()->json([
+            'code' => 200,
+            'success' => true,
+            'message' => 'Files retrieved successfully.',
+            'data' => $formattedFiles,
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'success' => false,
+            'message' => 'Failed to retrieve files.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
 
     // update
     public function update(Request $request, $id)
@@ -2011,27 +2043,42 @@ public function applyConcession(Request $request)
     try {
         // Validate request input
         $validated = $request->validate([
-            'fee_id' => 'required|integer|exists:t_fees,id',
+            'fpp_id' => 'required|integer|exists:t_fees,fpp_id',
             'st_id' => 'required|integer|exists:t_fees,st_id',
-            'concession_amount' => 'required|numeric|min:0', // Concession must be >= 0
+            'concession_amount' => 'nullable|numeric|min:0', // Concession can be null
+            'late_fee' => 'nullable|numeric|min:0', // Late fee can be null, but must be >= 0
         ]);
 
         // Find the fee entry
-        $fee = FeeModel::where('id', $validated['fee_id'])
+        $fee = FeeModel::where('fpp_id', $validated['fpp_id'])
             ->where('st_id', $validated['st_id'])
-            ->where('f_paid', '0')
+            ->where('f_paid', '0') // Only allow updates for unpaid fees
             ->first();
 
         if (!$fee) {
             return response()->json([
                 'code' => 404,
                 'status' => false,
-                'message' => 'Fee record not found.',
+                'message' => 'Fee record not found or already paid.',
             ], 404);
         }
 
-        // Apply the concession
-        $fee->f_concession = $validated['concession_amount'];
+        // Apply Concession (only if provided)
+        if (isset($validated['concession_amount'])) {
+            $fee->f_concession = $validated['concession_amount'];
+        }
+
+        // Apply Late Fee Reduction (only if provided)
+        if (isset($validated['late_fee'])) {
+            if ($validated['late_fee'] > $fee->fpp_late_fee) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => 'Late fee cannot be increased.',
+                ], 400);
+            }
+            $fee->fpp_late_fee = $validated['late_fee']; // Reduce late fee
+        }
 
         // Recalculate total amount (base amount + applicable late fee - concession)
         $total = ($fee->fpp_amount + ($fee->f_late_fee_applicable == '1' ? $fee->fpp_late_fee : 0)) - $fee->f_concession;
@@ -2041,19 +2088,19 @@ public function applyConcession(Request $request)
             return response()->json([
                 'code' => 400,
                 'status' => false,
-                'message' => 'Concession amount cannot exceed total fee amount.',
+                'message' => 'Total amount cannot be negative.',
             ], 400);
         }
 
         // Save changes
-        $fee->updated_at = now(); // Update timestamp
+        $fee->updated_at = now();
         $fee->save();
 
         // Return updated fee details
         return response()->json([
             'code' => 200,
             'status' => true,
-            'message' => 'Concession applied successfully.',
+            'message' => 'Concession and late fee updated successfully.',
             'data' => [
                 'id' => (string) $fee->id,
                 'st_id' => (string) $fee->st_id,
@@ -2072,7 +2119,7 @@ public function applyConcession(Request $request)
         return response()->json([
             'code' => 500,
             'status' => false,
-            'message' => 'An error occurred while applying the concession.',
+            'message' => 'An error occurred while updating the fee.',
             'error' => $e->getMessage(),
         ], 500);
     }
