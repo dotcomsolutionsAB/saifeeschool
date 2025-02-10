@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\AcademicYearModel;
 use League\Csv\Reader;
 use League\Csv\Statement;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AcademicYearController extends Controller
 {
@@ -94,8 +96,6 @@ class AcademicYearController extends Controller
     }
 
     // Fetch all academic years or a specific one
-    use Carbon\Carbon;
-    use Illuminate\Support\Facades\DB;
     
     public function index($id = null)
     {
