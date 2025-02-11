@@ -184,7 +184,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 ->middleware(['check-api-permission:fee.full, fee.view']); // Fetch all or one record
         
 
-        Route::post('/register', [FeePlanPeriodController::class, 'register'])
+        Route::post('/register', [FeePlanPeriodController::class, 'createOrUpdate'])
                 ->middleware(['check-api-permission:fee.full']); // Create a new record
 
         Route::post('/update/{id}', [FeePlanPeriodController::class, 'update'])
@@ -207,7 +207,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 
                 
 
-        Route::post('/register', [FeePlanController::class, 'register'])
+        Route::post('/register', [FeePlanController::class, 'createOrUpdate'])
                 ->middleware(['check-api-permission:fee.full']); // Create a new record
 
         Route::post('/update/{id}', [FeePlanController::class, 'update'])

@@ -130,36 +130,115 @@ class FeePlanController extends Controller
     }
 
     // Create a new record
-    public function register(Request $request)
+    public function createOrUpdate(Request $request)
     {
-        $validated = $request->validate([
-            'ay_id' => 'nullable|integer|exists:t_academic_years,id',
-            'fp_name' => 'nullable|string|max:1000',
-            'fp_recurring' => 'required|in:0,1',
-            'fp_main_monthly_fee' => 'required|in:0,1',
-            'fp_main_admission_fee' => 'required|in:0,1',
-            'cg_id' => 'required|string|max:100',
-        ]);
-
         try {
-            // $feePlan = FeePlanModel::create($validated);
-            $feePlan = FeePlanModel::create([
-                'ay_id' => $validated['ay_id'] ?? null,
-                'fp_name' => $validated['fp_name'] ?? null,
-                'fp_recurring' => $validated['fp_recurring'],
-                'fp_main_monthly_fee' => $validated['fp_main_monthly_fee'],
-                'fp_main_admission_fee' => $validated['fp_main_admission_fee'],
-                'cg_id' => $validated['cg_id'],
+            // Validate request
+            $validated = $request->validate([
+                'fp_id' => 'nullable|integer|exists:t_fee_plans,id', // Required only for update
+                'ay_id' => 'required|integer|exists:t_academic_years,id',
+                'fp_name' => 'required|string|max:1000',
+                'type' => 'required|in:monthly,one_time,admission,recurring', // Type constraint
+                'amount' => 'nullable|numeric|min:0', // Required for non-monthly types
+                'due_date' => 'nullable|date', // Required for non-monthly types
+                'late_fee' => 'nullable|numeric|min:0', // Late fee allowed for all types
             ]);
-
+    
+            // Check for duplicate fee name within the academic year
+            $existingFeePlan = FeePlanModel::where('ay_id', $validated['ay_id'])
+                ->where('fp_name', $validated['fp_name'])
+                ->when(!empty($validated['fp_id']), function ($query) use ($validated) {
+                    return $query->where('id', '!=', $validated['fp_id']);
+                })
+                ->exists();
+    
+            if ($existingFeePlan) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => 'A fee plan with this name already exists in the given academic year.',
+                ], 400);
+            }
+    
+            // Determine flags based on the type
+            $fp_recurring = $validated['type'] === 'recurring' ? '1' : '0';
+            $fp_main_monthly_fee = $validated['type'] === 'monthly' ? '1' : '0';
+            $fp_main_admission_fee = $validated['type'] === 'admission' ? '1' : '0';
+    
+            // If `fp_id` exists, update the fee plan
+            if (!empty($validated['fp_id'])) {
+                $feePlan = FeePlanModel::find($validated['fp_id']);
+                $feePlan->update([
+                    'ay_id' => $validated['ay_id'],
+                    'fp_name' => $validated['fp_name'],
+                    'fp_recurring' => $fp_recurring,
+                    'fp_main_monthly_fee' => $fp_main_monthly_fee,
+                    'fp_main_admission_fee' => $fp_main_admission_fee,
+                ]);
+    
+                $message = 'Fee plan updated successfully!';
+            } else {
+                // Create a new fee plan
+                $feePlan = FeePlanModel::create([
+                    'ay_id' => $validated['ay_id'],
+                    'fp_name' => $validated['fp_name'],
+                    'fp_recurring' => $fp_recurring,
+                    'fp_main_monthly_fee' => $fp_main_monthly_fee,
+                    'fp_main_admission_fee' => $fp_main_admission_fee,
+                ]);
+    
+                $message = 'Fee plan created successfully!';
+            }
+    
+            // Now, handle fee plan period entries in `t_fee_plan_periods`
+            if ($validated['type'] === 'monthly') {
+                // Create an entry for monthly plans with name "Name (Original Year)"
+                FeePlanPeriodModel::updateOrCreate(
+                    [
+                        'fp_id' => $feePlan->id,
+                        'ay_id' => $validated['ay_id']
+                    ],
+                    [
+                        'fpp_name' => "{$validated['fp_name']} (Original {$validated['ay_id']})",
+                        'fpp_amount' => null, // Monthly fees don't have an amount
+                        'fpp_due_date' => null, // No due date for monthly fees
+                        'fpp_late_fee' => $validated['late_fee'] ?? 0, // Late fee can be set
+                        'fpp_month_no' => null,
+                        'fpp_year_no' => null,
+                        'fpp_order_no' => null
+                    ]
+                );
+            } else {
+                // Create or update fee plan period for other types
+                FeePlanPeriodModel::updateOrCreate(
+                    [
+                        'fp_id' => $feePlan->id,
+                        'ay_id' => $validated['ay_id']
+                    ],
+                    [
+                        'fpp_name' => $validated['fp_name'],
+                        'fpp_amount' => $validated['amount'] ?? 0,
+                        'fpp_due_date' => $validated['due_date'] ?? null,
+                        'fpp_late_fee' => $validated['late_fee'] ?? 0,
+                        'fpp_month_no' => null,
+                        'fpp_year_no' => null,
+                        'fpp_order_no' => null
+                    ]
+                );
+            }
+    
             return response()->json([
-                'message' => 'Fee plan created successfully!',
-                'data' => $feePlan->makeHidden(['created_at', 'updated_at'])
+                'code' => 201,
+                'status' => true,
+                'message' => $message,
+                'data' => $feePlan->makeHidden(['created_at', 'updated_at']),
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Failed to create fee plan.',
-                'error' => $e->getMessage()
+                'code' => 500,
+                'status' => false,
+                'message' => 'Failed to create or update fee plan.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
