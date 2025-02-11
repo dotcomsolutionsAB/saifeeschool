@@ -339,7 +339,7 @@ public function createOrUpdateMonthlyFeePeriods(Request $request)
         }
 
         // Fetch Fee Plan
-        $feePlan = FeePlanModel::where('id', $fp_id)->first()->value('fp_late_fee') ?? 0;
+        $feePlan = FeePlanModel::where('id', $fp_id)->first()->value('fpp_late_fee') ?? 0;
         if (!$feePlan) {
             return response()->json([
                 'code' => 404,
