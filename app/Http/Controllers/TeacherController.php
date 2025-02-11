@@ -250,4 +250,27 @@ class TeacherController extends Controller
             'errors' => $errors
         ]);
     }
+
+    public function getTeacherNames()
+{
+    try {
+        // Fetch only teacher IDs and names
+        $teachers = TeacherModel::select('id', 'name')->orderBy('name')->get();
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Teacher names fetched successfully!',
+            'data' => $teachers,
+            'count' => $teachers->count(),
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching teacher names.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
 }
