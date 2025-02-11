@@ -358,7 +358,10 @@ public function createOrUpdateMonthlyFeePeriods(Request $request)
         }
 
         // Fetch late fee from Fee Plan
-        $lateFee = FeePlanPeriodModel::where('fp_id', $fp_id)->value('fpp_late_fee') ?? 0;
+        $lateFee = FeePlanPeriodModel::where('fp_id', $fp_id)
+            ->where('ay_id', $ay_id)
+            ->orderBy('id') // Get latest late fee from the highest order number
+            ->value('fpp_late_fee') ?? 0;
         $className = $feePlan->fp_name;
 
         // **Order Mapping**
