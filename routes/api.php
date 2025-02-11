@@ -116,7 +116,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Teacher Routes
     Route::prefix('teacher')->group(function () {
         Route::post('/', [TeacherController::class, 'create']);   
-        Route::post('/get', [TeacherController::class, 'getTeacherNames']);       // Add a new teacher (Admin only)
+        Route::get('/get', [TeacherController::class, 'getTeacherNames']);       // Add a new teacher (Admin only)
         Route::post('/{id}', [TeacherController::class, 'update']);     // Update a teacher (Admin only)
         Route::get('/view/{id?}', [TeacherController::class, 'index']);  // Fetch all or specific teacher
         Route::delete('/{id}', [TeacherController::class, 'destroy']); // Delete a teacher
