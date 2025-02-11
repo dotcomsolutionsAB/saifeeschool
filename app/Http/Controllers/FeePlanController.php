@@ -70,16 +70,18 @@ class FeePlanController extends Controller
                 $join->on('fees.id', '=', 'fpp.fp_id')
                     ->where('fpp.ay_id', '=', $ay_id);
             })
-            ->select(
-                'fees.id as fp_id',
-                'fees.fp_name',
-                DB::raw('MAX(fpp.fpp_due_date) as last_due_date'),
-                DB::raw('MAX(fpp.fpp_amount) as last_fpp_amount'),
-                DB::raw('MAX(fpp.fpp_order_no) as last_fpp_order_no'),
-                DB::raw('(SELECT COUNT(DISTINCT st_id) FROM t_fees WHERE fpp_id = fpp.id) AS applied_students')
-            )
+            ->selectRaw("
+                fees.id as fp_id,
+                ANY_VALUE(fees.fp_name) as fp_name,
+                MAX(fpp.fpp_due_date) as last_due_date,
+                MAX(fpp.fpp_amount) as last_fpp_amount,
+                MAX(fpp.fpp_order_no) as last_fpp_order_no,
+                (SELECT COUNT(DISTINCT st_id) FROM t_fees WHERE fpp_id IN 
+                    (SELECT id FROM t_fee_plan_periods WHERE fp_id = fees.id AND ay_id = ?)) 
+                    AS applied_students
+            ", [$ay_id])
             ->where('fees.ay_id', $ay_id)
-            ->groupBy('fees.id', 'fees.fp_name');
+            ->groupBy('fees.id');
 
         // Apply type filters
         if (!empty($validated['type'])) {
@@ -119,7 +121,6 @@ class FeePlanController extends Controller
         ], 500);
     }
 }
-
 
     // Create a new record
     public function register(Request $request)
