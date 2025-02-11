@@ -54,73 +54,73 @@ class FeePlanController extends Controller
     }
 
     public function viewAll(Request $request)
-{
-    try {
-        // Validate filters
-        $validated = $request->validate([
-            'ay_id' => 'required|integer|exists:t_academic_years,id',
-            'type'  => 'nullable|string|in:monthly,admission,one_time,recurring',
-        ]);
-
-        $ay_id = $validated['ay_id'];
-
-        // Base query to fetch fee plans
-        $query = DB::table('t_fee_plans as fees')
-            ->leftJoin('t_fee_plan_periods as fpp', function ($join) use ($ay_id) {
-                $join->on('fees.id', '=', 'fpp.fp_id')
-                    ->where('fpp.ay_id', '=', $ay_id);
-            })
-            ->selectRaw("
-                fees.id as fp_id,
-                ANY_VALUE(fees.fp_name) as fp_name,
-                MAX(fpp.fpp_due_date) as last_due_date,
-                MAX(fpp.fpp_amount) as last_fpp_amount,
-                MAX(fpp.fpp_order_no) as last_fpp_order_no,
-                (SELECT COUNT(DISTINCT st_id) FROM t_fees WHERE fpp_id IN 
-                    (SELECT id FROM t_fee_plan_periods WHERE fp_id = fees.id AND ay_id = ?)) 
-                    AS applied_students
-            ", [$ay_id])
-            ->where('fees.ay_id', $ay_id)
-            ->groupBy('fees.id');
-
-        // Apply type filters
-        if (!empty($validated['type'])) {
-            switch ($validated['type']) {
-                case 'monthly':
-                    $query->where('fees.fp_recurring', '1')->where('fees.fp_main_monthly_fee', '1');
-                    break;
-                case 'admission':
-                    $query->where('fees.fp_main_admission_fee', '1');
-                    break;
-                case 'one_time':
-                    $query->where('fees.fp_recurring', '0')->where('fees.fp_main_monthly_fee', '1');
-                    break;
-                case 'recurring':
-                    $query->where('fees.fp_recurring', '1')->where('fees.fp_main_monthly_fee', '0');
-                    break;
+    {
+        try {
+            // Validate filters
+            $validated = $request->validate([
+                'ay_id' => 'required|integer|exists:t_academic_years,id',
+                'type'  => 'nullable|string|in:monthly,admission,one_time,recurring',
+            ]);
+    
+            $ay_id = $validated['ay_id'];
+    
+            // Base query to fetch fee plans
+            $query = DB::table('t_fee_plans as fees')
+                ->leftJoin('t_fee_plan_periods as fpp', function ($join) use ($ay_id) {
+                    $join->on('fees.id', '=', 'fpp.fp_id')
+                        ->where('fpp.ay_id', '=', $ay_id);
+                })
+                ->selectRaw("
+                    fees.id as fp_id,
+                    MIN(fees.fp_name) as fp_name,  -- Using MIN() instead of ANY_VALUE()
+                    MAX(fpp.fpp_due_date) as last_due_date,
+                    MAX(fpp.fpp_amount) as last_fpp_amount,
+                    MAX(fpp.fpp_order_no) as last_fpp_order_no,
+                    (SELECT COUNT(DISTINCT st_id) FROM t_fees WHERE fpp_id IN 
+                        (SELECT id FROM t_fee_plan_periods WHERE fp_id = fees.id AND ay_id = ?)) 
+                        AS applied_students
+                ", [$ay_id])
+                ->where('fees.ay_id', $ay_id)
+                ->groupBy('fees.id');
+    
+            // Apply type filters
+            if (!empty($validated['type'])) {
+                switch ($validated['type']) {
+                    case 'monthly':
+                        $query->where('fees.fp_recurring', '1')->where('fees.fp_main_monthly_fee', '1');
+                        break;
+                    case 'admission':
+                        $query->where('fees.fp_main_admission_fee', '1');
+                        break;
+                    case 'one_time':
+                        $query->where('fees.fp_recurring', '0')->where('fees.fp_main_monthly_fee', '1');
+                        break;
+                    case 'recurring':
+                        $query->where('fees.fp_recurring', '1')->where('fees.fp_main_monthly_fee', '0');
+                        break;
+                }
             }
+    
+            // Fetch data
+            $feePlans = $query->orderBy('last_fpp_order_no', 'desc')->get();
+    
+            return response()->json([
+                'code' => 200,
+                'status' => true,
+                'message' => 'Fee plans with periods fetched successfully!',
+                'data' => $feePlans,
+                'count' => $feePlans->count(),
+            ], 200);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'An error occurred while fetching fee plans with periods.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        // Fetch data
-        $feePlans = $query->orderBy('last_fpp_order_no', 'desc')->get();
-
-        return response()->json([
-            'code' => 200,
-            'status' => true,
-            'message' => 'Fee plans with periods fetched successfully!',
-            'data' => $feePlans,
-            'count' => $feePlans->count(),
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'code' => 500,
-            'status' => false,
-            'message' => 'An error occurred while fetching fee plans with periods.',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
 
     // Create a new record
     public function register(Request $request)
