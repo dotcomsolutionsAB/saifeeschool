@@ -321,7 +321,7 @@ public function createOrUpdateMonthlyFeePeriods(Request $request)
             'ay_id' => 'required|integer|exists:t_academic_years,id',
             'fees' => 'required|array|min:1',
             'fees.*.amount' => 'nullable|numeric|min:0',
-            'fees.*.due_date' => 'nullable|date',
+            'fees.*.due_date' => 'required|date',
         ]);
 
         $fp_id = $validated['fp_id'];
@@ -338,9 +338,9 @@ public function createOrUpdateMonthlyFeePeriods(Request $request)
             ], 404);
         }
 
-        // Fetch class name for naming format
-        $className = FeePlanModel::where('id', $fp_id)->value('fp_name');
-        if (!$className) {
+        // Fetch Fee Plan
+        $feePlan = FeePlanModel::where('id', $fp_id)->first();
+        if (!$feePlan) {
             return response()->json([
                 'code' => 404,
                 'status' => false,
@@ -348,58 +348,76 @@ public function createOrUpdateMonthlyFeePeriods(Request $request)
             ], 404);
         }
 
-        // Fetch late fee from Fee Plan and apply it to all months
-        $lateFee = FeePlanPeriodModel::where('fp_id', $fp_id)->value('fpp_late_fee') ?? 0;
-
-        // Generate correct month sequence (April first)
-        $start_year = $academicYear->ay_start_year;
-        $month_sequence = range(4, 3 + count($fees)); // [4, 5, 6,..., 3] (April to March)
-
-        if (count($fees) !== count($month_sequence)) {
+        // **Prevent modification of `ay_id`**
+        if ($feePlan->ay_id != $ay_id) {
             return response()->json([
                 'code' => 400,
                 'status' => false,
-                'message' => 'Incorrect number of months provided.',
+                'message' => 'Modification of the academic year is prohibited once the fee plan is created.',
             ], 400);
         }
 
-        foreach ($fees as $index => $fee) {
-            $month_no = $month_sequence[$index]; // Ensuring April is first
-            $year_no = ($month_no >= 4) ? $start_year : $start_year + 1; // If Jan-March, move to next year
-            $order_no = $index + 1; // Ensure April starts at order_no = 1
+        // Fetch late fee from Fee Plan
+        $lateFee = $feePlan->fp_late_fee ?? 0;
+        $className = $feePlan->fp_name;
 
-            // Generate the name format: Class X (June 2024)
-            $monthName = date('F', mktime(0, 0, 0, $month_no, 1));
+        // **Order Mapping**
+        $orderMapping = [
+            4 => 1, 5 => 2, 6 => 3, 7 => 4, 8 => 5, 9 => 6,
+            10 => 7, 11 => 8, 12 => 9, 1 => 10, 2 => 11, 3 => 12
+        ];
+
+        // Ensure fees are sorted by `due_date`
+        usort($fees, function ($a, $b) {
+            return strtotime($a['due_date']) - strtotime($b['due_date']);
+        });
+
+        foreach ($fees as $fee) {
+            $dueDate = $fee['due_date'];
+            $month_no = date('n', strtotime($dueDate)); // Extract month number
+            $year_no = date('Y', strtotime($dueDate)); // Extract year
+            $order_no = $orderMapping[$month_no] ?? null;
+
+            if ($order_no === null) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => 'Invalid month in due date.',
+                ], 400);
+            }
+
+            // Generate Name Format: Class X (June 2024)
+            $monthName = date('F', strtotime($dueDate));
             $fpp_name = "{$className} ({$monthName} {$year_no})";
 
-            // Check if entry exists
-            $feePeriod = FeePlanPeriodModel::where([
+            // Check for existing entry
+            $existingFeePeriod = FeePlanPeriodModel::where([
                 'fp_id' => $fp_id,
                 'ay_id' => $ay_id,
                 'fpp_month_no' => $month_no,
                 'fpp_year_no' => $year_no
             ])->first();
 
-            if ($feePeriod) {
-                // Update existing fee period
-                $feePeriod->update([
+            if ($existingFeePeriod) {
+                // Update existing record
+                $existingFeePeriod->update([
                     'fpp_amount' => $fee['amount'],
-                    'fpp_due_date' => $fee['due_date'],
-                    'fpp_late_fee' => $lateFee, // Auto-fetched late fee
-                    'fpp_order_no' => $order_no
+                    'fpp_due_date' => $dueDate,
+                    'fpp_late_fee' => $lateFee,
+                    'fpp_order_no' => $order_no,
                 ]);
             } else {
-                // Create new fee period
+                // Create new entry
                 FeePlanPeriodModel::create([
                     'fp_id' => $fp_id,
                     'ay_id' => $ay_id,
                     'fpp_name' => $fpp_name,
                     'fpp_amount' => $fee['amount'],
-                    'fpp_due_date' => $fee['due_date'],
-                    'fpp_late_fee' => $lateFee, // Auto-fetched late fee
+                    'fpp_due_date' => $dueDate,
+                    'fpp_late_fee' => $lateFee,
                     'fpp_month_no' => $month_no,
                     'fpp_year_no' => $year_no,
-                    'fpp_order_no' => $order_no
+                    'fpp_order_no' => $order_no,
                 ]);
             }
         }
