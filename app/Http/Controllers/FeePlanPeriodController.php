@@ -339,7 +339,7 @@ public function createOrUpdateMonthlyFeePeriods(Request $request)
         }
 
         // Fetch Fee Plan
-        $feePlan = FeePlanModel::where('id', $fp_id)->first()->value('fpp_late_fee') ?? 0;
+        $feePlan = FeePlanModel::where('id', $fp_id)->first();
         if (!$feePlan) {
             return response()->json([
                 'code' => 404,
@@ -358,7 +358,7 @@ public function createOrUpdateMonthlyFeePeriods(Request $request)
         }
 
         // Fetch late fee from Fee Plan
-        $lateFee = FeePlanPeriodModel::where('fp_id', $fp_id)->first();
+        $lateFee = FeePlanPeriodModel::where('fp_id', $fp_id)->first()->value('fpp_late_fee') ?? 0;
         $className = $feePlan->fp_name;
 
         // **Order Mapping**
