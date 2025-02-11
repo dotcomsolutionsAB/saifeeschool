@@ -349,7 +349,7 @@ public function createOrUpdateMonthlyFeePeriods(Request $request)
         }
 
         // Fetch late fee from Fee Plan and apply it to all months
-        $lateFee = FeePlanModel::where('id', $fp_id)->value('fp_late_fee') ?? 0;
+        $lateFee = FeePlanPeriodModel::where('fp_id', $fp_id)->value('fp_late_fee') ?? 0;
 
         // Generate correct month sequence (April first)
         $start_year = $academicYear->ay_start_year;
