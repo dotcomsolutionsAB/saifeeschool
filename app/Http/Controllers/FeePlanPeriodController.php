@@ -7,6 +7,9 @@ use App\Models\FeePlanPeriodModel;
 use Illuminate\Support\Facades\Log;
 use League\Csv\Reader;
 use League\Csv\Statement;
+use App\Models\ClassGroupModel;
+use Illuminate\Support\Facades\DB;
+
 
 class FeePlanPeriodController extends Controller
 {
@@ -274,4 +277,143 @@ class FeePlanPeriodController extends Controller
             ], 500);
         }
     }
+    public function getMonthlyFeePeriods($fp_id)
+{
+    try {
+        // Fetch all fee plan periods for the given fp_id
+        $feePeriods = FeePlanPeriodModel::where('fp_id', $fp_id)
+            ->orderBy('fpp_order_no') // Order by month sequence
+            ->get();
+
+        if ($feePeriods->isEmpty()) {
+            return response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'No fee plan periods found for the given ID.',
+            ], 404);
+        }
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Monthly fee periods fetched successfully!',
+            'data' => $feePeriods
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching monthly fee periods.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+public function createOrUpdateMonthlyFeePeriods(Request $request)
+{
+    try {
+        // Validate request data
+        $validated = $request->validate([
+            'fp_id' => 'required|integer|exists:t_fee_plans,id',
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+            'fees' => 'required|array|min:1',
+            'fees.*.amount' => 'nullable|numeric|min:0',
+            'fees.*.due_date' => 'nullable|date',
+        ]);
+
+        $fp_id = $validated['fp_id'];
+        $ay_id = $validated['ay_id'];
+        $fees = $validated['fees'];
+
+        // Get academic year details
+        $academicYear = AcademicYearModel::find($ay_id);
+        if (!$academicYear) {
+            return response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'Academic year not found.',
+            ], 404);
+        }
+
+        // Fetch class name for naming format
+        $className = FeePlanModel::where('id', $fp_id)->value('fp_name');
+        if (!$className) {
+            return response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'Fee plan not found.',
+            ], 404);
+        }
+
+        // Fetch late fee from Fee Plan and apply it to all months
+        $lateFee = FeePlanModel::where('id', $fp_id)->value('fp_late_fee') ?? 0;
+
+        // Generate correct month sequence (April first)
+        $start_year = $academicYear->ay_start_year;
+        $month_sequence = range(4, 3 + count($fees)); // [4, 5, 6,..., 3] (April to March)
+
+        if (count($fees) !== count($month_sequence)) {
+            return response()->json([
+                'code' => 400,
+                'status' => false,
+                'message' => 'Incorrect number of months provided.',
+            ], 400);
+        }
+
+        foreach ($fees as $index => $fee) {
+            $month_no = $month_sequence[$index]; // Ensuring April is first
+            $year_no = ($month_no >= 4) ? $start_year : $start_year + 1; // If Jan-March, move to next year
+            $order_no = $index + 1; // Ensure April starts at order_no = 1
+
+            // Generate the name format: Class X (June 2024)
+            $monthName = date('F', mktime(0, 0, 0, $month_no, 1));
+            $fpp_name = "{$className} ({$monthName} {$year_no})";
+
+            // Check if entry exists
+            $feePeriod = FeePlanPeriodModel::where([
+                'fp_id' => $fp_id,
+                'ay_id' => $ay_id,
+                'fpp_month_no' => $month_no,
+                'fpp_year_no' => $year_no
+            ])->first();
+
+            if ($feePeriod) {
+                // Update existing fee period
+                $feePeriod->update([
+                    'fpp_amount' => $fee['amount'],
+                    'fpp_due_date' => $fee['due_date'],
+                    'fpp_late_fee' => $lateFee, // Auto-fetched late fee
+                    'fpp_order_no' => $order_no
+                ]);
+            } else {
+                // Create new fee period
+                FeePlanPeriodModel::create([
+                    'fp_id' => $fp_id,
+                    'ay_id' => $ay_id,
+                    'fpp_name' => $fpp_name,
+                    'fpp_amount' => $fee['amount'],
+                    'fpp_due_date' => $fee['due_date'],
+                    'fpp_late_fee' => $lateFee, // Auto-fetched late fee
+                    'fpp_month_no' => $month_no,
+                    'fpp_year_no' => $year_no,
+                    'fpp_order_no' => $order_no
+                ]);
+            }
+        }
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Monthly fee plan periods created or updated successfully!',
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while creating/updating monthly fee periods.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
 }

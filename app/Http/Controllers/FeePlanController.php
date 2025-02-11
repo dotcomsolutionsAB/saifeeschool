@@ -251,7 +251,7 @@ class FeePlanController extends Controller
             }
     
             return response()->json([
-                'code' => 201,
+                'code' => 200,
                 'status' => true,
                 'message' => $message,
                 'data' => $feePlan->makeHidden(['created_at', 'updated_at']),

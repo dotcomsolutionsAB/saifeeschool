@@ -182,9 +182,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('fee_plan_period')->group(function () {
         Route::post('/view/{id?}', [FeePlanPeriodController::class, 'index'])
                 ->middleware(['check-api-permission:fee.full, fee.view']); // Fetch all or one record
-        
 
-        Route::post('/register', [FeePlanPeriodController::class, 'createOrUpdate'])
+                
+         Route::get('/details/{fp_id}', [FeePlanPeriodController::class, 'getMonthlyFeePeriods'])
+                ->middleware(['check-api-permission:fee.full']); 
+
+        Route::post('/register', [FeePlanPeriodController::class, 'createOrUpdateMonthlyFeePeriods'])
                 ->middleware(['check-api-permission:fee.full']); // Create a new record
 
         Route::post('/update/{id}', [FeePlanPeriodController::class, 'update'])

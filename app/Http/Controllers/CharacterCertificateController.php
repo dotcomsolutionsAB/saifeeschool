@@ -375,7 +375,7 @@ class CharacterCertificateController extends Controller
             }
     
             return response()->json([
-                'code' => 201,
+                'code' => 200,
                 'status' => true,
                 'message' => 'Character Certificates created successfully.',
                 'data' => $createdRecords,
