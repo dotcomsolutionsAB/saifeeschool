@@ -139,6 +139,60 @@ class ClassGroupController extends Controller
                 ]);
         }
     }
+    
+    public function viewAll(Request $request)
+{
+    try {
+        // Validate request
+        $validated = $request->validate([
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+        ]);
+
+        $ay_id = $validated['ay_id'];
+
+        // Fetch academic year
+        $academicYear = AcademicYearModel::find($ay_id);
+        if (!$academicYear) {
+            return response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'Academic year not found.',
+            ], 404);
+        }
+
+        // Fetch class groups with teacher names and student count
+        $classGroups = DB::table('t_class_groups as cg')
+            ->leftJoin('t_teachers as t', 'cg.teacher_id', '=', 't.id')
+            ->leftJoin('t_student_classes as sc', 'cg.id', '=', 'sc.cg_id')
+            ->where('cg.ay_id', $ay_id)
+            ->selectRaw("
+                cg.id as cg_id,
+                cg.cg_name,
+                cg.teacher_id,
+                t.teacher_name AS class_teacher_name,
+                COUNT(DISTINCT sc.st_id) AS total_students
+            ")
+            ->groupBy('cg.id', 'cg.cg_name', 'cg.teacher_id', 't.teacher_name')
+            ->orderBy('cg.cg_order')
+            ->get();
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Class groups fetched successfully.',
+            'academic_year_name' => $academicYear->ay_name,
+            'data' => $classGroups,
+            'count' => $classGroups->count(),
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching class groups.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
 
     // Delete a class group
     public function destroy($id)

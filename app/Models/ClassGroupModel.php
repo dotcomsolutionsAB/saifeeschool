@@ -10,7 +10,7 @@ class ClassGroupModel extends Model
     protected $table = 't_class_groups';
 
     protected $fillable = [
-        'id', 'ay_id', 'cg_name', 'cg_order'];
+        'id', 'ay_id', 'cg_name', 'cg_order','teacher_id'];
 
     /**
      * Define a belongs-to relationship with AcademicYearModel.

@@ -139,7 +139,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('class_group')->group(function () {
         Route::post('/register', [ClassGroupController::class, 'create']);         // Add a new teacher (Admin only)
         Route::post('/update/{id}', [ClassGroupController::class, 'update']);     // Update a teacher (Admin only)
-        Route::post('/view/{id?}', [ClassGroupController::class, 'index']);  // Fetch all or specific teacher
+        Route::post('/view/{id?}', [ClassGroupController::class, 'index']);
+        Route::post('/view_all', [ClassGroupController::class, 'viewAll']);   // Fetch all or specific teacher
         Route::delete('/{id}', [ClassGroupController::class, 'destroy']); // Delete a teacher
 
         Route::get('/import', [ClassGroupController::class, 'importCsv']); 
