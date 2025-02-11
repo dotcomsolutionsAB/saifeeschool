@@ -241,7 +241,7 @@ class ClassGroupController extends Controller
                 cg.id as cg_id,
                 cg.cg_name,
                 cg.teacher_id,
-                t.teacher_name AS class_teacher_name,
+                t.name AS class_teacher_name,
                 COUNT(DISTINCT sc.st_id) AS total_students
             ")
             ->groupBy('cg.id', 'cg.cg_name', 'cg.teacher_id', 't.teacher_name')
