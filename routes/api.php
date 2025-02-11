@@ -138,7 +138,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Class-group Routes
     Route::prefix('class_group')->group(function () {
-        Route::post('/register', [ClassGroupController::class, 'create']);         // Add a new teacher (Admin only)
+        Route::post('/register', [ClassGroupController::class, 'createOrUpdate']);         // Add a new teacher (Admin only)
            // Update a teacher (Admin only)
         Route::post('/view/{id?}', [ClassGroupController::class, 'index']);
         Route::post('/view_all', [ClassGroupController::class, 'viewAll']);   // Fetch all or specific teacher
