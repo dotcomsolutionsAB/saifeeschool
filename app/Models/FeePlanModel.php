@@ -11,4 +11,10 @@ class FeePlanModel extends Model
 
     protected $fillable = [
         'id', 'ay_id', 'fp_name', 'fp_recurring', 'fp_main_monthly_fee', 'fp_main_admission_fee', 'cg_id'];
+
+
+public function fees()
+{
+    return $this->hasMany(FeeModel::class, 'fpp_id', 'id');
+}
 }
