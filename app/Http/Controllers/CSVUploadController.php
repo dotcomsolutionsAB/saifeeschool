@@ -45,7 +45,7 @@ class CSVUploadController extends Controller
                 // Find or create required foreign keys
                 $academicYear = AcademicYearModel::where('ay_name', $ay_name)->first();
                 $classGroup = ClassGroupModel::where('cg_name', $cg_name)->first();
-                $subject = SubjectModel::where('subj_name', $subject_name)->first();
+                $subject = SubjectModel::where('subject', $subject_name)->first();
 
                 if (!$academicYear || !$classGroup || !$subject) {
                     continue; // Skip invalid rows
