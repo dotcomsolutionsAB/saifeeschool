@@ -204,7 +204,7 @@ class MarksController extends Controller
                 sfm.prac,
                 sfm.marks AS total_marks
             ")
-            ->orderBy('subj.subject')  -- Fixed column name in ORDER BY
+            ->orderBy('subj.subject')  -- //Fixed column name in ORDER BY
             ->get();
 
         // ✅ Fetch marks for each student in each subject
