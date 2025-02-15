@@ -188,7 +188,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 ->middleware(['check-api-permission:fee.full, fee.view']); // Fetch all or one record
 
                 
-         Route::get('/details/{fp_id}', [FeePlanPeriodController::class, 'getMonthlyFeePeriods'])
+         Route::post('/details', [FeePlanPeriodController::class, 'getMonthlyFeePeriods'])
                 ->middleware(['check-api-permission:fee.full']); 
 
         Route::post('/register', [FeePlanPeriodController::class, 'createOrUpdateMonthlyFeePeriods'])

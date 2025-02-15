@@ -61,12 +61,18 @@ class FeePlanController extends Controller
             $validated = $request->validate([
                 'ay_id' => 'required|integer|exists:t_academic_years,id',
                 'type'  => 'nullable|string|in:monthly,admission,one_time,recurring',
+                'search' => 'nullable|string|max:255', // Search fee plan name
+                'offset' => 'nullable|integer|min:0',  // Pagination offset
+                'limit' => 'nullable|integer|min:1|max:100', // Pagination limit (max 100)
             ]);
     
             $ay_id = $validated['ay_id'];
+            $search = $validated['search'] ?? null;
+            $offset = $validated['offset'] ?? 0;
+            $limit = $validated['limit'] ?? 10;
     
             // Optimized query using LEFT JOIN to fetch fee plans with their latest fee period
-            $feePlans = DB::table('t_fee_plans as fp')
+            $query = DB::table('t_fee_plans as fp')
                 ->leftJoin('t_fee_plan_periods as fpp', function ($join) use ($ay_id) {
                     $join->on('fp.id', '=', 'fpp.fp_id')
                         ->where('fpp.ay_id', '=', $ay_id);
@@ -89,25 +95,40 @@ class FeePlanController extends Controller
                     fpp.fpp_order_no as last_fpp_order_no,
                     COALESCE(student_counts.student_count, 0) as applied_students
                 ")
-                ->where('fp.ay_id', $ay_id)
-                ->when(!empty($validated['type']), function ($query) use ($validated) {
-                    switch ($validated['type']) {
-                        case 'monthly':
-                            $query->where('fp.fp_recurring', '1')->where('fp.fp_main_monthly_fee', '1');
-                            break;
-                        case 'admission':
-                            $query->where('fp.fp_main_admission_fee', '1');
-                            break;
-                        case 'one_time':
-                            $query->where('fp.fp_recurring', '0')->where('fp.fp_main_monthly_fee', '1');
-                            break;
-                        case 'recurring':
-                            $query->where('fp.fp_recurring', '1')->where('fp.fp_main_monthly_fee', '0');
-                            break;
-                    }
-                })
+                ->where('fp.ay_id', $ay_id);
+    
+            // Apply search filter (if provided)
+            if (!empty($search)) {
+                $query->where('fp.fp_name', 'LIKE', '%' . $search . '%');
+            }
+    
+            // Apply fee type filter (if provided)
+            if (!empty($validated['type'])) {
+                switch ($validated['type']) {
+                    case 'monthly':
+                        $query->where('fp.fp_recurring', '1')->where('fp.fp_main_monthly_fee', '1');
+                        break;
+                    case 'admission':
+                        $query->where('fp.fp_main_admission_fee', '1');
+                        break;
+                    case 'one_time':
+                        $query->where('fp.fp_recurring', '0')->where('fp.fp_main_monthly_fee', '1');
+                        break;
+                    case 'recurring':
+                        $query->where('fp.fp_recurring', '1')->where('fp.fp_main_monthly_fee', '0');
+                        break;
+                }
+            }
+    
+            // Get total count before pagination
+            $totalCount = $query->count();
+    
+            // Apply pagination
+            $feePlans = $query
                 ->groupBy('fp.id', 'fp.fp_name', 'fp.fp_recurring', 'fp.fp_main_monthly_fee', 'fp.fp_main_admission_fee', 'fpp.fpp_due_date', 'fpp.fpp_amount', 'fpp.fpp_order_no', 'student_counts.student_count')
                 ->orderBy('fpp.fpp_order_no', 'desc')
+                ->offset($offset)
+                ->limit($limit)
                 ->get();
     
             return response()->json([
@@ -115,9 +136,10 @@ class FeePlanController extends Controller
                 'status' => true,
                 'message' => 'Fee plans with periods fetched successfully!',
                 'data' => $feePlans,
-                'count' => $feePlans->count(),
+                'count' => $totalCount, // Total number of records (before pagination)
+                'offset' => $offset,
+                'limit' => $limit,
             ], 200);
-    
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,

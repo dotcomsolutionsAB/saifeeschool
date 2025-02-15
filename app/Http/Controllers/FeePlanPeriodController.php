@@ -280,38 +280,67 @@ class FeePlanPeriodController extends Controller
             ], 500);
         }
     }
-    public function getMonthlyFeePeriods($fp_id)
-{
-    try {
-        // Fetch all fee plan periods for the given fp_id
-        $feePeriods = FeePlanPeriodModel::where('fp_id', $fp_id)
-            ->orderBy('fpp_order_no') // Order by month sequence
-            ->get();
-
-        if ($feePeriods->isEmpty()) {
+    public function getMonthlyFeePeriods(Request $request)
+    {
+        try {
+            // Validate request inputs
+            $validated = $request->validate([
+                'fp_id' => 'required|integer|exists:t_fee_plans,id', // Fee Plan ID
+                'search' => 'nullable|string|max:255', // Search by fee period name
+                'offset' => 'nullable|integer|min:0',  // Pagination offset
+                'limit' => 'nullable|integer|min:1|max:100', // Pagination limit (max 100)
+            ]);
+    
+            $fp_id = $validated['fp_id'];
+            $search = $validated['search'] ?? null;
+            $offset = $validated['offset'] ?? 0;
+            $limit = $validated['limit'] ?? 10;
+    
+            // Start the query
+            $query = FeePlanPeriodModel::where('fp_id', $fp_id)
+                ->orderBy('fpp_order_no', 'asc'); // Order by month sequence
+    
+            // Apply search filter (if provided)
+            if (!empty($search)) {
+                $query->where('fpp_name', 'LIKE', '%' . $search . '%');
+            }
+    
+            // Get total count before pagination
+            $totalCount = $query->count();
+    
+            // Apply pagination
+            $feePeriods = $query
+                ->offset($offset)
+                ->limit($limit)
+                ->get();
+    
+            if ($feePeriods->isEmpty()) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => false,
+                    'message' => 'No fee plan periods found for the given Fee Plan ID.',
+                ], 404);
+            }
+    
             return response()->json([
-                'code' => 404,
+                'code' => 200,
+                'status' => true,
+                'message' => 'Monthly fee periods fetched successfully!',
+                'data' => $feePeriods,
+                'count' => $totalCount, // Total records before pagination
+                'offset' => $offset,
+                'limit' => $limit,
+            ], 200);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
                 'status' => false,
-                'message' => 'No fee plan periods found for the given ID.',
-            ], 404);
+                'message' => 'An error occurred while fetching monthly fee periods.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        return response()->json([
-            'code' => 200,
-            'status' => true,
-            'message' => 'Monthly fee periods fetched successfully!',
-            'data' => $feePeriods
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'code' => 500,
-            'status' => false,
-            'message' => 'An error occurred while fetching monthly fee periods.',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
 public function createOrUpdateMonthlyFeePeriods(Request $request)
 {
     try {
