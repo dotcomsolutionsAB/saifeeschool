@@ -71,19 +71,41 @@ class FeePlanController extends Controller
             $offset = $validated['offset'] ?? 0;
             $limit = $validated['limit'] ?? 10;
     
+            // Fetch total distinct fee plans count before pagination
+            $totalCountQuery = DB::table('t_fee_plans as fp')
+                ->where('fp.ay_id', $ay_id);
+    
+            if (!empty($search)) {
+                $totalCountQuery->where('fp.fp_name', 'LIKE', '%' . $search . '%');
+            }
+    
+            if (!empty($validated['type'])) {
+                switch ($validated['type']) {
+                    case 'monthly':
+                        $totalCountQuery->where('fp.fp_recurring', '1')->where('fp.fp_main_monthly_fee', '1');
+                        break;
+                    case 'admission':
+                        $totalCountQuery->where('fp.fp_main_admission_fee', '1');
+                        break;
+                    case 'one_time':
+                        $totalCountQuery->where('fp.fp_recurring', '0')->where('fp.fp_main_monthly_fee', '1');
+                        break;
+                    case 'recurring':
+                        $totalCountQuery->where('fp.fp_recurring', '1')->where('fp.fp_main_monthly_fee', '0');
+                        break;
+                }
+            }
+    
+            $totalCount = $totalCountQuery->distinct('fp.id')->count('fp.id');
+    
             // Optimized query using LEFT JOIN to fetch fee plans with their latest fee period
-            $query = DB::table('t_fee_plans as fp')
-                ->leftJoin('t_fee_plan_periods as fpp', function ($join) use ($ay_id) {
+            $feePlans = DB::table('t_fee_plans as fp')
+                ->leftJoin(DB::raw('(SELECT fp_id, MAX(fpp_due_date) as max_due_date FROM t_fee_plan_periods WHERE ay_id = ' . $ay_id . ' GROUP BY fp_id) as latest_fpp'), 'fp.id', '=', 'latest_fpp.fp_id')
+                ->leftJoin('t_fee_plan_periods as fpp', function ($join) {
                     $join->on('fp.id', '=', 'fpp.fp_id')
-                        ->where('fpp.ay_id', '=', $ay_id);
-                })
-                ->leftJoin(DB::raw('(SELECT fpp.fp_id, MAX(fpp.fpp_due_date) as max_due_date FROM t_fee_plan_periods as fpp WHERE fpp.ay_id = ' . $ay_id . ' GROUP BY fpp.fp_id) as latest_fpp'), function ($join) {
-                    $join->on('fpp.fp_id', '=', 'latest_fpp.fp_id')
                         ->on('fpp.fpp_due_date', '=', 'latest_fpp.max_due_date');
                 })
-                ->leftJoin(DB::raw('(SELECT fpp.fp_id, COUNT(DISTINCT f.st_id) as student_count FROM t_fees as f INNER JOIN t_fee_plan_periods as fpp ON f.fpp_id = fpp.id WHERE fpp.ay_id = ' . $ay_id . ' GROUP BY fpp.fp_id) as student_counts'), function ($join) {
-                    $join->on('fp.id', '=', 'student_counts.fp_id');
-                })
+                ->leftJoin(DB::raw('(SELECT fpp.fp_id, COUNT(DISTINCT f.st_id) as student_count FROM t_fees as f INNER JOIN t_fee_plan_periods as fpp ON f.fpp_id = fpp.id WHERE fpp.ay_id = ' . $ay_id . ' GROUP BY fpp.fp_id) as student_counts'), 'fp.id', '=', 'student_counts.fp_id')
                 ->selectRaw("
                     fp.id as fp_id,
                     fp.fp_name,
@@ -95,36 +117,26 @@ class FeePlanController extends Controller
                     fpp.fpp_order_no as last_fpp_order_no,
                     COALESCE(student_counts.student_count, 0) as applied_students
                 ")
-                ->where('fp.ay_id', $ay_id);
-    
-            // Apply search filter (if provided)
-            if (!empty($search)) {
-                $query->where('fp.fp_name', 'LIKE', '%' . $search . '%');
-            }
-    
-            // Apply fee type filter (if provided)
-            if (!empty($validated['type'])) {
-                switch ($validated['type']) {
-                    case 'monthly':
-                        $query->where('fp.fp_recurring', '1')->where('fp.fp_main_monthly_fee', '1');
-                        break;
-                    case 'admission':
-                        $query->where('fp.fp_main_admission_fee', '1');
-                        break;
-                    case 'one_time':
-                        $query->where('fp.fp_recurring', '0')->where('fp.fp_main_monthly_fee', '1');
-                        break;
-                    case 'recurring':
-                        $query->where('fp.fp_recurring', '1')->where('fp.fp_main_monthly_fee', '0');
-                        break;
-                }
-            }
-    
-            // Get total count before pagination
-            $totalCount = $query->count();
-    
-            // Apply pagination
-            $feePlans = $query
+                ->where('fp.ay_id', $ay_id)
+                ->when(!empty($search), function ($query) use ($search) {
+                    $query->where('fp.fp_name', 'LIKE', '%' . $search . '%');
+                })
+                ->when(!empty($validated['type']), function ($query) use ($validated) {
+                    switch ($validated['type']) {
+                        case 'monthly':
+                            $query->where('fp.fp_recurring', '1')->where('fp.fp_main_monthly_fee', '1');
+                            break;
+                        case 'admission':
+                            $query->where('fp.fp_main_admission_fee', '1');
+                            break;
+                        case 'one_time':
+                            $query->where('fp.fp_recurring', '0')->where('fp.fp_main_monthly_fee', '1');
+                            break;
+                        case 'recurring':
+                            $query->where('fp.fp_recurring', '1')->where('fp.fp_main_monthly_fee', '0');
+                            break;
+                    }
+                })
                 ->groupBy('fp.id', 'fp.fp_name', 'fp.fp_recurring', 'fp.fp_main_monthly_fee', 'fp.fp_main_admission_fee', 'fpp.fpp_due_date', 'fpp.fpp_amount', 'fpp.fpp_order_no', 'student_counts.student_count')
                 ->orderBy('fpp.fpp_order_no', 'desc')
                 ->offset($offset)
@@ -136,7 +148,7 @@ class FeePlanController extends Controller
                 'status' => true,
                 'message' => 'Fee plans with periods fetched successfully!',
                 'data' => $feePlans,
-                'count' => $totalCount, // Total number of records (before pagination)
+                'count' => $totalCount, // Corrected total count
                 'offset' => $offset,
                 'limit' => $limit,
             ], 200);

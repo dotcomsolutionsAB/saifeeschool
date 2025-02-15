@@ -213,79 +213,81 @@ class ClassGroupController extends Controller
     }
 
     public function viewAll(Request $request)
-    {
-        try {
-            // Validate request
-            $validated = $request->validate([
-                'ay_id' => 'required|integer|exists:t_academic_years,id',
-                'search' => 'nullable|string|max:255', // Search by class name
-                'offset' => 'nullable|integer|min:0',  // Pagination offset
-                'limit' => 'nullable|integer|min:1|max:100', // Pagination limit (max 100)
-            ]);
-    
-            $ay_id = $validated['ay_id'];
-            $search = $validated['search'] ?? null;
-            $offset = $validated['offset'] ?? 0;
-            $limit = $validated['limit'] ?? 10;
-    
-            // Fetch academic year
-            $academicYear = AcademicYearModel::find($ay_id);
-            if (!$academicYear) {
-                return response()->json([
-                    'code' => 404,
-                    'status' => false,
-                    'message' => 'Academic year not found.',
-                ], 404);
-            }
-    
-            // Start query for class groups
-            $query = DB::table('t_class_groups as cg')
-                ->leftJoin('t_teachers as t', 'cg.teacher_id', '=', 't.id')
-                ->leftJoin('t_student_classes as sc', 'cg.id', '=', 'sc.cg_id')
-                ->where('cg.ay_id', $ay_id)
-                ->selectRaw("
-                    cg.id as cg_id,
-                    cg.cg_name,
-                    cg.teacher_id,
-                    t.name AS class_teacher_name,
-                    COUNT(DISTINCT sc.st_id) AS total_students
-                ")
-                ->groupBy('cg.id', 'cg.cg_name', 'cg.teacher_id', 't.name');
-    
-            // Apply search filter (if provided)
-            if (!empty($search)) {
-                $query->where('cg.cg_name', 'LIKE', '%' . $search . '%');
-            }
-    
-            // Get total count before pagination
-            $totalCount = $query->count();
-    
-            // Apply pagination
-            $classGroups = $query
-                ->orderBy('cg.cg_order')
-                ->offset($offset)
-                ->limit($limit)
-                ->get();
-    
+{
+    try {
+        // Validate request
+        $validated = $request->validate([
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+            'search' => 'nullable|string|max:255', // Search class name
+            'offset' => 'nullable|integer|min:0',  // Pagination offset
+            'limit' => 'nullable|integer|min:1|max:100', // Pagination limit (max 100)
+        ]);
+
+        $ay_id = $validated['ay_id'];
+        $search = $validated['search'] ?? null;
+        $offset = $validated['offset'] ?? 0;
+        $limit = $validated['limit'] ?? 10;
+
+        // Fetch academic year
+        $academicYear = AcademicYearModel::find($ay_id);
+        if (!$academicYear) {
             return response()->json([
-                'code' => 200,
-                'status' => true,
-                'message' => 'Class groups fetched successfully.',
-                'academic_year_name' => $academicYear->ay_name,
-                'data' => $classGroups,
-                'count' => $totalCount, // Total number of records (before pagination)
-                'offset' => $offset,
-                'limit' => $limit,
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'code' => 500,
+                'code' => 404,
                 'status' => false,
-                'message' => 'An error occurred while fetching class groups.',
-                'error' => $e->getMessage(),
-            ], 500);
+                'message' => 'Academic year not found.',
+            ], 404);
         }
+
+        // Get total count before applying offset and limit
+        $totalCountQuery = DB::table('t_class_groups as cg')
+            ->where('cg.ay_id', $ay_id);
+
+        if (!empty($search)) {
+            $totalCountQuery->where('cg.cg_name', 'LIKE', '%' . $search . '%');
+        }
+
+        $totalCount = $totalCountQuery->count(); // Get total count
+
+        // Fetch class groups with teacher names and student count
+        $classGroups = DB::table('t_class_groups as cg')
+            ->leftJoin('t_teachers as t', 'cg.teacher_id', '=', 't.id')
+            ->leftJoin('t_student_classes as sc', 'cg.id', '=', 'sc.cg_id')
+            ->where('cg.ay_id', $ay_id)
+            ->selectRaw("
+                cg.id as cg_id,
+                cg.cg_name,
+                cg.teacher_id,
+                t.name AS class_teacher_name,
+                COUNT(DISTINCT sc.st_id) AS total_students
+            ")
+            ->when(!empty($search), function ($query) use ($search) {
+                $query->where('cg.cg_name', 'LIKE', '%' . $search . '%');
+            })
+            ->groupBy('cg.id', 'cg.cg_name', 'cg.teacher_id', 't.name')
+            ->orderBy('cg.cg_order')
+            ->offset($offset)
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Class groups fetched successfully.',
+            'academic_year_name' => $academicYear->ay_name,
+            'data' => $classGroups,
+            'count' => $totalCount, // Correct total count
+            'offset' => $offset,
+            'limit' => $limit,
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching class groups.',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
 
     // Delete a class group
     public function destroy($id)
