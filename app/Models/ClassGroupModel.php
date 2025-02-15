@@ -35,4 +35,8 @@ class ClassGroupModel extends Model
     {
         return $this->hasMany(FeeModel::class, 'cg_id', 'id');
     }
+    public function terms()
+{
+    return $this->hasMany(TTermModel::class, 'cg_id', 'id');
+}
 }

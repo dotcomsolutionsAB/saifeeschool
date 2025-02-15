@@ -28,4 +28,8 @@ class AcademicYearModel extends Model
     {
         return $this->hasMany(ClassGroupModel::class, 'ay_id', 'id');
     }
+    public function terms()
+{
+    return $this->hasMany(TTermModel::class, 'ay_id', 'id');
+}
 }
