@@ -8,11 +8,12 @@ return new class extends Migration {
     {
         Schema::table('t_subjectFM', function (Blueprint $table) {
             // Check and add missing columns
-            if (!Schema::hasColumn('t_subjectFM', 'subj_id')) {
-                $table->unsignedBigInteger('subj_id')->after('id');
-            }
-            if (!Schema::hasColumn('t_subjectFM', 'subj_name')) {
-                $table->string('subj_name')->after('subj_id');
+            // if (!Schema::hasColumn('t_subjectFM', 'subj_id')) {
+            //     $table->unsignedBigInteger('subj_id')->after('id');
+            // }
+            // if (!Schema::hasColumn('t_subjectFM', 'subj_name')) {
+            //     $table->string('subj_name')->after('subj_id');
+            //csv
             }
             if (!Schema::hasColumn('t_subjectFM', 'subj_init')) {
                 $table->string('subj_init')->after('subj_name');

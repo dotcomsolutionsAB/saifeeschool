@@ -2,7 +2,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\TermModel;
+use App\Models\TTermModel;
 use App\Models\SubjectFMModel;
 use App\Models\ClassGroupModel;
 use App\Models\AcademicYearModel;
@@ -57,14 +57,14 @@ class CSVUploadController extends Controller
 
             foreach ($data as $row) {
                 // Check if term already exists
-                $existingTerm = TermModel::where([
+                $existingTerm = TTermModel::where([
                     'ay_id' => $row[1],
                     'cg_id' => $row[2],
                     'term' => $row[3],
                 ])->exists();
 
                 if (!$existingTerm) {
-                    TermModel::create([
+                    TTermModel::create([
                         'ay_id' => $row[1],
                         'cg_id' => $row[2],
                         'term' => $row[3],
@@ -103,7 +103,7 @@ class CSVUploadController extends Controller
                 // Validate existence of foreign keys
                 $subjectExists = SubjectModel::where('id', $row[1])->exists();
                 $classGroupExists = ClassGroupModel::where('id', $row[4])->exists();
-                $termExists = TermModel::where('id', $row[5])->exists();
+                $termExists = TTermModel::where('id', $row[5])->exists();
 
                 if ($subjectExists && $classGroupExists && $termExists) {
                     // Check if subjectFM already exists
