@@ -164,4 +164,81 @@ class MarksController extends Controller
         }
     }
 
+    public function getMarksData(Request $request)
+{
+    try {
+        // Validate the request parameters
+        $validated = $request->validate([
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+            'term_id' => 'required|integer|exists:t_terms,id',
+            'cg_id' => 'required|integer|exists:t_class_groups,id',
+        ]);
+
+        $ay_id = $validated['ay_id'];
+        $term_id = $validated['term_id'];
+        $cg_id = $validated['cg_id'];
+
+        // ✅ Fetch all students in the class group
+        $students = DB::table('t_students as stu')
+            ->join('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
+            ->where('sc.cg_id', $cg_id)
+            ->selectRaw("
+                stu.id AS student_id,
+                stu.st_roll_no AS roll_no,
+                CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS name
+            ")
+            ->orderBy('stu.st_roll_no')
+            ->get();
+
+        // ✅ Fetch all subjects for the given class & term
+        $subjects = DB::table('t_subjectFM as sfm')
+            ->join('t_subjects as subj', 'sfm.subj_id', '=', 'subj.id')
+            ->where('sfm.cg_id', $cg_id)
+            ->where('sfm.term_id', $term_id)
+            ->selectRaw("
+                subj.id AS subject_id,
+                subj.subj_name AS subject_name,
+                sfm.theory,
+                sfm.oral,
+                sfm.prac,
+                sfm.marks AS total_marks
+            ")
+            ->orderBy('subj.subj_name')
+            ->get();
+
+        // ✅ Fetch marks for each student in each subject
+        $marks = DB::table('t_marks as m')
+            ->join('t_students as stu', 'm.st_id', '=', 'stu.id')
+            ->join('t_subjects as subj', 'm.subj_id', '=', 'subj.id')
+            ->where('m.cg_id', $cg_id)
+            ->where('m.term_id', $term_id)
+            ->selectRaw("
+                m.st_id AS student_id,
+                m.subj_id AS subject_id,
+                m.theory_marks,
+                m.oral_marks,
+                m.prac_marks,
+                (m.theory_marks + m.oral_marks + m.prac_marks) AS total_obtained
+            ")
+            ->get();
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Marks data fetched successfully!',
+            'students' => $students,
+            'subjects' => $subjects,
+            'marks' => $marks
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching marks data.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
 }

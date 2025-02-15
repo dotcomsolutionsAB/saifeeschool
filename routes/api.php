@@ -324,6 +324,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/view', [MarksController::class, 'index'])
                 ->middleware(['check-api-permission:report.full, report.view']);          // List all Marks
 
+        Route::get('/details', [MarksController::class, 'getMarksData'])
+                ->middleware(['check-api-permission:report.full, report.view']);          // List all Marks
+
         Route::get('/view/{id}', [MarksController::class, 'index'])
                 ->middleware(['check-api-permission:report.full, report.view']);     // Get details of a single Marks
 
