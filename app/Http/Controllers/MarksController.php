@@ -164,6 +164,7 @@ class MarksController extends Controller
         }
     }
 
+    
     public function getMarksData(Request $request)
 {
     try {
@@ -190,35 +191,34 @@ class MarksController extends Controller
             ->orderBy('stu.st_roll_no')
             ->get();
 
-        // ✅ Fetch all subjects for the given class & term
+        // ✅ Fetch all subjects for the given class & term (Fixing the column name)
         $subjects = DB::table('t_subjectFM as sfm')
             ->join('t_subjects as subj', 'sfm.subj_id', '=', 'subj.id')
             ->where('sfm.cg_id', $cg_id)
             ->where('sfm.term_id', $term_id)
             ->selectRaw("
                 subj.id AS subject_id,
-                subj.subj_name AS subject_name,
+                subj.subject AS subject_name,  -- Fixed column name
                 sfm.theory,
                 sfm.oral,
                 sfm.prac,
                 sfm.marks AS total_marks
             ")
-            ->orderBy('subj.subj_name')
+            ->orderBy('subj.subject')  -- Fixed column name in ORDER BY
             ->get();
 
         // ✅ Fetch marks for each student in each subject
         $marks = DB::table('t_marks as m')
-            ->join('t_students as stu', 'm.st_id', '=', 'stu.id')
+            ->join('t_students as stu', 'm.st_roll_no', '=', 'stu.st_roll_no')
             ->join('t_subjects as subj', 'm.subj_id', '=', 'subj.id')
             ->where('m.cg_id', $cg_id)
-            ->where('m.term_id', $term_id)
+            ->where('m.term', $term_id)
             ->selectRaw("
-                m.st_id AS student_id,
+                m.st_roll_no AS roll_no,
                 m.subj_id AS subject_id,
-                m.theory_marks,
-                m.oral_marks,
-                m.prac_marks,
-                (m.theory_marks + m.oral_marks + m.prac_marks) AS total_obtained
+                m.marks AS theory_marks,
+                m.prac AS prac_marks,
+                (m.marks + COALESCE(m.prac, 0)) AS total_obtained
             ")
             ->get();
 
@@ -240,5 +240,4 @@ class MarksController extends Controller
         ], 500);
     }
 }
-
 }
