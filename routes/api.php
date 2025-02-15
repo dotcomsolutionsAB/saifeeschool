@@ -30,6 +30,10 @@ use App\Http\Controllers\TransactionTypeController;
 use App\Http\Controllers\PermissionRoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\CSVUploadController;
+
+Route::post('/upload/subject-fm', [CSVUploadController::class, 'uploadSubjectFM']);
+Route::post('/upload/terms', [CSVUploadController::class, 'uploadTerms']);
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
