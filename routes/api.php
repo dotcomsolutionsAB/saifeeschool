@@ -32,7 +32,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CSVUploadController;
 
-Route::post('/upload/subject-fm', [CSVUploadController::class, 'uploadSubjectFM']);
+Route::post('/upload', [CSVUploadController::class, 'uploadCSV']);
 Route::post('/upload/terms', [CSVUploadController::class, 'uploadTerms']);
 
 // Route::get('/user', function (Request $request) {
