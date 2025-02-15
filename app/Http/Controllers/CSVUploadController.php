@@ -7,7 +7,6 @@ use App\Models\SubjectFMModel;
 use App\Models\ClassGroupModel;
 use App\Models\AcademicYearModel;
 use App\Models\SubjectModel;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 
 class CSVUploadController extends Controller
@@ -56,19 +55,24 @@ class CSVUploadController extends Controller
             DB::beginTransaction();
 
             foreach ($data as $row) {
+                // Ensure required fields exist
+                if (count($row) < 5) {
+                    continue;
+                }
+
                 // Check if term already exists
                 $existingTerm = TTermModel::where([
-                    'ay_id' => $row[1],
-                    'cg_id' => $row[2],
-                    'term' => $row[3],
+                    'ay_id' => trim($row[1]),
+                    'cg_id' => trim($row[2]),
+                    'term' => trim($row[3]),
                 ])->exists();
 
                 if (!$existingTerm) {
                     TTermModel::create([
-                        'ay_id' => $row[1],
-                        'cg_id' => $row[2],
-                        'term' => $row[3],
-                        'term_name' => $row[4],
+                        'ay_id' => trim($row[1]),
+                        'cg_id' => trim($row[2]),
+                        'term' => trim($row[3]),
+                        'term_name' => trim($row[4]),
                     ]);
                 }
             }
@@ -92,7 +96,7 @@ class CSVUploadController extends Controller
     }
 
     /**
-     * Insert Subject FM Data
+     * Insert Subject FM Data (Fixes Issues)
      */
     private function insertSubjectFM($data)
     {
@@ -100,31 +104,61 @@ class CSVUploadController extends Controller
             DB::beginTransaction();
 
             foreach ($data as $row) {
-                // Validate existence of foreign keys
-                $subjectExists = SubjectModel::where('id', $row[1])->exists();
-                $classGroupExists = ClassGroupModel::where('id', $row[4])->exists();
-                $termExists = TTermModel::where('id', $row[5])->exists();
+                // Ensure required fields exist
+                if (count($row) < 11) {
+                    continue;
+                }
 
-                if ($subjectExists && $classGroupExists && $termExists) {
-                    // Check if subjectFM already exists
+                $subj_id = trim($row[1]);
+                $subj_name = trim($row[2]);
+                $subj_init = trim($row[3]);
+                $cg_id = trim($row[4]);
+                $term_id = trim($row[5]);
+                $type = trim($row[6]);
+                $theory = trim($row[7]) !== '' ? trim($row[7]) : null;
+                $oral = trim($row[8]) !== '' ? trim($row[8]) : null;
+                $prac = trim($row[9]) !== '' ? trim($row[9]) : null;
+                $marks = trim($row[10]) !== '' ? trim($row[10]) : 0;
+
+                // **Fetch ay_id from t_class_groups using cg_id**
+                $classGroup = ClassGroupModel::where('id', $cg_id)->first();
+                if (!$classGroup) {
+                    return response()->json([
+                        'code' => 400,
+                        'status' => false,
+                        'message' => "Class group with ID $cg_id not found.",
+                    ], 400);
+                }
+                $ay_id = $classGroup->ay_id; // Extract ay_id
+
+                // Validate existence of foreign keys
+                $subjectExists = SubjectModel::where('id', $subj_id)->exists();
+                $termExists = TTermModel::where('id', $term_id)->exists();
+
+                if ($subjectExists && $termExists) {
+                    // Check if subjectFM already exists (Prevent Duplicates)
                     $existingFM = SubjectFMModel::where([
-                        'subj_id' => $row[1],
-                        'cg_id' => $row[4],
-                        'term_id' => $row[5],
+                        'subj_id' => $subj_id,
+                        'cg_id' => $cg_id,
+                        'term_id' => $term_id,
+                        'ay_id' => $ay_id, // Added this for uniqueness
                     ])->exists();
 
                     if (!$existingFM) {
                         SubjectFMModel::create([
-                            'subj_id' => $row[1],
-                            'subj_name' => $row[2],
-                            'subj_init' => $row[3],
-                            'cg_id' => $row[4],
-                            'term_id' => $row[5],
-                            'type' => $row[6],
-                            'theory' => $row[7] ?? null,
-                            'oral' => $row[8] ?? null,
-                            'prac' => $row[9] ?? null,
-                            'marks' => $row[10] ?? 0,
+                            'subj_id' => $subj_id,
+                            'subj_name' => $subj_name,
+                            'subj_init' => $subj_init,
+                            'cg_id' => $cg_id,
+                            'term_id' => $term_id,
+                            'ay_id' => $ay_id, // Added ay_id dynamically
+                            'type' => $type,
+                            'theory' => $theory,
+                            'oral' => $oral,
+                            'prac' => $prac,
+                            'marks' => $marks,
+                            'created_at' => now(),
+                            'updated_at' => now(),
                         ]);
                     }
                 }
