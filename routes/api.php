@@ -315,7 +315,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Route::delete('/{id}', [PurchaseController::class, 'destroy']); // Delete a Purchase (Admin only)
     
         Route::get('/import', [SubjectController::class, 'importCsv']); 
-        Route::get('/aggregate', [SubjectController::class, 'createAggregateSubject']); 
+        Route::post('/aggregate', [SubjectController::class, 'createAggregateSubject']); 
+       
         
 
         Route::get('/view/{id?}', [SubjectController::class, 'index']); 
@@ -327,9 +328,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 ->middleware(['check-api-permission:report.full, report.view']);          // List all Marks
 
         Route::post('/details', [MarksController::class, 'getMarksData'])
-                ->middleware(['check-api-permission:report.full, report.view']);          // List all Marks
+                ->middleware(['check-api-permission:report.full, report.view']); 
+                
+        Route::post('/create', [MarksController::class, 'createOrUpdateMarks'])
+        ->middleware(['check-api-permission:report.full, report.view']); ;          // List all Marks
 
-        Route::get('/view/{id}', [MarksController::class, 'index'])
+        Route::get('/view/{id}', [MarksController::class, 'index']
+        )
                 ->middleware(['check-api-permission:report.full, report.view']);     // Get details of a single Marks
 
         Route::post('/', [MarksController::class, 'registerandUpdate'])
