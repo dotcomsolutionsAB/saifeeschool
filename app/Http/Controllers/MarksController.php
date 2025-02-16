@@ -300,71 +300,68 @@ class MarksController extends Controller
     try {
         // ✅ Validate the request data
         $validated = $request->validate([
-            'marks' => 'required|array|min:1',
-            'marks.*.st_id' => 'required|integer|exists:t_students,id',
-            'marks.*.cg_id' => 'required|integer|exists:t_class_groups,id',
-            'marks.*.term_id' => 'required|integer|exists:t_terms,id',
-            'marks.*.subject_id' => 'required|integer|exists:t_subjects,id',
-            'marks.*.marks' => 'required|numeric|min:0', // Marks should be numeric and non-negative
-            'marks.*.category' => 'required|string|in:Theory,Practical', // Only two valid categories
+            'st_id' => 'required|integer|exists:t_students,id',
+            'cg_id' => 'required|integer|exists:t_class_groups,id',
+            'term_id' => 'required|integer|exists:t_terms,id',
+            'subject_id' => 'required|integer|exists:t_subjects,id',
+            'marks' => 'required|numeric|min:0', // Marks should be numeric and non-negative
+            'category' => 'required|string|in:Theory,Practical', // Only two valid categories
         ]);
 
         DB::beginTransaction();
 
-        foreach ($validated['marks'] as $markData) {
-            $st_id = $markData['st_id'];
-            $cg_id = $markData['cg_id'];
-            $term_id = $markData['term_id'];
-            $subject_id = $markData['subject_id'];
-            $marks = $markData['marks'];
-            $category = $markData['category'];
+        $st_id = $validated['st_id'];
+        $cg_id = $validated['cg_id'];
+        $term_id = $validated['term_id'];
+        $subject_id = $validated['subject_id'];
+        $marks = $validated['marks'];
+        $category = $validated['category'];
 
-            // ✅ Fetch the student roll number from `t_students`
-            $student = DB::table('t_students')->where('id', $st_id)->select('st_roll_no')->first();
-            if (!$student) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => "Invalid student ID: $st_id",
-                ], 400);
-            }
-            $roll_no = $student->st_roll_no;
+        // ✅ Fetch student roll number from `t_students`
+        $student = DB::table('t_students')->where('id', $st_id)->select('st_roll_no')->first();
+        if (!$student) {
+            return response()->json([
+                'code' => 400,
+                'status' => false,
+                'message' => "Invalid student ID: $st_id",
+            ], 400);
+        }
+        $roll_no = $student->st_roll_no;
 
-            // ✅ Check if entry already exists
-            $existingMark = DB::table('t_marks')
-                ->where([
-                    'st_roll_no' => $roll_no,
-                    'cg_id' => $cg_id,
-                    'term' => $term_id,
-                    'subj_id' => $subject_id,
-                ])
-                ->first();
+        // ✅ Check if mark entry exists
+        $existingMark = DB::table('t_marks')
+            ->where([
+                'st_roll_no' => $roll_no,
+                'cg_id' => $cg_id,
+                'term' => $term_id,
+                'subj_id' => $subject_id,
+            ])
+            ->first();
 
-            // ✅ Prepare update data
-            $updateData = [
-                'marks' => ($category === 'Theory') ? $marks : ($existingMark->marks ?? 0),
-                'prac' => ($category === 'Practical') ? $marks : ($existingMark->prac ?? 0),
+        // ✅ Prepare update data
+        $updateData = [
+            'marks' => ($category === 'Theory') ? $marks : ($existingMark->marks ?? 0),
+            'prac' => ($category === 'Practical') ? $marks : ($existingMark->prac ?? 0),
+            'updated_at' => now()
+        ];
+
+        if ($existingMark) {
+            // ✅ Update existing record
+            DB::table('t_marks')
+                ->where('id', $existingMark->id)
+                ->update($updateData);
+        } else {
+            // ✅ Insert new record
+            DB::table('t_marks')->insert([
+                'st_roll_no' => $roll_no,
+                'cg_id' => $cg_id,
+                'term' => $term_id,
+                'subj_id' => $subject_id,
+                'marks' => ($category === 'Theory') ? $marks : 0,
+                'prac' => ($category === 'Practical') ? $marks : 0,
+                'created_at' => now(),
                 'updated_at' => now()
-            ];
-
-            if ($existingMark) {
-                // ✅ Update existing record
-                DB::table('t_marks')
-                    ->where('id', $existingMark->id)
-                    ->update($updateData);
-            } else {
-                // ✅ Insert new record
-                DB::table('t_marks')->insert([
-                    'st_roll_no' => $roll_no,
-                    'cg_id' => $cg_id,
-                    'term' => $term_id,
-                    'subj_id' => $subject_id,
-                    'marks' => ($category === 'Theory') ? $marks : 0,
-                    'prac' => ($category === 'Practical') ? $marks : 0,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            }
+            ]);
         }
 
         DB::commit();
