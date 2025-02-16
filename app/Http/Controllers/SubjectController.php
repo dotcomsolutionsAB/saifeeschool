@@ -133,28 +133,13 @@ class SubjectController extends Controller
             $subj_ids = $validated['subj_ids']; // Array of subject IDs
             $subj_ids_str = implode(',', $subj_ids);
     
-            // **Fetch Academic Year & Class Group**
+            // **Fetch Class Group**
             $classGroup = ClassGroupModel::find($cg_id);
             if (!$classGroup) {
                 return response()->json([
                     'code' => 400,
                     'status' => false,
                     'message' => 'Class group not found.',
-                ], 400);
-            }
-            $ay_id = $classGroup->ay_id; // Fetch academic year from class group
-    
-            // **Ensure all subjects belong to the same academic year**
-            $academicYearIds = SubjectFMModel::whereIn('subj_id', $subj_ids)
-                ->where('cg_id', $cg_id)
-                ->pluck('ay_id')
-                ->unique();
-    
-            if ($academicYearIds->count() !== 1 || $academicYearIds->first() != $ay_id) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => 'Subjects must belong to the same academic year for aggregation.',
                 ], 400);
             }
     
@@ -248,7 +233,6 @@ class SubjectController extends Controller
                     'subj_init' => $subj_ids_str, // Store aggregated subject IDs
                     'cg_id' => $cg_id,
                     'term_id' => $term_id,
-                    'ay_id' => $ay_id,
                     'type' => 'A', // Aggregate Type
                     'theory' => $average_theory,
                     'oral' => $average_oral,
