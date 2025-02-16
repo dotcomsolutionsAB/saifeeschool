@@ -271,9 +271,10 @@ class FeeController extends Controller
         try {
             $studentFee->delete();
 
-            return response()->json(['message' => 'Student fee record deleted successfully!'], 200);
+            return response()->json(['code'=>200,'message' => 'Student fee record deleted successfully!'], 200);
         } catch (\Exception $e) {
             return response()->json([
+                'code'=>500,
                 'message' => 'Failed to delete student fee record.',
                 'error' => $e->getMessage()
             ], 500);

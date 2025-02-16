@@ -352,9 +352,10 @@ class FeePlanController extends Controller
         try {
             $feePlan->delete();
 
-            return response()->json(['message' => 'Fee plan deleted successfully!'], 200);
+            return response()->json(['code'=>200,'message' => 'Fee plan deleted successfully!'], 200);
         } catch (\Exception $e) {
             return response()->json([
+                'code'=> 500,
                 'message' => 'Failed to delete fee plan.',
                 'error' => $e->getMessage()
             ], 500);

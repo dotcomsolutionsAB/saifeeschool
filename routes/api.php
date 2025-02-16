@@ -315,6 +315,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Route::delete('/{id}', [PurchaseController::class, 'destroy']); // Delete a Purchase (Admin only)
     
         Route::get('/import', [SubjectController::class, 'importCsv']); 
+        Route::get('/aggregate', [SubjectController::class, 'createAggregateSubject']); 
+        
 
         Route::get('/view/{id?}', [SubjectController::class, 'index']); 
     });

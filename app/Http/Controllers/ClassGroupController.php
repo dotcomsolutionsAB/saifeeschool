@@ -301,10 +301,11 @@ class ClassGroupController extends Controller
 
             $classGroup->delete();
 
-            return response()->json(['message' => 'Class group deleted successfully'], 200);
+            return response()->json(['code'=>200,'message' => 'Class group deleted successfully'], 200);
 
         } catch (\Exception $e) {
             return response()->json([
+                'code'=>500,
                 'message' => 'Failed to delete class group',
                 'error' => $e->getMessage()
             ], 500);
