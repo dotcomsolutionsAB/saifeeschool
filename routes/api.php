@@ -318,7 +318,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/aggregate', [SubjectController::class, 'createAggregateSubject']); 
 
 
-        Route::get('/class/{cg_id}', [SubjectController::class, 'getSubjectsByClassGroup']); // Fetch subjects by class
+        Route::post('/class', [SubjectController::class, 'getSubjectsByClassGroup']); // Fetch subjects by class
         Route::post('/create', [SubjectController::class, 'createSubject']); // Create subject
         Route::post('/map', [SubjectController::class, 'mapSubjectToClass']); // Map subject to class
        
