@@ -316,6 +316,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
         Route::get('/import', [SubjectController::class, 'importCsv']); 
         Route::post('/aggregate', [SubjectController::class, 'createAggregateSubject']); 
+
+
+        Route::get('/class/{cg_id}', [SubjectController::class, 'getSubjectsByClassGroup']); // Fetch subjects by class
+        Route::post('/create', [SubjectController::class, 'createSubject']); // Create subject
+        Route::post('/map', [SubjectController::class, 'mapSubjectToClass']); // Map subject to class
        
         
 
@@ -329,7 +334,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::post('/details', [MarksController::class, 'getMarksData'])
                 ->middleware(['check-api-permission:report.full, report.view']); 
-                
+
         Route::post('/create', [MarksController::class, 'createOrUpdateMarks'])
         ->middleware(['check-api-permission:report.full, report.view']); ;          // List all Marks
 

@@ -258,6 +258,151 @@ class SubjectController extends Controller
             ], 500);
         }
     }
+    public function getSubjectsByClassGroup(Request $request)
+{
+    try {
+        // ✅ Validate the request
+        $validated = $request->validate([
+            'cg_id' => 'required|integer|exists:t_class_groups,id',
+        ]);
+
+        $cg_id = $validated['cg_id'];
+
+        // ✅ Fetch subjects mapped to the given `cg_id`
+        $subjects = DB::table('t_subjectFM as sfm')
+            ->join('t_subjects as subj', 'sfm.subj_id', '=', 'subj.id')
+            ->where('sfm.cg_id', $cg_id)
+            ->select('subj.id AS subject_id', 'subj.subject AS subject_name', 'sfm.type')
+            ->orderBy('subj.subject')
+            ->get();
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Subjects fetched successfully.',
+            'data' => $subjects,
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching subjects.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+public function createSubject(Request $request)
+{
+    try {
+        // ✅ Validate request data
+        $validated = $request->validate([
+            'subject' => 'required|string|max:255|unique:t_subjects,subject',
+            'type' => 'required|string|in:M,G,A', // M = Marks, G = Grade, A = Aggregate
+        ]);
+
+        // ✅ Create a new subject
+        $subject = SubjectModel::create([
+            'subject' => $validated['subject'],
+            'type' => $validated['type'],
+        ]);
+
+        return response()->json([
+            'code' => 201,
+            'status' => true,
+            'message' => 'Subject created successfully.',
+            'data' => $subject,
+        ], 201);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while creating the subject.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+public function mapSubjectToClass(Request $request)
+{
+    try {
+        // ✅ Validate request data
+        $validated = $request->validate([
+            'cg_id' => 'required|integer|exists:t_class_groups,id',
+            'subj_id' => 'required|integer|exists:t_subjects,id',
+            'theory' => 'nullable|integer|min:0',
+            'oral' => 'nullable|integer|min:0',
+            'prac' => 'nullable|integer|min:0',
+            'marks' => 'nullable|integer|min:0',
+        ]);
+
+        // ✅ Fetch subject details
+        $subject = SubjectModel::where('id', $validated['subj_id'])->first();
+        if (!$subject) {
+            return response()->json([
+                'code' => 400,
+                'status' => false,
+                'message' => 'Invalid subject ID.',
+            ], 400);
+        }
+
+        $subject_name = $subject->subject;
+        $subject_type = $subject->type;
+
+        // ✅ Get all terms for the given class group
+        $termIds = DB::table('t_terms')
+            ->where('cg_id', $validated['cg_id'])
+            ->pluck('id');
+
+        if ($termIds->isEmpty()) {
+            return response()->json([
+                'code' => 400,
+                'status' => false,
+                'message' => 'No terms found for the given class group.',
+            ], 400);
+        }
+
+        // ✅ Insert the subject for all terms in `t_subjectFM`
+        $createdEntries = [];
+        foreach ($termIds as $term_id) {
+            $exists = SubjectFMModel::where([
+                'subj_id' => $validated['subj_id'],
+                'cg_id' => $validated['cg_id'],
+                'term_id' => $term_id
+            ])->exists();
+
+            if (!$exists) {
+                $subjectFM = SubjectFMModel::create([
+                    'subj_id' => $validated['subj_id'],
+                    'subj_name' => $subject_name,
+                    'cg_id' => $validated['cg_id'],
+                    'term_id' => $term_id,
+                    'type' => $subject_type,
+                    'theory' => $validated['theory'] ?? null,
+                    'oral' => $validated['oral'] ?? null,
+                    'prac' => $validated['prac'] ?? null,
+                    'marks' => $validated['marks'] ?? null,
+                ]);
+                $createdEntries[] = $subjectFM;
+            }
+        }
+
+        return response()->json([
+            'code' => 201,
+            'status' => true,
+            'message' => 'Subject successfully mapped to all terms of the class.',
+            'data' => $createdEntries,
+        ], 201);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while mapping the subject.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
 
 
 }
