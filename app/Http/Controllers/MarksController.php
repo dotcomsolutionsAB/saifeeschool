@@ -165,137 +165,144 @@ class MarksController extends Controller
     }
 
     public function getMarksData(Request $request)
-    {
-        try {
-            // Validate the request parameters
-            $validated = $request->validate([
-                'ay_id' => 'required|integer|exists:t_academic_years,id',
-                'term_id' => 'required|integer|exists:t_terms,id',
-                'cg_id' => 'required|integer|exists:t_class_groups,id',
-            ]);
-    
-            $ay_id = $validated['ay_id'];
-            $term_id = $validated['term_id'];
-            $cg_id = $validated['cg_id'];
-    
-            // ✅ Fetch all students in the class group
-            $students = DB::table('t_students as stu')
-                ->join('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
-                ->where('sc.cg_id', $cg_id)
-                ->selectRaw("
-                    stu.id AS st_id,
-                    stu.st_roll_no AS roll_no,
-                    CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS name
-                ")
-                ->orderBy('stu.st_roll_no')
-                ->get();
-    
-            // ✅ Fetch all subjects for the given class & term
-            $subjectsRaw = DB::table('t_subjectFM as sfm')
-                ->join('t_subjects as subj', 'sfm.subj_id', '=', 'subj.id')
-                ->where('sfm.cg_id', $cg_id)
-                ->where('sfm.term_id', $term_id)
-                ->selectRaw("
-                    subj.id AS subject_id,
-                    subj.subject AS subject_name,
-                    sfm.type,
-                    sfm.theory,
-                    sfm.oral,
-                    sfm.prac,
-                    sfm.marks AS total_marks
-                ")
-                ->orderBy('subj.subject')
-                ->get();
-    
-            // ✅ Process subjects - If practical exists, create separate entries
-            $subjects = [];
-            foreach ($subjectsRaw as $subj) {
+{
+    try {
+        // ✅ Validate the request parameters
+        $validated = $request->validate([
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+            'term_id' => 'required|integer|exists:t_terms,id',
+            'cg_id' => 'required|integer|exists:t_class_groups,id',
+        ]);
+
+        $ay_id = $validated['ay_id'];
+        $term_id = $validated['term_id'];
+        $cg_id = $validated['cg_id'];
+
+        // ✅ Fetch all students in the class group (ordered by name)
+        $students = DB::table('t_students as stu')
+            ->join('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
+            ->where('sc.cg_id', $cg_id)
+            ->selectRaw("
+                stu.id AS st_id,
+                stu.st_roll_no AS roll_no,
+                CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS name
+            ")
+            ->orderBy('name') // ✅ Order by student name alphabetically
+            ->get();
+
+        // ✅ Fetch all subjects for the given class & term (ordered by `t_subjects.serial`)
+        $subjectsRaw = DB::table('t_subjectFM as sfm')
+            ->join('t_subjects as subj', 'sfm.subj_id', '=', 'subj.id')
+            ->where('sfm.cg_id', $cg_id)
+            ->where('sfm.term_id', $term_id)
+            ->selectRaw("
+                subj.id AS subject_id,
+                subj.subject AS subject_name,
+                subj.serial AS subject_serial,  -- ✅ Ordering key
+                sfm.type,
+                sfm.theory,
+                sfm.oral,
+                sfm.prac,
+                sfm.marks AS total_marks
+            ")
+            ->orderBy('subj.serial') // ✅ Order by `t_subjects.serial`
+            ->get();
+
+        // ✅ Process subjects - If practical exists, create separate entries
+        $subjects = [];
+        foreach ($subjectsRaw as $subj) {
+            $subjects[] = [
+                'subject_id' => $subj->subject_id,
+                'subject_name' => $subj->subject_name,
+                'type' => $subj->type,
+                'marks' => $subj->theory,
+                'category' => 'Theory',
+                'subject_serial' => $subj->subject_serial
+            ];
+
+            if (!is_null($subj->prac) && $subj->prac > 0) {
                 $subjects[] = [
                     'subject_id' => $subj->subject_id,
                     'subject_name' => $subj->subject_name,
                     'type' => $subj->type,
-                    'marks' => $subj->theory,
-                    'category' => 'Theory'
+                    'marks' => $subj->prac,
+                    'category' => 'Practical',
+                    'subject_serial' => $subj->subject_serial
                 ];
-    
-                if (!is_null($subj->prac) && $subj->prac > 0) {
-                    $subjects[] = [
-                        'subject_id' => $subj->subject_id,
-                        'subject_name' => $subj->subject_name,
-                        'type' => $subj->type,
-                        'marks' => $subj->prac,
-                        'category' => 'Practical'
-                    ];
-                }
             }
-    
-            // ✅ Fetch marks for each student in each subject
-            $marksRaw = DB::table('t_marks as m')
-                ->join('t_students as stu', 'm.st_roll_no', '=', 'stu.st_roll_no')
-                ->join('t_subjects as subj', 'm.subj_id', '=', 'subj.id')
-                ->where('m.cg_id', $cg_id)
-                ->where('m.term', $term_id)
-                ->selectRaw("
-                    stu.id AS st_id,
-                    m.cg_id,
-                    m.term AS term_id,
-                    m.st_roll_no AS roll_no,
-                    m.subj_id AS subject_id,
-                    m.marks AS theory_marks,
-                    m.prac AS prac_marks
-                ")
-                ->get();
-    
-            // ✅ Process marks - Separate theory & practical
-            $marks = [];
-            foreach ($marksRaw as $mark) {
-                // Theory marks entry
+        }
+
+        // ✅ Fetch marks for each student in each subject
+        $marksRaw = DB::table('t_marks as m')
+            ->join('t_students as stu', 'm.st_roll_no', '=', 'stu.st_roll_no')
+            ->join('t_subjects as subj', 'm.subj_id', '=', 'subj.id')
+            ->where('m.cg_id', $cg_id)
+            ->where('m.term', $term_id)
+            ->selectRaw("
+                stu.id AS st_id,
+                m.cg_id,
+                m.term AS term_id,
+                m.st_roll_no AS roll_no,
+                m.subj_id AS subject_id,
+                subj.serial AS subject_serial,  -- ✅ Ordering key
+                m.marks AS theory_marks,
+                m.prac AS prac_marks
+            ")
+            ->orderBy('stu.st_first_name') // ✅ First order by student name
+            ->orderBy('stu.st_last_name')
+            ->orderBy('subj.serial') // ✅ Then order by subject serial
+            ->get();
+
+        // ✅ Process marks - Separate theory & practical
+        $marks = [];
+        foreach ($marksRaw as $mark) {
+            // Theory marks entry
+            $marks[] = [
+                'st_id' => $mark->st_id,
+                'cg_id' => $mark->cg_id,
+                'term_id' => $mark->term_id,
+                'subject_id' => $mark->subject_id,
+                'marks' => $mark->theory_marks,
+                'category' => 'Theory',
+                'subject_serial' => $mark->subject_serial
+            ];
+
+            // Practical marks entry if applicable
+            if (!is_null($mark->prac_marks) && $mark->prac_marks > 0) {
                 $marks[] = [
                     'st_id' => $mark->st_id,
                     'cg_id' => $mark->cg_id,
                     'term_id' => $mark->term_id,
-                    //'roll_no' => $mark->roll_no,
                     'subject_id' => $mark->subject_id,
-                    'marks' => $mark->theory_marks,
-                    'category' => 'Theory'
+                    'marks' => $mark->prac_marks,
+                    'category' => 'Practical',
+                    'subject_serial' => $mark->subject_serial
                 ];
-    
-                // Practical marks entry if applicable
-                if (!is_null($mark->prac_marks) && $mark->prac_marks > 0) {
-                    $marks[] = [
-                        'st_id' => $mark->st_id,
-                        'cg_id' => $mark->cg_id,
-                        'term_id' => $mark->term_id,
-                        //'roll_no' => $mark->roll_no,
-                        'subject_id' => $mark->subject_id,
-                        'marks' => $mark->prac_marks,
-                        'category' => 'Practical'
-                    ];
-                }
             }
-    
-            return response()->json([
-                'code' => 200,
-                'status' => true,
-                'message' => 'Marks data fetched successfully!',
-                'data' => [
-                    'subjects' => $subjects,
-                    'students' => $students,
-                    'marks' => $marks
-                ]
-            ], 200);
-    
-        } catch (\Exception $e) {
-            return response()->json([
-                'code' => 500,
-                'status' => false,
-                'message' => 'An error occurred while fetching marks data.',
-                'error' => $e->getMessage(),
-            ], 500);
         }
-    }
 
-    public function createOrUpdateMarks(Request $request)
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Marks data fetched successfully!',
+            'data' => [
+                'subjects' => collect($subjects)->sortBy('subject_serial')->values()->all(), // ✅ Sort subjects by serial
+                'students' => $students,
+                'marks' => collect($marks)->sortBy(['st_id', 'subject_serial'])->values()->all(), // ✅ Sort marks by student first, then subject serial
+            ]
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching marks data.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+public function createOrUpdateMarks(Request $request)
 {
     try {
         // ✅ Validate the request data
@@ -304,7 +311,7 @@ class MarksController extends Controller
             'cg_id' => 'required|integer|exists:t_class_groups,id',
             'term_id' => 'required|integer|exists:t_terms,id',
             'subject_id' => 'required|integer|exists:t_subjects,id',
-            'marks' => 'required|numeric|min:0', // Marks should be numeric and non-negative
+            'marks' => 'required', // Validation for numeric/letter marks handled separately
             'category' => 'required|string|in:Theory,Practical', // Only two valid categories
         ]);
 
@@ -327,6 +334,67 @@ class MarksController extends Controller
             ], 400);
         }
         $roll_no = $student->st_roll_no;
+
+        // ✅ Fetch subject details from `t_subjectFM`
+        $subjectFM = DB::table('t_subjectFM')
+            ->join('t_subjects', 't_subjectFM.subj_id', '=', 't_subjects.id')
+            ->where([
+                't_subjectFM.subj_id' => $subject_id,
+                't_subjectFM.cg_id' => $cg_id,
+                't_subjectFM.term_id' => $term_id
+            ])
+            ->select('t_subjectFM.theory', 't_subjectFM.prac', 't_subjects.type')
+            ->first();
+
+        if (!$subjectFM) {
+            return response()->json([
+                'code' => 400,
+                'status' => false,
+                'message' => "The subject is not assigned to this class and term.",
+            ], 400);
+        }
+
+        // ✅ Check if the subject type is "M" (marks-based) or "G" (grade-based)
+        if ($subjectFM->type === 'M') {
+            if (!is_numeric($marks) || floor($marks) != $marks) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => "For type 'M', marks must be an integer.",
+                ], 400);
+            }
+        } elseif ($subjectFM->type === 'G') {
+            if (!preg_match('/^[A-Za-z]+$/', $marks)) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => "For type 'G', marks must be a letter grade (e.g., A, B, C).",
+                ], 400);
+            }
+        } else {
+            return response()->json([
+                'code' => 400,
+                'status' => false,
+                'message' => "Invalid subject type detected.",
+            ], 400);
+        }
+
+        // ✅ Ensure marks do not exceed allowed max values for Theory/Practical
+        if ($category === 'Theory' && (is_null($subjectFM->theory) || $marks > $subjectFM->theory)) {
+            return response()->json([
+                'code' => 400,
+                'status' => false,
+                'message' => "Invalid theory marks. Maximum allowed: {$subjectFM->theory}.",
+            ], 400);
+        }
+
+        if ($category === 'Practical' && (is_null($subjectFM->prac) || $marks > $subjectFM->prac)) {
+            return response()->json([
+                'code' => 400,
+                'status' => false,
+                'message' => "Invalid practical marks. Maximum allowed: {$subjectFM->prac}.",
+            ], 400);
+        }
 
         // ✅ Check if mark entry exists
         $existingMark = DB::table('t_marks')
