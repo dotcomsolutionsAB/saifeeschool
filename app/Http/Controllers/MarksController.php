@@ -264,7 +264,7 @@ class MarksController extends Controller
                 'subject_id' => $mark->subject_id,
                 'marks' => $mark->theory_marks,
                 'category' => 'Theory',
-                'subject_serial' => $mark->subject_serial
+                //'subject_serial' => $mark->subject_serial
             ];
 
             // Practical marks entry if applicable
@@ -276,7 +276,7 @@ class MarksController extends Controller
                     'subject_id' => $mark->subject_id,
                     'marks' => $mark->prac_marks,
                     'category' => 'Practical',
-                    'subject_serial' => $mark->subject_serial
+                   // 'subject_serial' => $mark->subject_serial
                 ];
             }
         }
