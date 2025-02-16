@@ -132,21 +132,30 @@ class SubjectController extends Controller
             $subj_ids = $validated['subj_ids']; // Array of subject IDs
             $subj_ids_str = implode(',', $subj_ids);
     
+            // **Fetch Academic Year & Class Group**
+            $classGroup = ClassGroupModel::find($cg_id);
+            if (!$classGroup) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => 'Class group not found.',
+                ], 400);
+            }
+            $ay_id = $classGroup->ay_id; // Fetch academic year from class group
+    
             // **Ensure all subjects belong to the same academic year**
             $academicYearIds = SubjectFMModel::whereIn('subj_id', $subj_ids)
                 ->where('cg_id', $cg_id)
                 ->pluck('ay_id')
                 ->unique();
     
-            if ($academicYearIds->count() !== 1) {
+            if ($academicYearIds->count() !== 1 || $academicYearIds->first() != $ay_id) {
                 return response()->json([
                     'code' => 400,
                     'status' => false,
                     'message' => 'Subjects must belong to the same academic year for aggregation.',
                 ], 400);
             }
-    
-            $ay_id = $academicYearIds->first(); // Get the common ay_id
     
             // **Find all terms where the subjects exist**
             $termIds = SubjectFMModel::whereIn('subj_id', $subj_ids)
@@ -162,24 +171,31 @@ class SubjectController extends Controller
                 ], 400);
             }
     
+            // **Ensure the aggregate subject does not already exist**
+            $existingAggregate = SubjectModel::where([
+                'subject' => $subj_name,
+                'cg_group' => $classGroup->cg_group,
+                'type' => 'A' // Aggregate subject
+            ])->first();
+    
+            if ($existingAggregate) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => 'An aggregate subject with this name already exists in this class group.',
+                ], 400);
+            }
+    
+            // **Create new entry in `t_subjects` table** (Only storing ID, Name, and Type)
+            $aggregateSubject = SubjectModel::create([
+                'subject' => $subj_name,
+                'cg_group' => $classGroup->cg_group, // Fetch class group for mapping
+                'type' => 'A', // Aggregate subject type
+            ]);
+    
             $createdAggregates = [];
     
             foreach ($termIds as $term_id) {
-                // **Check if an aggregate already exists for this term in the same class**
-                $existingAggregate = SubjectFMModel::where([
-                    'cg_id' => $cg_id,
-                    'term_id' => $term_id,
-                    'subj_name' => $subj_name,
-                ])->exists();
-    
-                if ($existingAggregate) {
-                    return response()->json([
-                        'code' => 400,
-                        'status' => false,
-                        'message' => "An aggregate subject with this name already exists for this class and term (Term ID: $term_id).",
-                    ], 400);
-                }
-    
                 // **Ensure none of the subjects are already part of another aggregate**
                 $conflictingAggregates = SubjectFMModel::where('cg_id', $cg_id)
                     ->where('term_id', $term_id)
@@ -225,8 +241,8 @@ class SubjectController extends Controller
                 $total_marks = $average_theory + $average_oral + $average_prac;
     
                 // **Create new entry in `t_subjectFM`**
-                $aggregateSubject = SubjectFMModel::create([
-                    'subj_id' => null, // No subject ID since it's an aggregate
+                $aggregateFM = SubjectFMModel::create([
+                    'subj_id' => $aggregateSubject->id, // Reference to the new subject ID
                     'subj_name' => $subj_name,
                     'subj_init' => $subj_ids_str, // Store aggregated subject IDs
                     'cg_id' => $cg_id,
@@ -239,7 +255,7 @@ class SubjectController extends Controller
                     'marks' => $total_marks,
                 ]);
     
-                $createdAggregates[] = $aggregateSubject;
+                $createdAggregates[] = $aggregateFM;
             }
     
             return response()->json([
