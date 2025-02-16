@@ -117,111 +117,118 @@ class SubjectController extends Controller
         }
     }
     public function createAggregateSubject(Request $request)
-{
-    try {
-        // Validate the request
-        $validated = $request->validate([
-            'cg_id' => 'required|integer|exists:t_class_groups,id',
-            'subject' => 'required|string|max:255', // Aggregate subject name
-            'subj_ids' => 'required|array|min:1', // List of subjects to aggregate
-            'subj_ids.*' => 'integer|exists:t_subjects,id',
-        ]);
-
-        $cg_id = $validated['cg_id'];
-        $subjectName = $validated['subject'];
-        $subj_ids = $validated['subj_ids']; // Array of subject IDs
-
-        // Convert subject IDs to a comma-separated string
-        $subj_ids_str = implode(',', $subj_ids);
-
-        // **Check if the same subjects are already in another aggregate**
-        $existingAggregate = SubjectModel::where('cg_group', $cg_id)
-            ->where('type', 'A') // Aggregate Subject
-            ->where(function ($query) use ($subj_ids) {
-                foreach ($subj_ids as $subj_id) {
-                    $query->orWhereRaw("FIND_IN_SET(?, category)", [$subj_id]);
-                }
-            })
-            ->first();
-
-        if ($existingAggregate) {
+    {
+        try {
+            // Validate the request
+            $validated = $request->validate([
+                'cg_id' => 'required|integer|exists:t_class_groups,id',
+                'subj_name' => 'required|string|max:255', // Aggregate subject name
+                'subj_ids' => 'required|array|min:1', // List of subjects to aggregate
+                'subj_ids.*' => 'integer|exists:t_subjects,id',
+            ]);
+    
+            $cg_id = $validated['cg_id'];
+            $subj_name = $validated['subj_name'];
+            $subj_ids = $validated['subj_ids']; // Array of subject IDs
+            $subj_ids_str = implode(',', $subj_ids);
+    
+            // **Check if any of the selected subjects are already part of another aggregate**
+            $existingAggregate = SubjectFMModel::where('cg_id', $cg_id)
+                ->where('type', 'A') // Aggregate Subject
+                ->where(function ($query) use ($subj_ids) {
+                    foreach ($subj_ids as $subj_id) {
+                        $query->orWhereRaw("FIND_IN_SET(?, subj_init)", [$subj_id]);
+                    }
+                })
+                ->exists();
+    
+            if ($existingAggregate) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => 'One or more selected subjects are already part of another aggregate in this class.',
+                ], 400);
+            }
+    
+            // **Fetch latest term ID for this class**
+            $latestTerm = DB::table('t_terms')
+                ->where('cg_id', $cg_id)
+                ->orderBy('id', 'desc')
+                ->value('id');
+    
+            if (!$latestTerm) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => 'No term found for the given class.',
+                ], 400);
+            }
+    
+            // **Calculate average marks from aggregated subjects**
+            $subjectData = SubjectFMModel::whereIn('subj_id', $subj_ids)
+                ->where('cg_id', $cg_id)
+                ->where('term_id', $latestTerm)
+                ->selectRaw('SUM(theory) as total_theory, SUM(oral) as total_oral, SUM(prac) as total_prac, COUNT(id) as total_subjects')
+                ->first();
+    
+            if (!$subjectData || $subjectData->total_subjects == 0) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => 'Invalid subjects provided for aggregation.',
+                ], 400);
+            }
+    
+            // Calculate average marks
+            $average_theory = round($subjectData->total_theory / $subjectData->total_subjects, 2);
+            $average_oral = round($subjectData->total_oral / $subjectData->total_subjects, 2);
+            $average_prac = round($subjectData->total_prac / $subjectData->total_subjects, 2);
+            $total_marks = $average_theory + $average_oral + $average_prac;
+    
+            // **Check if an aggregate with the same name exists in `t_subjectFM`**
+            $existingAggregateSubject = SubjectFMModel::where([
+                'cg_id' => $cg_id,
+                'term_id' => $latestTerm,
+                'subj_name' => $subj_name,
+            ])->exists();
+    
+            if ($existingAggregateSubject) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => 'An aggregate subject with this name already exists in the given class and term.',
+                ], 400);
+            }
+    
+            // **Create new entry in `t_subjectFM`**
+            $aggregateSubject = SubjectFMModel::create([
+                'subj_id' => null, // No subject ID since it's an aggregate
+                'subj_name' => $subj_name,
+                'subj_init' => $subj_ids_str, // Store aggregated subject IDs
+                'cg_id' => $cg_id,
+                'term_id' => $latestTerm,
+                'type' => 'A', // Aggregate Type
+                'theory' => $average_theory,
+                'oral' => $average_oral,
+                'prac' => $average_prac,
+                'marks' => $total_marks,
+            ]);
+    
             return response()->json([
-                'code' => 400,
-                'status' => false,
-                'message' => 'One or more selected subjects are already part of another aggregate in this class.',
-            ], 400);
-        }
-
-        // **Calculate average marks from aggregated subjects**
-        $subjectData = SubjectModel::whereIn('id', $subj_ids)
-            ->selectRaw('SUM(marks) as total_marks, SUM(prac) as total_prac, COUNT(id) as total_subjects')
-            ->first();
-
-        if (!$subjectData || $subjectData->total_subjects == 0) {
+                'code' => 200,
+                'status' => true,
+                'message' => 'Aggregate subject created successfully!',
+                'data' => $aggregateSubject,
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json([
-                'code' => 400,
+                'code' => 500,
                 'status' => false,
-                'message' => 'Invalid subjects provided.',
-            ], 400);
+                'message' => 'An error occurred while creating the aggregate subject.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        // Calculate average marks
-        $average_marks = round($subjectData->total_marks / $subjectData->total_subjects, 2);
-        $average_prac = round($subjectData->total_prac / $subjectData->total_subjects, 2);
-
-        // **Create new subject entry in `t_subjects`**
-        $newSubject = SubjectModel::create([
-            'subject' => $subjectName,
-            'cg_group' => $cg_id,
-            'type' => 'A', // Aggregate Subject
-            'marks' => $average_marks,
-            'prac' => $average_prac,
-            'category' => $subj_ids_str, // Store aggregated subject IDs
-        ]);
-
-        // **Fetch the latest term ID for this class**
-        $latestTerm = DB::table('t_terms')
-            ->where('cg_id', $cg_id)
-            ->orderBy('id', 'desc')
-            ->value('id');
-
-        if (!$latestTerm) {
-            return response()->json([
-                'code' => 400,
-                'status' => false,
-                'message' => 'No term found for the given class.',
-            ], 400);
-        }
-
-        // **Create new entry in `t_subjectFM`**
-        SubjectFMModel::create([
-            'subj_id' => $newSubject->id,
-            'subj_name' => $subjectName,
-            'subj_init' => $subj_ids_str, // Store aggregated subject IDs
-            'cg_id' => $cg_id,
-            'term_id' => $latestTerm,
-            'type' => 'A', // Aggregate Type
-            'theory' => $average_marks,
-            'oral' => null,
-            'prac' => $average_prac,
-            'marks' => $average_marks + $average_prac,
-        ]);
-
-        return response()->json([
-            'code' => 200,
-            'status' => true,
-            'message' => 'Aggregate subject created successfully!',
-            'data' => $newSubject,
-        ], 200);
-    } catch (\Exception $e) {
-        return response()->json([
-            'code' => 500,
-            'status' => false,
-            'message' => 'An error occurred while creating the aggregate subject.',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
 
 
 }
