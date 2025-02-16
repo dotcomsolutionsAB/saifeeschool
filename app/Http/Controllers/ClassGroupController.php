@@ -322,12 +322,11 @@ class ClassGroupController extends Controller
             // Check if the file exists
             if (!file_exists($csvFilePath)) {
                 return response()->json([
+                    'code' => 404,
+                    'status' => false,
                     'message' => 'CSV file not found at the specified path.',
                 ], 404);
             }
-    
-            // Truncate the table before import
-            ClassGroupModel::truncate();
     
             // Fetch the CSV content
             $csvContent = file_get_contents($csvFilePath);
@@ -341,27 +340,51 @@ class ClassGroupController extends Controller
             // Process the CSV records
             $records = (new Statement())->process($csvReader);
     
+            // Track updated and created records
+            $updatedCount = 0;
+            $createdCount = 0;
+    
             foreach ($records as $row) {
-                // Insert records into the table
-                ClassGroupModel::create([
-                    'id' => $row['cg_id'],
-                    'ay_id' => $row['ay_id'],
-                    'cg_name' => $row['cg_name'],
-                    'cg_order' => $row['cg_order'],
-                    'cg_group' => $row['cg_group']
-                ]);
+                // Check if the record already exists
+                $existingClassGroup = ClassGroupModel::where('id', $row['cg_id'])->first();
+    
+                if ($existingClassGroup) {
+                    // Update the existing record
+                    $existingClassGroup->update([
+                        'ay_id' => $row['ay_id'],
+                        'cg_name' => $row['cg_name'],
+                        'cg_order' => $row['cg_order'],
+                        'cg_group' => $row['cg_group']
+                    ]);
+                    $updatedCount++;
+                } else {
+                    // Create a new record
+                    ClassGroupModel::create([
+                        'id' => $row['cg_id'],
+                        'ay_id' => $row['ay_id'],
+                        'cg_name' => $row['cg_name'],
+                        'cg_order' => $row['cg_order'],
+                        'cg_group' => $row['cg_group']
+                    ]);
+                    $createdCount++;
+                }
             }
     
             return response()->json([
+                'code' => 200,
+                'status' => true,
                 'message' => 'Class Groups CSV imported successfully!',
+                'created' => $createdCount,
+                'updated' => $updatedCount,
             ], 200);
     
         } catch (\Exception $e) {
             // Handle exceptions
             return response()->json([
+                'code' => 500,
+                'status' => false,
                 'message' => 'Failed to import Class Groups CSV.',
                 'error' => $e->getMessage(),
             ], 500);
         }
-    }
-}
+    }}
