@@ -119,12 +119,12 @@ class SubjectController extends Controller
     public function createAggregateSubject(Request $request)
     {
         try {
-            // Validate the request
+            // Validate request
             $validated = $request->validate([
                 'cg_id' => 'required|integer|exists:t_class_groups,id',
                 'subj_name' => 'required|string|max:255', // Aggregate subject name
                 'subj_ids' => 'required|array|min:1', // List of subjects to aggregate
-                'subj_ids.*' => 'integer|exists:t_subjects,id',
+                'subj_ids.*' => 'integer|exists:t_subjectFM,subj_id',
             ]);
     
             $cg_id = $validated['cg_id'];
@@ -132,93 +132,121 @@ class SubjectController extends Controller
             $subj_ids = $validated['subj_ids']; // Array of subject IDs
             $subj_ids_str = implode(',', $subj_ids);
     
-            // **Check if any of the selected subjects are already part of another aggregate**
-            $existingAggregate = SubjectFMModel::where('cg_id', $cg_id)
-                ->where('type', 'A') // Aggregate Subject
-                ->where(function ($query) use ($subj_ids) {
-                    foreach ($subj_ids as $subj_id) {
-                        $query->orWhereRaw("FIND_IN_SET(?, subj_init)", [$subj_id]);
-                    }
-                })
-                ->exists();
-    
-            if ($existingAggregate) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => 'One or more selected subjects are already part of another aggregate in this class.',
-                ], 400);
-            }
-    
-            // **Fetch latest term ID for this class**
-            $latestTerm = DB::table('t_terms')
+            // **Ensure all subjects belong to the same academic year**
+            $academicYearIds = SubjectFMModel::whereIn('subj_id', $subj_ids)
                 ->where('cg_id', $cg_id)
-                ->orderBy('id', 'desc')
-                ->value('id');
+                ->pluck('ay_id')
+                ->unique();
     
-            if (!$latestTerm) {
+            if ($academicYearIds->count() !== 1) {
                 return response()->json([
                     'code' => 400,
                     'status' => false,
-                    'message' => 'No term found for the given class.',
+                    'message' => 'Subjects must belong to the same academic year for aggregation.',
                 ], 400);
             }
     
-            // **Calculate average marks from aggregated subjects**
-            $subjectData = SubjectFMModel::whereIn('subj_id', $subj_ids)
+            $ay_id = $academicYearIds->first(); // Get the common ay_id
+    
+            // **Find all terms where the subjects exist**
+            $termIds = SubjectFMModel::whereIn('subj_id', $subj_ids)
                 ->where('cg_id', $cg_id)
-                ->where('term_id', $latestTerm)
-                ->selectRaw('SUM(theory) as total_theory, SUM(oral) as total_oral, SUM(prac) as total_prac, COUNT(id) as total_subjects')
-                ->first();
+                ->pluck('term_id')
+                ->unique();
     
-            if (!$subjectData || $subjectData->total_subjects == 0) {
+            if ($termIds->isEmpty()) {
                 return response()->json([
                     'code' => 400,
                     'status' => false,
-                    'message' => 'Invalid subjects provided for aggregation.',
+                    'message' => 'Subjects must belong to at least one term.',
                 ], 400);
             }
     
-            // Calculate average marks
-            $average_theory = round($subjectData->total_theory / $subjectData->total_subjects, 2);
-            $average_oral = round($subjectData->total_oral / $subjectData->total_subjects, 2);
-            $average_prac = round($subjectData->total_prac / $subjectData->total_subjects, 2);
-            $total_marks = $average_theory + $average_oral + $average_prac;
+            $createdAggregates = [];
     
-            // **Check if an aggregate with the same name exists in `t_subjectFM`**
-            $existingAggregateSubject = SubjectFMModel::where([
-                'cg_id' => $cg_id,
-                'term_id' => $latestTerm,
-                'subj_name' => $subj_name,
-            ])->exists();
+            foreach ($termIds as $term_id) {
+                // **Check if an aggregate already exists for this term in the same class**
+                $existingAggregate = SubjectFMModel::where([
+                    'cg_id' => $cg_id,
+                    'term_id' => $term_id,
+                    'subj_name' => $subj_name,
+                ])->exists();
     
-            if ($existingAggregateSubject) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => 'An aggregate subject with this name already exists in the given class and term.',
-                ], 400);
+                if ($existingAggregate) {
+                    return response()->json([
+                        'code' => 400,
+                        'status' => false,
+                        'message' => "An aggregate subject with this name already exists for this class and term (Term ID: $term_id).",
+                    ], 400);
+                }
+    
+                // **Ensure none of the subjects are already part of another aggregate**
+                $conflictingAggregates = SubjectFMModel::where('cg_id', $cg_id)
+                    ->where('term_id', $term_id)
+                    ->where(function ($query) use ($subj_ids) {
+                        foreach ($subj_ids as $subj_id) {
+                            $query->orWhereRaw("FIND_IN_SET(?, subj_init)", [$subj_id]);
+                        }
+                    })
+                    ->exists();
+    
+                if ($conflictingAggregates) {
+                    return response()->json([
+                        'code' => 400,
+                        'status' => false,
+                        'message' => "One or more selected subjects are already part of another aggregate in this class for Term ID: $term_id.",
+                    ], 400);
+                }
+    
+                // **Calculate average marks from aggregated subjects**
+                $subjectData = SubjectFMModel::whereIn('subj_id', $subj_ids)
+                    ->where('cg_id', $cg_id)
+                    ->where('term_id', $term_id)
+                    ->selectRaw('
+                        COALESCE(SUM(theory), 0) as total_theory,
+                        COALESCE(SUM(oral), 0) as total_oral,
+                        COALESCE(SUM(prac), 0) as total_prac,
+                        COUNT(id) as total_subjects
+                    ')
+                    ->first();
+    
+                if (!$subjectData || $subjectData->total_subjects == 0) {
+                    return response()->json([
+                        'code' => 400,
+                        'status' => false,
+                        'message' => "Invalid subjects provided for aggregation in Term ID: $term_id.",
+                    ], 400);
+                }
+    
+                // **Calculate Average Marks**
+                $average_theory = round($subjectData->total_theory / $subjectData->total_subjects, 2);
+                $average_oral = round($subjectData->total_oral / $subjectData->total_subjects, 2);
+                $average_prac = round($subjectData->total_prac / $subjectData->total_subjects, 2);
+                $total_marks = $average_theory + $average_oral + $average_prac;
+    
+                // **Create new entry in `t_subjectFM`**
+                $aggregateSubject = SubjectFMModel::create([
+                    'subj_id' => null, // No subject ID since it's an aggregate
+                    'subj_name' => $subj_name,
+                    'subj_init' => $subj_ids_str, // Store aggregated subject IDs
+                    'cg_id' => $cg_id,
+                    'term_id' => $term_id,
+                    'ay_id' => $ay_id,
+                    'type' => 'A', // Aggregate Type
+                    'theory' => $average_theory,
+                    'oral' => $average_oral,
+                    'prac' => $average_prac,
+                    'marks' => $total_marks,
+                ]);
+    
+                $createdAggregates[] = $aggregateSubject;
             }
-    
-            // **Create new entry in `t_subjectFM`**
-            $aggregateSubject = SubjectFMModel::create([
-                'subj_id' => null, // No subject ID since it's an aggregate
-                'subj_name' => $subj_name,
-                'subj_init' => $subj_ids_str, // Store aggregated subject IDs
-                'cg_id' => $cg_id,
-                'term_id' => $latestTerm,
-                'type' => 'A', // Aggregate Type
-                'theory' => $average_theory,
-                'oral' => $average_oral,
-                'prac' => $average_prac,
-                'marks' => $total_marks,
-            ]);
     
             return response()->json([
                 'code' => 200,
                 'status' => true,
-                'message' => 'Aggregate subject created successfully!',
-                'data' => $aggregateSubject,
+                'message' => 'Aggregate subject created successfully for all relevant terms!',
+                'data' => $createdAggregates,
             ], 200);
         } catch (\Exception $e) {
             return response()->json([

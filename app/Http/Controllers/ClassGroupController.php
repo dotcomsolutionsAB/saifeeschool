@@ -348,6 +348,7 @@ class ClassGroupController extends Controller
                     'ay_id' => $row['ay_id'],
                     'cg_name' => $row['cg_name'],
                     'cg_order' => $row['cg_order'],
+                    'cg_group' => $row['cg_group']
                 ]);
             }
     
