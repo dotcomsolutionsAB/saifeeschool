@@ -434,4 +434,49 @@ class MarksController extends Controller
             ], 500);
         }
     }
+    public function updateMarksIds()
+{
+    try {
+        // Fetch all marks records that need `st_id` and `marks_id` filled
+        $marksRecords = DB::table('t_marks')->get();
+
+        $updatedCount = 0;
+
+        foreach ($marksRecords as $mark) {
+            // Fetch student ID from `t_students` using `st_roll_no`
+            $student = DB::table('t_students')
+                ->where('st_roll_no', $mark->st_roll_no)
+                ->select('id')
+                ->first();
+
+            if (!$student) {
+                continue; // Skip if student is not found
+            }
+
+            // Generate marks_id: st_id - cg_id - term - subj_id
+            $marks_id = "{$student->id}-{$mark->cg_id}-{$mark->term}-{$mark->subj_id}";
+
+            // Update the existing record
+            DB::table('t_marks')
+                ->where('id', $mark->id)
+                ->update([
+                    'st_id' => $student->id,
+                    'marks_id' => $marks_id,
+                    'updated_at' => now(),
+                ]);
+
+            $updatedCount++;
+        }
+
+        return response()->json([
+            'message' => "Successfully updated $updatedCount records with marks_id and st_id.",
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Failed to update marks_id and st_id.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
 }
