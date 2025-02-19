@@ -99,73 +99,117 @@ class MarksController extends Controller
     }
 
     public function importCsv(Request $request)
-    {
-        ini_set('max_execution_time', 300); // Extend execution time for large files
-        ini_set('memory_limit', '1024M');   // Increase memory limit
+{
+    ini_set('max_execution_time', 300); // Extend execution time for large files
+    ini_set('memory_limit', '1024M');   // Increase memory limit
 
-        try {
-            // File validation and path
-            // $csvFilePath = $request->file('csv_file')->getRealPath();
-            $csvFilePath = storage_path('app/public/studMarks.csv');
+    try {
+        // File validation and path
+        $csvFilePath = storage_path('app/public/studMarks.csv');
 
-            if (!file_exists($csvFilePath)) {
-                return response()->json(['message' => 'CSV file not found.'], 404);
-            }
-
-            // Read CSV
-            $csv = Reader::createFromPath($csvFilePath, 'r');
-            $csv->setHeaderOffset(0); // First row as headers
-            $records = (new Statement())->process($csv);
-
-            $batchSize = 1000; // Number of records to process in one batch
-            $data = [];
-
-            // Optionally truncate the table
-            MarksModel::truncate();
-
-            DB::beginTransaction();
-
-            foreach ($records as $row) {
-                try {
-                    // Validate and prepare the data
-                    $data[] = [
-                        'id' => $row['id'] ?? null,
-                        'ay_id' => $row['session'] ?? null,
-                        'st_roll_no' => $row['st_roll_no'] ?? null,
-                        'subj_id' => $row['subj_id'] ?? null,
-                        'cg_id' => $row['cg_id'] ?? null,
-                        'term' => $row['term'] ?? null,
-                        'unit' => $row['unit'] ?? null,
-                        'marks' => $row['marks'] ?? null,
-                        'prac' => $row['prac'] ?? null,
-                        'serialNo' => $row['serialNo'] ?? null,
-                    ];
-
-                    // Insert in batches
-                    if (count($data) >= $batchSize) {
-                        MarksModel::insert($data);
-                        $data = []; // Reset batch
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Error processing row: ' . json_encode($row) . ' | Error: ' . $e->getMessage());
-                }
-            }
-
-            // Insert remaining records
-            if (count($data) > 0) {
-                MarksModel::insert($data);
-            }
-
-            DB::commit();
-
-            return response()->json(['message' => 'CSV imported successfully!'], 200);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to import CSV: ' . $e->getMessage());
-            return response()->json(['message' => 'Failed to import CSV.', 'error' => $e->getMessage()], 500);
+        if (!file_exists($csvFilePath)) {
+            return response()->json(['message' => 'CSV file not found.'], 404);
         }
+
+        // Read CSV
+        $csv = Reader::createFromPath($csvFilePath, 'r');
+        $csv->setHeaderOffset(0); // First row as headers
+        $records = (new Statement())->process($csv);
+
+        $batchSize = 1000; // Number of records to process in one batch
+        $data = [];
+
+        DB::beginTransaction();
+
+        foreach ($records as $row) {
+            try {
+                // ✅ Fetch student ID using `st_roll_no`
+                $student = DB::table('t_students')
+                    ->where('st_roll_no', $row['st_roll_no'] ?? null)
+                    ->select('id')
+                    ->first();
+
+                if (!$student) {
+                    Log::warning('Student not found for roll_no: ' . $row['st_roll_no']);
+                    continue; // Skip if student does not exist
+                }
+
+                $st_id = $student->id;
+
+                // ✅ Fetch `ay_id` from `t_class_groups` using `cg_id`
+                $classGroup = DB::table('t_class_groups')
+                    ->where('id', $row['cg_id'] ?? null)
+                    ->select('ay_id')
+                    ->first();
+
+                if (!$classGroup) {
+                    Log::warning('Class group not found for cg_id: ' . $row['cg_id']);
+                    continue; // Skip if class group does not exist
+                }
+
+                $ay_id = $classGroup->ay_id;
+
+                // ✅ Generate unique `marks_id` using the new format
+                $marks_id = "{$st_id}-{$row['cg_id']}-{$row['term']}-{$row['subj_id']}";
+
+                // ✅ Check if record already exists
+                $existingMark = DB::table('t_marks')
+                    ->where('marks_id', $marks_id)
+                    ->first();
+
+                if ($existingMark) {
+                    // ✅ Update existing record
+                    DB::table('t_marks')
+                        ->where('marks_id', $marks_id)
+                        ->update([
+                            'marks' => $row['marks'] ?? $existingMark->marks,
+                            'prac' => $row['prac'] ?? $existingMark->prac,
+                            'updated_at' => now(),
+                        ]);
+                } else {
+                    // ✅ Insert new record
+                    $data[] = [
+                        'marks_id' => $marks_id,
+                        'st_id' => $st_id,
+                        'ay_id' => $ay_id,
+                        'st_roll_no' => $row['st_roll_no'],
+                        'subj_id' => $row['subj_id'],
+                        'cg_id' => $row['cg_id'],
+                        'term' => $row['term'],
+                        'unit' => $row['unit'] ?? 1, // Default to 1 if not provided
+                        'marks' => $row['marks'] ?? 0, // Default to 0 if missing
+                        'prac' => $row['prac'] ?? 0,   // Default to 0 if missing
+                        'serialNo' => $row['serialNo'] ?? null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+
+                // ✅ Insert in batches
+                if (count($data) >= $batchSize) {
+                    DB::table('t_marks')->insert($data);
+                    $data = []; // Reset batch
+                }
+            } catch (\Exception $e) {
+                Log::error('Error processing row: ' . json_encode($row) . ' | Error: ' . $e->getMessage());
+            }
+        }
+
+        // ✅ Insert remaining records
+        if (count($data) > 0) {
+            DB::table('t_marks')->insert($data);
+        }
+
+        DB::commit();
+
+        return response()->json(['message' => 'CSV imported successfully!'], 200);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Failed to import CSV: ' . $e->getMessage());
+        return response()->json(['message' => 'Failed to import CSV.', 'error' => $e->getMessage()], 500);
     }
+}
 
     public function getMarksData(Request $request)
 {
