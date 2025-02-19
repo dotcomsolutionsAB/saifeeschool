@@ -14,75 +14,78 @@ use App\Models\ClassGroupModel;
 class MarksController extends Controller
 {
     //
-    public function registerandUpdate(Request $request)
+    public function registerAndUpdate(Request $request)
     {
-        // Validation rules
+        // ✅ Validate input
         $validated = $request->validate([
-            'class_name' => 'required|string|exists:t_class_groups,cg_name', // Ensure the class name exists in the class table
-            'subj_id' => 'required|integer|exists:t_subjects,id', // Ensure the subject ID exists
-            // 'marks' => 'required|numeric|min:0', // Marks scored
-            'marks' => 'required', 
-            'prac' => 'nullable|numeric|min:0', // Practical marks
-            'serialNo' => 'nullable|string|max:100', // Serial Number
-            'st_roll_no' => 'required|numeric|exists:t_students,st_roll_no', // Student roll number
-            'ay_name' => 'nullable|string|exists:t_academic_years,ay_name', // Optional academic year name
+            'marks_id' => 'required|string', // Must be in format st_id-cg_id-term-subj_id[-P]
+            'marks' => 'required|numeric|min:0', // Either theory marks or practical marks
         ]);
-
+    
         try {
-            // Retrieve the academic year if `ay_name` is passed, otherwise use the current year
-            $academicYear = isset($validated['ay_name']) && !empty($validated['ay_name'])
-                ? AcademicYearModel::where('ay_name', $validated['ay_name'])->first()
-                : AcademicYearModel::where('ay_name', now()->year . '-' . substr((now()->year + 1), -2))->first();
-
-            if (!$academicYear) {
-                return response()->json(['message' => 'Invalid or missing academic year.'], 400);
-            }
-
-            // Retrieve the class group ID from the class name
-            $classGroup = ClassGroupModel::where('cg_name', $validated['class_name'])->first();
-
-            if (!$classGroup) {
-                return response()->json(['message' => 'Invalid class name provided.'], 400);
-            }
-
-            // Check if marks already exist for the same st_roll_no, session, and subj_id
-            $existingMarks = MarksModel::where('st_roll_no', $validated['st_roll_no'])
-                ->where('ay_id', $academicYear->id) // Match academic year
-                ->where('subj_id', $validated['subj_id'])
-                ->first();
-
-            if ($existingMarks) {
-                // Update the existing record
-                $existingMarks->update([
-                    'cg_id' => $classGroup->id,           // Class group ID
-                    'term' => 1,                          // Term is set to 1
-                    'unit' => 1,                          // Unit is set to 1
-                    'marks' => $validated['marks'],       // Marks scored
-                    'prac' => $validated['prac'] ?? null, // Practical marks (optional)
-                    'serialNo' => $validated['serialNo'] ?? null, // Serial Number (optional)
-                ]);
-
+            // ✅ Check if the marks_id has a practical (`-P`) at the end
+            $isPractical = str_ends_with($validated['marks_id'], '-P');
+    
+            // ✅ Remove `-P` if it's a practical entry
+            $processedMarksId = $isPractical ? substr($validated['marks_id'], 0, -2) : $validated['marks_id'];
+    
+            // ✅ Extract values from `marks_id`
+            $idParts = explode('-', $processedMarksId);
+            if (count($idParts) !== 4) {
                 return response()->json([
-                    'message' => 'Marks record updated successfully.',
-                    'data' => $existingMarks->makeHidden(['id', 'created_at', 'updated_at']),
+                    'message' => "Invalid marks_id format. Expected: st_id-cg_id-term-subj_id[-P].",
+                ], 400);
+            }
+    
+            [$st_id, $cg_id, $term, $subj_id] = $idParts;
+    
+            // ✅ Fetch student details
+            $student = DB::table('t_students')->where('id', $st_id)->select('st_roll_no')->first();
+            if (!$student) {
+                return response()->json(['message' => 'Invalid student ID.'], 400);
+            }
+    
+            // ✅ Fetch academic year based on the current session
+            $academicYear = AcademicYearModel::where('ay_name', now()->year . '-' . substr((now()->year + 1), -2))->first();
+            if (!$academicYear) {
+                return response()->json(['message' => 'Academic year not found.'], 400);
+            }
+    
+            // ✅ Check if marks already exist for the same `marks_id`
+            $existingMarks = MarksModel::where('marks_id', $processedMarksId)->first();
+    
+            if ($existingMarks) {
+                // ✅ Update existing marks
+                $existingMarks->update([
+                    'marks' => $isPractical ? $existingMarks->marks : $validated['marks'], // Update marks if theory
+                    'prac' => $isPractical ? $validated['marks'] : $existingMarks->prac, // Update prac if practical
+                    'updated_at' => now(),
+                ]);
+    
+                return response()->json([
+                    'message' => 'Marks updated successfully.',
+                    'data' => $existingMarks,
                 ], 200);
             } else {
-                // Create a new marks record
+                // ✅ Create a new marks record
                 $marks = MarksModel::create([
-                    'ay_id' => $academicYear->id,       // Session year from academic year
-                    'st_roll_no' => $validated['st_roll_no'], // Student roll number
-                    'subj_id' => $validated['subj_id'],  // Subject ID
-                    'cg_id' => $classGroup->id,           // Class group ID
-                    'term' => 1,                          // Term is set to 1
-                    'unit' => 1,                          // Unit is set to 1
-                    'marks' => $validated['marks'],       // Marks scored
-                    'prac' => $validated['prac'] ?? null, // Practical marks (optional)
-                    'serialNo' => $validated['serialNo'] ?? null, // Serial Number (optional)
+                    'marks_id' => $processedMarksId,
+                    'st_id' => $st_id,
+                    'ay_id' => $academicYear->id,
+                    'st_roll_no' => $student->st_roll_no,
+                    'subj_id' => $subj_id,
+                    'cg_id' => $cg_id,
+                    'term' => $term,
+                    'unit' => 1,  // Assuming 1 as default unit
+                    'marks' => $isPractical ? 0 : $validated['marks'], // Store in marks if not practical
+                    'prac' => $isPractical ? $validated['marks'] : 0, // Store in prac if practical
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
-
+    
                 return response()->json([
                     'message' => 'Marks record created successfully.',
-                    'data' => $marks->makeHidden(['id', 'created_at', 'updated_at']),
+                    'data' => $marks,
                 ], 201);
             }
         } catch (\Exception $e) {
@@ -92,7 +95,6 @@ class MarksController extends Controller
             ], 500);
         }
     }
-
 
 
     public function importCsv(Request $request)
