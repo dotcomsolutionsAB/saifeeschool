@@ -23,7 +23,7 @@ class MarksController extends Controller
         ]);
     
         try {
-            // ✅ Check if the marks_id has a practical (`-P`) at the end
+            // ✅ Check if marks_id ends with "-P" (Practical marks)
             $isPractical = str_ends_with($validated['marks_id'], '-P');
     
             // ✅ Remove `-P` if it's a practical entry
@@ -45,11 +45,13 @@ class MarksController extends Controller
                 return response()->json(['message' => 'Invalid student ID.'], 400);
             }
     
-            // ✅ Fetch academic year based on the current session
-            $academicYear = AcademicYearModel::where('ay_name', now()->year . '-' . substr((now()->year + 1), -2))->first();
-            if (!$academicYear) {
-                return response()->json(['message' => 'Academic year not found.'], 400);
+            // ✅ Fetch `ay_id` from `t_class_groups` using `cg_id`
+            $classGroup = DB::table('t_class_groups')->where('id', $cg_id)->select('ay_id')->first();
+            if (!$classGroup) {
+                return response()->json(['message' => 'Invalid class group ID.'], 400);
             }
+    
+            $ay_id = $classGroup->ay_id; // ✅ Use `ay_id` from `t_class_groups`
     
             // ✅ Check if marks already exist for the same `marks_id`
             $existingMarks = MarksModel::where('marks_id', $processedMarksId)->first();
@@ -71,12 +73,12 @@ class MarksController extends Controller
                 $marks = MarksModel::create([
                     'marks_id' => $processedMarksId,
                     'st_id' => $st_id,
-                    'ay_id' => $academicYear->id,
+                    'ay_id' => $ay_id, // ✅ Use ay_id from t_class_groups
                     'st_roll_no' => $student->st_roll_no,
                     'subj_id' => $subj_id,
                     'cg_id' => $cg_id,
                     'term' => $term,
-                    'unit' => 1,  // Assuming 1 as default unit
+                    'unit' => 1, // Assuming default unit
                     'marks' => $isPractical ? 0 : $validated['marks'], // Store in marks if not practical
                     'prac' => $isPractical ? $validated['marks'] : 0, // Store in prac if practical
                     'created_at' => now(),
@@ -95,7 +97,6 @@ class MarksController extends Controller
             ], 500);
         }
     }
-
 
     public function importCsv(Request $request)
     {
@@ -437,48 +438,71 @@ class MarksController extends Controller
         }
     }
     public function updateMarksIds()
-{
-    try {
-        // Fetch all marks records that need `st_id` and `marks_id` filled
-        $marksRecords = DB::table('t_marks')->get();
-
-        $updatedCount = 0;
-
-        foreach ($marksRecords as $mark) {
-            // Fetch student ID from `t_students` using `st_roll_no`
-            $student = DB::table('t_students')
-                ->where('st_roll_no', $mark->st_roll_no)
-                ->select('id')
-                ->first();
-
-            if (!$student) {
-                continue; // Skip if student is not found
-            }
-
-            // Generate marks_id: st_id - cg_id - term - subj_id
-            $marks_id = "{$student->id}-{$mark->cg_id}-{$mark->term}-{$mark->subj_id}";
-
-            // Update the existing record
-            DB::table('t_marks')
-                ->where('id', $mark->id)
-                ->update([
-                    'st_id' => $student->id,
-                    'marks_id' => $marks_id,
-                    'updated_at' => now(),
-                ]);
-
-            $updatedCount++;
+    {
+        try {
+            $batchSize = 500; // ✅ Process 500 records per batch
+            $updatedCount = 0;
+            
+            do {
+                // ✅ Fetch a batch of records where `st_id` or `marks_id` is missing
+                $marksRecords = DB::table('t_marks')
+                    ->whereNull('st_id')
+                    ->orWhereNull('marks_id')
+                    ->limit($batchSize)
+                    ->get();
+    
+                if ($marksRecords->isEmpty()) {
+                    break; // ✅ No more records to process
+                }
+    
+                // ✅ Prepare bulk update data
+                $updates = [];
+                foreach ($marksRecords as $mark) {
+                    // Fetch student ID from `t_students` using `st_roll_no`
+                    $student = DB::table('t_students')
+                        ->where('st_roll_no', $mark->st_roll_no)
+                        ->select('id')
+                        ->first();
+    
+                    if (!$student) {
+                        continue; // Skip if student is not found
+                    }
+    
+                    // Generate marks_id: st_id - cg_id - term - subj_id
+                    $marks_id = "{$student->id}-{$mark->cg_id}-{$mark->term}-{$mark->subj_id}";
+    
+                    // Add to update batch
+                    $updates[] = [
+                        'id' => $mark->id,
+                        'st_id' => $student->id,
+                        'marks_id' => $marks_id,
+                        'updated_at' => now(),
+                    ];
+                }
+    
+                // ✅ Bulk update in one query
+                foreach ($updates as $update) {
+                    DB::table('t_marks')
+                        ->where('id', $update['id'])
+                        ->update([
+                            'st_id' => $update['st_id'],
+                            'marks_id' => $update['marks_id'],
+                            'updated_at' => $update['updated_at'],
+                        ]);
+                }
+    
+                $updatedCount += count($updates);
+            } while (count($updates) >= $batchSize); // ✅ Continue until all records are processed
+    
+            return response()->json([
+                'message' => "Successfully updated $updatedCount records with marks_id and st_id.",
+            ], 200);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to update marks_id and st_id.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        return response()->json([
-            'message' => "Successfully updated $updatedCount records with marks_id and st_id.",
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'Failed to update marks_id and st_id.',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
 }
