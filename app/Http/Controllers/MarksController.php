@@ -299,6 +299,7 @@ class MarksController extends Controller
                 m.prac AS prac_marks
             ")
             ->orderBy('stu.st_first_name') // Sorting students alphabetically
+            ->orderBy('subj.serial')
             ->get();
 
         // ✅ Process marks - Separate theory & practical in the new format
