@@ -34,7 +34,7 @@ use App\Http\Controllers\CSVUploadController;
 
 Route::post('/upload', [CSVUploadController::class, 'uploadCSV']);
 Route::post('/upload/terms', [CSVUploadController::class, 'uploadTerms']);
-Route::get('/terms/{cg_id}', [MarksController::class, 'getTermsByClass']);
+Route::get('/terms', [MarksController::class, 'getTermsByClass']);
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
