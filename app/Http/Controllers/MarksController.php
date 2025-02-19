@@ -409,4 +409,46 @@ class MarksController extends Controller
             ], 500);
         }
     }
+    public function getTermsByClass(Request $request)
+    {
+        
+            try {
+                // ✅ Validate the request parameters
+                $validated = $request->validate([
+                'cg_id' => 'required|integer|exists:t_class_groups,id',
+                    
+                ]);
+        
+                $cg_id = $validated['cg_id'];
+            // ✅ Validate if `cg_id` exists in `t_class_groups`
+            $classGroup = DB::table('t_class_groups')->where('id', $cg_id)->first();
+            if (!$classGroup) {
+                return response()->json(['message' => 'Invalid class group ID.'], 400);
+            }
+
+            // ✅ Fetch terms directly from `t_terms`
+            $terms = DB::table('t_terms')
+                ->where('cg_id', $cg_id)
+                ->select('id as term_id', 'term', 'term_name')
+                ->orderBy('term') // ✅ Order by `term` for proper sequence
+                ->get();
+
+            if ($terms->isEmpty()) {
+                return response()->json(['message' => 'No terms found for this class.'], 404);
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Terms retrieved successfully!',
+                'data' => $terms,
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to fetch terms.',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
