@@ -250,7 +250,7 @@ class MarksController extends Controller
         $subjectsRaw = DB::table('t_subjectFM as sfm')
             ->join('t_subjects as subj', 'sfm.subj_id', '=', 'subj.id')
             ->where('sfm.cg_id', $cg_id)
-            ->where('sfm.term', $term
+            ->where('sfm.term', $term)
             ->selectRaw("
                 subj.id AS subject_id,
                 subj.subj_name AS subject_name,
