@@ -99,118 +99,116 @@ class MarksController extends Controller
     }
 
     public function importCsv(Request $request)
-{
-    ini_set('max_execution_time', 300); // Extend execution time for large files
-    ini_set('memory_limit', '1024M');   // Increase memory limit
-
-    try {
-        // File validation and path
-        $csvFilePath = storage_path('app/public/studMarks.csv');
-
-        if (!file_exists($csvFilePath)) {
-            return response()->json(['message' => 'CSV file not found.'], 404);
-        }
-
-        // Read CSV
-        $csv = Reader::createFromPath($csvFilePath, 'r');
-        $csv->setHeaderOffset(0); // First row as headers
-        $records = (new Statement())->process($csv);
-
-        $batchSize = 1000; // Number of records to process in one batch
-        $data = [];
-
-        DB::beginTransaction();
-
-        foreach ($records as $row) {
-            try {
-                // ✅ Fetch student ID using `st_roll_no`
-                $student = DB::table('t_students')
-                    ->where('st_roll_no', $row['st_roll_no'] ?? null)
-                    ->select('id')
-                    ->first();
-
-                if (!$student) {
-                    Log::warning('Student not found for roll_no: ' . $row['st_roll_no']);
-                    continue; // Skip if student does not exist
-                }
-
-                $st_id = $student->id;
-
-                // ✅ Fetch `ay_id` from `t_class_groups` using `cg_id`
-                $classGroup = DB::table('t_class_groups')
-                    ->where('id', $row['cg_id'] ?? null)
-                    ->select('ay_id')
-                    ->first();
-
-                if (!$classGroup) {
-                    Log::warning('Class group not found for cg_id: ' . $row['cg_id']);
-                    continue; // Skip if class group does not exist
-                }
-
-                $ay_id = $classGroup->ay_id;
-
-                // ✅ Generate unique `marks_id` using the new format
-                $marks_id = "{$st_id}-{$row['cg_id']}-{$row['term']}-{$row['subj_id']}";
-
-                // ✅ Check if record already exists
-                $existingMark = DB::table('t_marks')
-                    ->where('marks_id', $marks_id)
-                    ->first();
-
-                if ($existingMark) {
-                    // ✅ Update existing record
-                    DB::table('t_marks')
-                        ->where('marks_id', $marks_id)
-                        ->update([
-                            'marks' => $row['marks'] ?? $existingMark->marks,
-                            'prac' => $row['prac'] ?? $existingMark->prac,
-                            'updated_at' => now(),
-                        ]);
-                } else {
-                    // ✅ Insert new record
-                    $data[] = [
-                        'marks_id' => $marks_id,
-                        'st_id' => $st_id,
-                        'ay_id' => $ay_id,
-                        'st_roll_no' => $row['st_roll_no'],
-                        'subj_id' => $row['subj_id'],
-                        'cg_id' => $row['cg_id'],
-                        'term' => $row['term'],
-                        'unit' => $row['unit'] ?? 1, // Default to 1 if not provided
-                        'marks' => $row['marks'] ?? 0, // Default to 0 if missing
-                        'prac' => $row['prac'] ?? 0,   // Default to 0 if missing
-                        'serialNo' => $row['serialNo'] ?? null,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-
-                // ✅ Insert in batches
-                if (count($data) >= $batchSize) {
-                    DB::table('t_marks')->insert($data);
-                    $data = []; // Reset batch
-                }
-            } catch (\Exception $e) {
-                Log::error('Error processing row: ' . json_encode($row) . ' | Error: ' . $e->getMessage());
+    {
+        ini_set('max_execution_time', 0); // ✅ No time limit
+        ini_set('memory_limit', '2048M'); // ✅ Increase memory limit
+    
+        try {
+            $csvFilePath = storage_path('app/public/studMarks.csv');
+    
+            if (!file_exists($csvFilePath)) {
+                return response()->json(['message' => 'CSV file not found.'], 404);
             }
+    
+            // Read CSV
+            $csv = Reader::createFromPath($csvFilePath, 'r');
+            $csv->setHeaderOffset(0); // First row as headers
+            $records = (new Statement())->process($csv);
+    
+            $batchSize = 100; // ✅ Process in smaller batches
+            $data = [];
+            $totalInserted = 0;
+    
+            foreach ($records as $row) {
+                try {
+                    // ✅ Fetch student ID using `st_roll_no`
+                    $student = DB::table('t_students')
+                        ->where('st_roll_no', $row['st_roll_no'] ?? null)
+                        ->select('id')
+                        ->first();
+    
+                    if (!$student) {
+                        Log::warning('Student not found for roll_no: ' . $row['st_roll_no']);
+                        continue; // Skip if student does not exist
+                    }
+    
+                    $st_id = $student->id;
+    
+                    // ✅ Fetch `ay_id` from `t_class_groups` using `cg_id`
+                    $classGroup = DB::table('t_class_groups')
+                        ->where('id', $row['cg_id'] ?? null)
+                        ->select('ay_id')
+                        ->first();
+    
+                    if (!$classGroup) {
+                        Log::warning('Class group not found for cg_id: ' . $row['cg_id']);
+                        continue; // Skip if class group does not exist
+                    }
+    
+                    $ay_id = $classGroup->ay_id;
+    
+                    // ✅ Generate unique `marks_id`
+                    $marks_id = "{$st_id}-{$row['cg_id']}-{$row['term']}-{$row['subj_id']}";
+    
+                    // ✅ Check if record already exists
+                    $existingMark = DB::table('t_marks')
+                        ->where('marks_id', $marks_id)
+                        ->first();
+    
+                    if ($existingMark) {
+                        // ✅ Update existing record
+                        DB::table('t_marks')
+                            ->where('marks_id', $marks_id)
+                            ->update([
+                                'marks' => $row['marks'] ?? $existingMark->marks,
+                                'prac' => $row['prac'] ?? $existingMark->prac,
+                                'updated_at' => now(),
+                            ]);
+                    } else {
+                        // ✅ Insert new record
+                        $data[] = [
+                            'marks_id' => $marks_id,
+                            'st_id' => $st_id,
+                            'ay_id' => $ay_id,
+                            'st_roll_no' => $row['st_roll_no'],
+                            'subj_id' => $row['subj_id'],
+                            'cg_id' => $row['cg_id'],
+                            'term' => $row['term'],
+                            'unit' => $row['unit'] ?? 1, // Default to 1 if not provided
+                            'marks' => $row['marks'] ?? 0, // Default to 0 if missing
+                            'prac' => $row['prac'] ?? 0,   // Default to 0 if missing
+                            'serialNo' => $row['serialNo'] ?? null,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+    
+                    // ✅ Insert batch when limit is reached
+                    if (count($data) >= $batchSize) {
+                        DB::table('t_marks')->insert($data);
+                        $totalInserted += count($data);
+                        $data = []; // Reset batch
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Error processing row: ' . json_encode($row) . ' | Error: ' . $e->getMessage());
+                }
+            }
+    
+            // ✅ Insert remaining records
+            if (count($data) > 0) {
+                DB::table('t_marks')->insert($data);
+                $totalInserted += count($data);
+            }
+    
+            return response()->json([
+                'message' => "CSV imported successfully! Total records inserted: $totalInserted",
+            ], 200);
+    
+        } catch (\Exception $e) {
+            Log::error('Failed to import CSV: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to import CSV.', 'error' => $e->getMessage()], 500);
         }
-
-        // ✅ Insert remaining records
-        if (count($data) > 0) {
-            DB::table('t_marks')->insert($data);
-        }
-
-        DB::commit();
-
-        return response()->json(['message' => 'CSV imported successfully!'], 200);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Failed to import CSV: ' . $e->getMessage());
-        return response()->json(['message' => 'Failed to import CSV.', 'error' => $e->getMessage()], 500);
     }
-}
-
     public function getMarksData(Request $request)
 {
     try {
@@ -226,7 +224,7 @@ class MarksController extends Controller
 
         // ✅ Fetch `term_id` using `term_name`
         $term = DB::table('t_terms')
-            ->where('term', $validated['term_name'])
+            ->where('term', $validated['term'])
             ->select('term')
             ->first();
 
@@ -234,7 +232,7 @@ class MarksController extends Controller
             return response()->json(['message' => 'Invalid term name.'], 400);
         }
 
-        $term_id = $term->id; // ✅ Now using `term_id` dynamically
+        $term= $term->term; // ✅ Now using `term_id` dynamically
 
         // ✅ Fetch all students in the class group
         $students = DB::table('t_students as stu')
@@ -290,7 +288,7 @@ class MarksController extends Controller
             ->join('t_students as stu', 'm.st_id', '=', 'stu.id')
             ->join('t_subjects as subj', 'm.subj_id', '=', 'subj.id')
             ->where('m.cg_id', $cg_id)
-            ->where('m.term', $term_id)
+            ->where('m.term', $term)
             ->selectRaw("
                 m.marks_id,
                 stu.id AS st_id,
