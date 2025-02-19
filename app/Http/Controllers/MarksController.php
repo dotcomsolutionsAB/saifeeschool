@@ -250,7 +250,7 @@ class MarksController extends Controller
         $subjectsRaw = DB::table('t_subjectFM as sfm')
             ->join('t_subjects as subj', 'sfm.subj_id', '=', 'subj.id')
             ->where('sfm.cg_id', $cg_id)
-            ->where('sfm.term_id', $term_id)
+            ->where('sfm.term', $term
             ->selectRaw("
                 subj.id AS subject_id,
                 subj.subj_name AS subject_name,
@@ -293,7 +293,7 @@ class MarksController extends Controller
                 m.marks_id,
                 stu.id AS st_id,
                 m.cg_id,
-                m.term AS term_id,
+                m.term AS term,
                 m.subj_id AS subject_id,
                 m.marks AS theory_marks,
                 m.prac AS prac_marks
@@ -340,157 +340,7 @@ class MarksController extends Controller
     }
 }
 
-    public function createOrUpdateMarks(Request $request)
-    {
-        try {
-            // ✅ Validate the request data
-            $validated = $request->validate([
-                'id' => 'required|string', // Special format (st_id-cg_id-term_id-subject_id-category)
-                'marks' => 'required', // Numeric or letter-based, validated below
-            ]);
-    
-            DB::beginTransaction();
-    
-            // ✅ Extract values from `id`
-            $idParts = explode('-', $validated['id']);
-            if (count($idParts) !== 5) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => "Invalid ID format. Expected format: st_id-cg_id-term_id-subject_id-T/P.",
-                ], 400);
-            }
-    
-            [$st_id, $cg_id, $term_id, $subject_id, $category] = $idParts;
-    
-            // ✅ Validate category (Theory: T, Practical: P)
-            if (!in_array($category, ['T', 'P'])) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => "Invalid category. Must be 'T' (Theory) or 'P' (Practical).",
-                ], 400);
-            }
-    
-            // ✅ Fetch student roll number from `t_students`
-            $student = DB::table('t_students')->where('id', $st_id)->select('st_roll_no')->first();
-            if (!$student) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => "Invalid student ID: $st_id",
-                ], 400);
-            }
-            $roll_no = $student->st_roll_no;
-    
-            // ✅ Fetch subject details from `t_subjectFM`
-            $subjectFM = DB::table('t_subjectFM')
-                ->join('t_subjects', 't_subjectFM.subj_id', '=', 't_subjects.id')
-                ->where([
-                    't_subjectFM.subj_id' => $subject_id,
-                    't_subjectFM.cg_id' => $cg_id,
-                    't_subjectFM.term_id' => $term_id
-                ])
-                ->select('t_subjectFM.theory', 't_subjectFM.prac', 't_subjects.type')
-                ->first();
-    
-            if (!$subjectFM) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => "The subject is not assigned to this class and term.",
-                ], 400);
-            }
-    
-            // ✅ Validate marks based on type
-            if ($subjectFM->type === 'M' && (!is_numeric($validated['marks']) || floor($validated['marks']) != $validated['marks'])) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => "For type 'M', marks must be an integer.",
-                ], 400);
-            }
-    
-            if ($subjectFM->type === 'G' && !preg_match('/^[A-Za-z]+$/', $validated['marks'])) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => "For type 'G', marks must be a letter grade (e.g., A, B, C).",
-                ], 400);
-            }
-    
-            // ✅ Ensure marks do not exceed allowed max values
-            if ($category === 'T' && (is_null($subjectFM->theory) || $validated['marks'] > $subjectFM->theory)) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => "Invalid theory marks. Maximum allowed: {$subjectFM->theory}.",
-                ], 400);
-            }
-    
-            if ($category === 'P' && (is_null($subjectFM->prac) || $validated['marks'] > $subjectFM->prac)) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => "Invalid practical marks. Maximum allowed: {$subjectFM->prac}.",
-                ], 400);
-            }
-    
-            // ✅ Check if mark entry exists
-            $existingMark = DB::table('t_marks')
-                ->where([
-                    'st_roll_no' => $roll_no,
-                    'cg_id' => $cg_id,
-                    'term' => $term_id,
-                    'subj_id' => $subject_id,
-                ])
-                ->first();
-    
-            // ✅ Prepare update data
-            $updateData = [
-                'marks' => ($category === 'T') ? $validated['marks'] : ($existingMark->marks ?? 0),
-                'prac' => ($category === 'P') ? $validated['marks'] : ($existingMark->prac ?? 0),
-                'updated_at' => now()
-            ];
-    
-            if ($existingMark) {
-                // ✅ Update existing record
-                DB::table('t_marks')
-                    ->where('id', $existingMark->id)
-                    ->update($updateData);
-            } else {
-                // ✅ Insert new record
-                DB::table('t_marks')->insert([
-                    'st_roll_no' => $roll_no,
-                    'cg_id' => $cg_id,
-                    'term' => $term_id,
-                    'subj_id' => $subject_id,
-                    'marks' => ($category === 'T') ? $validated['marks'] : 0,
-                    'prac' => ($category === 'P') ? $validated['marks'] : 0,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            }
-    
-            DB::commit();
-    
-            return response()->json([
-                'code' => 200,
-                'status' => true,
-                'message' => 'Marks data saved successfully!',
-            ], 200);
-    
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'code' => 500,
-                'status' => false,
-                'message' => 'An error occurred while saving marks data.',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-    public function updateMarksIds()
+        public function updateMarksIds()
     {
         try {
             $batchSize = 500; // ✅ Process 500 records per batch

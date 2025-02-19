@@ -335,7 +335,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/details', [MarksController::class, 'getMarksData'])
                 ->middleware(['check-api-permission:report.full, report.view']); 
 
-        Route::post('/create', [MarksController::class, 'createOrUpdateMarks'])
+        Route::post('/create', [MarksController::class, 'registerAndUpdate'])
         ->middleware(['check-api-permission:report.full, report.view']); ;          // List all Marks
 
         Route::get('/view/{id}', [MarksController::class, 'index']
