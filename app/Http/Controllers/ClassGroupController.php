@@ -264,7 +264,7 @@ class ClassGroupController extends Controller
             ->when(!empty($search), function ($query) use ($search) {
                 $query->where('cg.cg_name', 'LIKE', '%' . $search . '%');
             })
-            ->groupBy('cg.id', 'cg.cg_name', 'cg.teacher_id', 't.name')
+            ->groupBy('cg.id', 'cg.cg_name', 'cg.cg_group','cg.teacher_id', 't.name')
             ->orderBy('cg.cg_order')
             ->offset($offset)
             ->limit($limit)
