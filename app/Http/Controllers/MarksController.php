@@ -217,7 +217,7 @@ class MarksController extends Controller
         // ✅ Validate the request parameters
         $validated = $request->validate([
             'ay_id' => 'required|integer|exists:t_academic_years,id',
-            'term_name' => 'required|string|exists:t_terms,term_name', // ✅ Accept term_name instead of term_id
+            'term' => 'required|integer|exists:t_term,term', // ✅ Accept term_name instead of term_id
             'cg_id' => 'required|integer|exists:t_class_groups,id',
         ]);
 
@@ -226,8 +226,8 @@ class MarksController extends Controller
 
         // ✅ Fetch `term_id` using `term_name`
         $term = DB::table('t_terms')
-            ->where('term_name', $validated['term_name'])
-            ->select('id')
+            ->where('term', $validated['term_name'])
+            ->select('term')
             ->first();
 
         if (!$term) {
