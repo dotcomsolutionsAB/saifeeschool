@@ -10,6 +10,6 @@ class SubjectModel extends Model
     protected $table = 't_subjects';
 
     protected $fillable = [
-       'id', 'subject', 'cg_group', 'type', 'marks', 'prac', 'serial', 'category'
+       'id', 'subj_name', 'cg_group', 'type', 'marks', 'prac', 'serial', 'category'
     ];
 }

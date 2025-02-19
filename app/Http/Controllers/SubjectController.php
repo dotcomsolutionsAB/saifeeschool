@@ -174,7 +174,7 @@ class SubjectController extends Controller
     
             // **Create new entry in `t_subjects` table** (Only storing ID, Name, and Type)
             $aggregateSubject = SubjectModel::create([
-                'subject' => $subj_name,
+                'subj_name' => $subj_name,
                 'cg_group' => $classGroup->cg_group, // Fetch class group for mapping
                 'type' => 'A', // Aggregate subject type
             ]);
@@ -272,8 +272,8 @@ class SubjectController extends Controller
         $subjects = DB::table('t_subjectFM as sfm')
             ->join('t_subjects as subj', 'sfm.subj_id', '=', 'subj.id')
             ->where('sfm.cg_id', $cg_id)
-            ->select('subj.id AS subject_id', 'subj.subject AS subject_name', 'sfm.type')
-            ->orderBy('subj.subject')
+            ->select('subj.id AS subject_id', 'subj.subj_name AS subject_name', 'sfm.type')
+            ->orderBy('subj.serial')
             ->get();
 
         return response()->json([
@@ -303,7 +303,7 @@ public function createSubject(Request $request)
 
         // ✅ Create a new subject
         $subject = SubjectModel::create([
-            'subject' => $validated['subject'],
+            'subj_name' => $validated['subject'],
             'type' => $validated['type'],
         ]);
 

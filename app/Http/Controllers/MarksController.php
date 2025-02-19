@@ -47,7 +47,7 @@ class MarksController extends Controller
 
             // Check if marks already exist for the same st_roll_no, session, and subj_id
             $existingMarks = MarksModel::where('st_roll_no', $validated['st_roll_no'])
-                ->where('session', $academicYear->id) // Match academic year
+                ->where('ay_id', $academicYear->id) // Match academic year
                 ->where('subj_id', $validated['subj_id'])
                 ->first();
 
@@ -69,7 +69,7 @@ class MarksController extends Controller
             } else {
                 // Create a new marks record
                 $marks = MarksModel::create([
-                    'session' => $academicYear->id,       // Session year from academic year
+                    'ay_id' => $academicYear->id,       // Session year from academic year
                     'st_roll_no' => $validated['st_roll_no'], // Student roll number
                     'subj_id' => $validated['subj_id'],  // Subject ID
                     'cg_id' => $classGroup->id,           // Class group ID
@@ -127,7 +127,7 @@ class MarksController extends Controller
                     // Validate and prepare the data
                     $data[] = [
                         'id' => $row['id'] ?? null,
-                        'session' => $row['session'] ?? null,
+                        'ay_id' => $row['session'] ?? null,
                         'st_roll_no' => $row['st_roll_no'] ?? null,
                         'subj_id' => $row['subj_id'] ?? null,
                         'cg_id' => $row['cg_id'] ?? null,
@@ -197,12 +197,10 @@ class MarksController extends Controller
                 ->where('sfm.term_id', $term_id)
                 ->selectRaw("
                     subj.id AS subject_id,
-                    subj.subject AS subject_name,
+                    subj.subj_name AS subject_name,
                     sfm.type,
-                    sfm.theory,
-                    sfm.oral,
                     sfm.prac,
-                    sfm.marks AS total_marks
+                    sfm.marks 
                 ")
                 ->orderBy('subj.serial') // Sorting subjects by serial order
                 ->get();

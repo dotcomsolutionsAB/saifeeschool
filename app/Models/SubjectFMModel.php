@@ -8,8 +8,8 @@ class SubjectFMModel extends Model
     protected $table = 't_subjectFM';
 
     protected $fillable = [
-        'subj_id', 'subj_name', 'subj_init', 'cg_id', 'term_id',
-        'type', 'theory', 'oral', 'prac', 'marks'
+        'subj_id', 'subj_name', 'subj_init', 'cg_id', 'term',
+        'type', 'prac', 'marks'
     ];
 
     // Relationship with Subjects
@@ -25,8 +25,5 @@ class SubjectFMModel extends Model
     }
 
     // Relationship with Terms
-    public function term()
-    {
-        return $this->belongsTo(TermModel::class, 'term_id', 'id');
-    }
+   
 }
