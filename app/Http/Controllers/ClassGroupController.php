@@ -256,6 +256,7 @@ class ClassGroupController extends Controller
             ->selectRaw("
                 cg.id as cg_id,
                 cg.cg_name,
+                cg.cg_group,
                 cg.teacher_id,
                 t.name AS class_teacher_name,
                 COUNT(DISTINCT sc.st_id) AS total_students

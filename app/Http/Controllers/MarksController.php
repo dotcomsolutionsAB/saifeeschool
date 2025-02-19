@@ -438,6 +438,7 @@ class MarksController extends Controller
             }
 
             return response()->json([
+                'code'=>200,
                 'status' => true,
                 'message' => 'Terms retrieved successfully!',
                 'data' => $terms,
@@ -445,6 +446,7 @@ class MarksController extends Controller
 
         } catch (\Exception $e) {
             return response()->json([
+                'code'=>500,
                 'status' => false,
                 'message' => 'Failed to fetch terms.',
                 'error' => $e->getMessage(),

@@ -184,12 +184,11 @@ class AcademicYearController extends Controller
     }
 
     // Fetch all academic years or a specific one
-
     public function index($id = null)
     {
         try {
             if ($id) {
-                // Fetch specific academic year
+                // ✅ Fetch specific academic year
                 $academicYear = AcademicYearModel::find($id);
     
                 if (!$academicYear) {
@@ -201,11 +200,16 @@ class AcademicYearController extends Controller
                     ], 200);
                 }
     
-                // Convert start & end month to month names
-                $academicYear->ay_start_month = Carbon::createFromFormat('m', $academicYear->ay_start_month)->format('F');
-                $academicYear->ay_end_month = Carbon::createFromFormat('m', $academicYear->ay_end_month)->format('F');
+                // ✅ Format start and end date
+                $start_date = Carbon::createFromFormat('Y-m', $academicYear->ay_start_year . '-' . $academicYear->ay_start_month)
+                    ->startOfMonth()
+                    ->format('d-m-Y');
     
-                // Count total classes & fee plans associated with this academic year
+                $end_date = Carbon::createFromFormat('Y-m', $academicYear->ay_end_year . '-' . $academicYear->ay_end_month)
+                    ->endOfMonth()
+                    ->format('d-m-Y');
+    
+                // ✅ Count total classes & fee plans
                 $totalClasses = DB::table('t_class_groups')->where('ay_id', $academicYear->id)->count();
                 $totalFeePlans = DB::table('t_fee_plans')->where('ay_id', $academicYear->id)->count();
     
@@ -218,16 +222,17 @@ class AcademicYearController extends Controller
                         'sch_id' => (string) $academicYear->sch_id,
                         'ay_name' => $academicYear->ay_name,
                         'ay_start_year' => (string) $academicYear->ay_start_year,
-                        'ay_start_month' => $academicYear->ay_start_month,
+                        'ay_start_month' => Carbon::createFromFormat('m', $academicYear->ay_start_month)->format('F'),
                         'ay_end_year' => (string) $academicYear->ay_end_year,
-                        'ay_end_month' => $academicYear->ay_end_month,
+                        'ay_end_month' => Carbon::createFromFormat('m', $academicYear->ay_end_month)->format('F'),
                         'ay_current' => (string) $academicYear->ay_current,
+                        'start_end_date' => "$start_date To $end_date",
                         'total_classes' => (string) $totalClasses,
                         'total_fee_plans' => (string) $totalFeePlans,
                     ]
                 ], 200);
             } else {
-                // Fetch all academic years
+                // ✅ Fetch all academic years
                 $academicYears = AcademicYearModel::all();
     
                 if ($academicYears->isEmpty()) {
@@ -239,8 +244,16 @@ class AcademicYearController extends Controller
                     ], 200);
                 }
     
-                // Map through academic years, converting month numbers to names & counting related data
+                // ✅ Map through academic years & format the start and end date
                 $formattedAcademicYears = $academicYears->map(function ($year) {
+                    $start_date = Carbon::createFromFormat('Y-m', $year->ay_start_year . '-' . $year->ay_start_month)
+                        ->startOfMonth()
+                        ->format('d-m-Y');
+    
+                    $end_date = Carbon::createFromFormat('Y-m', $year->ay_end_year . '-' . $year->ay_end_month)
+                        ->endOfMonth()
+                        ->format('d-m-Y');
+    
                     return [
                         'ay_id' => (string) $year->id,
                         'sch_id' => (string) $year->sch_id,
@@ -250,6 +263,7 @@ class AcademicYearController extends Controller
                         'ay_end_year' => (string) $year->ay_end_year,
                         'ay_end_month' => Carbon::createFromFormat('m', $year->ay_end_month)->format('F'),
                         'ay_current' => (string) $year->ay_current,
+                        'start_end_date' => "$start_date To $end_date",
                         'total_classes' => (string) DB::table('t_class_groups')->where('ay_id', $year->id)->count(),
                         'total_fee_plans' => (string) DB::table('t_fee_plans')->where('ay_id', $year->id)->count(),
                     ];
