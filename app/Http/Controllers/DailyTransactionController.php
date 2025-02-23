@@ -7,7 +7,7 @@ use App\Models\PGResponseModel;
 use App\Exports\DailyTransactionExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
-
+use App\Http\Controllers\Storage;
 class DailyTransactionController extends Controller
 {
     //
