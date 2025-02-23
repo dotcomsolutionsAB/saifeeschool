@@ -158,12 +158,17 @@ class DailyTransactionController extends Controller
         ]);
 
         // Get today's start and end timestamps if date filters are not provided
-        $startDate = !empty($validated['date_from']) ? $validated['date_from'] : Carbon::today()->startOfDay()->toDateString();
-        $endDate = !empty($validated['date_to']) ? $validated['date_to'] : Carbon::today()->endOfDay()->toDateString();
-
+        $startDate = !empty($validated['date_from'])
+        ? Carbon::parse($validated['date_from'])->toDateString()
+        : Carbon::today()->toDateString();
+    
+    $endDate = !empty($validated['date_to'])
+        ? Carbon::parse($validated['date_to'])->toDateString()
+        : Carbon::today()->toDateString();
         try {
             // Initialize query with relationships
-            $query = PGResponseModel::with('student');
+            $query = PGResponseModel::with('student')
+            ->whereBetween('transaction_date', [$startDate, $endDate]);
 
             // Apply search filter (Search by roll number or name)
             if (!empty($validated['search'])) {
@@ -175,12 +180,7 @@ class DailyTransactionController extends Controller
             }
 
             // Apply date filters
-            if ( $startDate) {
-                $query->where('transaction_date', '>=', $validated['date_from']);
-            }
-            if ($endDate) {
-                $query->where('transaction_date', '<=', $validated['date_to']);
-            }
+            
 
             // Order by latest transactions
             $query->orderBy('transaction_date', 'desc');
