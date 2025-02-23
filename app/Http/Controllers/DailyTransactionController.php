@@ -238,7 +238,7 @@ class DailyTransactionController extends Controller
             ],
         ]);
     }
-}
+
 
     /**
      * Map response code to status and description.
