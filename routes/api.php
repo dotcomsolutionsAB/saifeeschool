@@ -456,7 +456,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/import_pg_response', [PGResponseController::class, 'importCsv'])
             ->middleware(['check-api-permission:accounts.full']);
 
-    Route::prefix('transactions')->group(function () {
+    
+Route::prefix('transactions')->group(function () {
 
         Route::post('/records', [DailyTransactionController::class, 'index'])
                 ->middleware(['check-api-permission:accounts.full, accounts.view']);

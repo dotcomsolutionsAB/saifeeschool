@@ -148,21 +148,45 @@ class DailyTransactionController extends Controller
     /**
      * Export transactions to Excel.
      */
-    public function exportToExcel()
+    public function export(Request $request)
     {
-        $today = now()->toDateString();
+        $validated = $request->validate([
+            'search' => 'nullable|string|max:255', // Search term for roll number or name
+            'date_from' => 'nullable|date', // Start date filter
+            'date_to' => 'nullable|date|after_or_equal:date_from', // End date filter
+        ]);
 
-        // Fetch today's transactions and map with Student table
-        $transactions = PGResponseModel::with('student')
-            ->whereDate('transaction_date', $today)
-            ->get()
-            ->map(function ($transaction, $index) {
+        try {
+            // Initialize query with relationships
+            $query = PGResponseModel::with('student');
+
+            // Apply search filter (Search by roll number or name)
+            if (!empty($validated['search'])) {
+                $searchTerm = '%' . trim($validated['search']) . '%';
+                $query->whereHas('student', function ($q) use ($searchTerm) {
+                    $q->where('st_roll_no', 'like', $searchTerm)
+                      ->orWhereRaw("CONCAT(st_first_name, ' ', st_last_name) LIKE ?", [$searchTerm]);
+                });
+            }
+
+            // Apply date filters
+            if (!empty($validated['date_from'])) {
+                $query->where('transaction_date', '>=', $validated['date_from']);
+            }
+            if (!empty($validated['date_to'])) {
+                $query->where('transaction_date', '<=', $validated['date_to']);
+            }
+
+            // Order by latest transactions
+            $query->orderBy('transaction_date', 'desc');
+
+            // Fetch and map data
+            $transactions = $query->get()->map(function ($transaction, $index) {
                 return [
-                    // 'SN' => $transaction->id,
-                    'SN' =>  $index + 1,
+                    'SN' => $index + 1,
                     'Name' => $transaction->student
-                    ? $transaction->student->st_first_name . ' ' . $transaction->student->st_last_name
-                    : 'N/A',
+                        ? $transaction->student->st_first_name . ' ' . $transaction->student->st_last_name
+                        : 'N/A',
                     'Roll No' => $transaction->student ? $transaction->student->st_roll_no : 'N/A',
                     'Date' => "{$transaction->transaction_date} {$transaction->transaction_time}",
                     'Unique_Ref_No' => $transaction->unique_ref_number,
@@ -170,10 +194,51 @@ class DailyTransactionController extends Controller
                     'Status' => $this->mapResponseCode($transaction->response_code)['status'],
                     'Mode' => $transaction->payment_mode,
                 ];
-            });
+            })->toArray();
 
-        return Excel::download(new DailyTransactionExport($transactions), 'daily_transactions.xlsx');
+            if (empty($transactions)) {
+                return response()->json(['message' => 'No data available for export.'], 404);
+            }
+
+            // Export as Excel file
+            return $this->exportExcel($transactions);
+
+            // return $this->exportPdf($transactions); // Uncomment for PDF export if needed
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'An error occurred while exporting data.',
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
+
+    private function exportExcel(array $data)
+    {
+        // Define the directory and file name
+        $directory = "exports";
+        $fileName = 'Daily_Transactions_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
+        $fullPath = "{$directory}/{$fileName}";
+
+        // Use Maatwebsite Excel to export data
+        Excel::store(new DailyTransactionExport($data), $fullPath, 'public');
+
+        // Return metadata about the file
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'File available for download.',
+            'data' => [
+                'file_url' => url('storage/' . $fullPath),
+                'file_name' => $fileName,
+                'file_size' => Storage::disk('public')->size($fullPath),
+                'content_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ],
+        ]);
+    }
+}
 
     /**
      * Map response code to status and description.
