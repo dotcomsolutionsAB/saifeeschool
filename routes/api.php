@@ -475,7 +475,10 @@ Route::prefix('transactions')->group(function () {
          Route::post('/all', [TransactionController::class, 'index']) 
          ->middleware(['check-api-permission:accounts.full, accounts.view']);
 
-        Route::post('/export', [DailyTransactionController::class, 'export'])
+        Route::post('/export-daily', [DailyTransactionController::class, 'export'])
+                ->middleware(['check-api-permission:accounts.full, accounts.view']);
+                
+        Route::post('/export', [TransactionController::class, 'export'])
                 ->middleware(['check-api-permission:accounts.full, accounts.view']);
 
     });

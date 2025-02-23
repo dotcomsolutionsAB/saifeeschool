@@ -10,6 +10,11 @@ use League\Csv\Reader;
 use League\Csv\Statement;
 use App\Models\StudentModel;
 use App\Models\PGResponseModel;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\TransactionExport;
+
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 
 class TransactionController extends Controller
 {
@@ -489,4 +494,131 @@ public function index2(Request $request)
         ]);
     }
 }
+public function export(Request $request)
+    {
+        try {
+            // Validate request parameters
+            $validated = $request->validate([
+                'search'    => 'nullable|string|max:255', // Search by Roll No, Name, or Reference No
+                'cg_id'     => 'nullable|string', // Multiple class IDs (comma-separated)
+                'mode'      => 'nullable|string|max:255', // Payment Mode filter
+                'status'    => 'nullable|in:success,pending', // Filter by Status
+                'date_from' => 'nullable|date', // Start date filter
+                'date_to'   => 'nullable|date|after_or_equal:date_from', // End date filter
+            ]);
+
+            // **Query for PG Transactions (`t_pg_responses`)**
+            $query = DB::table('t_pg_responses as pg')
+                ->join('t_students as stu', 'pg.submerchant_id', '=', 'stu.id') // Student reference
+                ->leftJoin('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
+                ->leftJoin('t_class_groups as cg', 'sc.cg_id', '=', 'cg.id')
+                ->selectRaw("
+                    stu.st_roll_no,
+                    stu.id as student_id,
+                    CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS student_name,
+                    COALESCE(cg.cg_name, 'N/A') AS class_name,
+                    pg.payment_mode AS mode,
+                    pg.transaction_date,
+                    pg.transaction_time,
+                    pg.unique_ref_number,
+                    pg.total_amount,
+                    pg.response_code
+                ")
+                ->orderBy('pg.transaction_date', 'desc')
+                ->orderBy('pg.transaction_time', 'desc');
+
+            // **Apply Filters**
+
+            // Search Filter
+            if (!empty($validated['search'])) {
+                $searchTerm = '%' . trim($validated['search']) . '%';
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('stu.st_roll_no', 'LIKE', $searchTerm)
+                      ->orWhereRaw("CONCAT(stu.st_first_name, ' ', stu.st_last_name) LIKE ?", [$searchTerm])
+                      ->orWhere('pg.unique_ref_number', 'LIKE', $searchTerm);
+                });
+            }
+
+            // Class Filter
+            if (!empty($validated['cg_id'])) {
+                $cgIds = explode(',', $validated['cg_id']);
+                $query->whereIn('sc.cg_id', $cgIds);
+            }
+
+            // Payment Mode Filter
+            if (!empty($validated['mode'])) {
+                $query->where('pg.payment_mode', $validated['mode']);
+            }
+
+            // Status Filter
+            if (!empty($validated['status'])) {
+                if ($validated['status'] === 'success') {
+                    $query->where('pg.response_code', 'E000');
+                } else {
+                    $query->where('pg.response_code', '<>', 'E000');
+                }
+            }
+
+            // Date Filters (Default to Today if not provided)
+            $startDate = !empty($validated['date_from']) ? $validated['date_from'] : Carbon::today()->toDateString();
+            $endDate = !empty($validated['date_to']) ? $validated['date_to'] : Carbon::today()->toDateString();
+            $query->whereBetween('pg.transaction_date', [$startDate, $endDate]);
+
+            // Fetch Data
+            $transactions = $query->get()->map(function ($transaction, $index) {
+                return [
+                    'SN' => $index + 1,
+                    'Name' => $transaction->student_name,
+                    'Roll No' => $transaction->st_roll_no,
+                    'Class' => $transaction->class_name,
+                    'Date' => "{$transaction->transaction_date} {$transaction->transaction_time}",
+                    'Unique Ref No' => $transaction->unique_ref_number,
+                    'Total Amount' => $transaction->total_amount,
+                    'Status' => $transaction->response_code === 'E000' ? 'Success' : 'Pending',
+                    'Mode' => $transaction->mode,
+                ];
+            })->toArray();
+
+            // No Data Available
+            if (empty($transactions)) {
+                return response()->json(['message' => 'No data available for export.'], 404);
+            }
+
+            // Export to Excel
+            return $this->exportExcel($transactions);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'An error occurred while exporting transactions.',
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function exportExcel(array $data)
+    {
+        // Define export file name
+        $directory = "exports";
+        $fileName = 'Transactions_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
+        $fullPath = "{$directory}/{$fileName}";
+
+        // Store Excel file
+        Excel::store(new TransactionExport($data), $fullPath, 'public');
+
+        // Return file download URL
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'File available for download.',
+            'data' => [
+                'file_url' => url('storage/' . $fullPath),
+                'file_name' => $fileName,
+                'file_size' => Storage::disk('public')->size($fullPath),
+                'content_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ],
+        ]);
+    }
+
 }
