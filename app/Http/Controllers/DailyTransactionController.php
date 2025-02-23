@@ -82,7 +82,7 @@ class DailyTransactionController extends Controller
                     'Date' => "{$transaction->transaction_date} {$transaction->transaction_time}",
                     'Unique_Ref_No' => $transaction->unique_ref_number,
                     'Total_Amount' => $transaction->total_amount,
-                    'Status' => $transaction->response_code === 'E000' ? 'Success received successfully' : 'Pending',
+                    'Status' => $this->mapResponseCode($transaction->response_code),
                     'Mode' => $transaction->payment_mode,
                 ];
             });
