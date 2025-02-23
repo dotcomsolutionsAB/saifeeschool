@@ -7,7 +7,8 @@ use App\Models\PGResponseModel;
 use App\Exports\DailyTransactionExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Storage;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Storage;
 class DailyTransactionController extends Controller
 {
     //
@@ -156,6 +157,10 @@ class DailyTransactionController extends Controller
             'date_to' => 'nullable|date|after_or_equal:date_from', // End date filter
         ]);
 
+        // Get today's start and end timestamps if date filters are not provided
+        $startDate = !empty($validated['date_from']) ? $validated['date_from'] : Carbon::today()->startOfDay()->toDateString();
+        $endDate = !empty($validated['date_to']) ? $validated['date_to'] : Carbon::today()->endOfDay()->toDateString();
+
         try {
             // Initialize query with relationships
             $query = PGResponseModel::with('student');
@@ -170,10 +175,10 @@ class DailyTransactionController extends Controller
             }
 
             // Apply date filters
-            if (!empty($validated['date_from'])) {
+            if ( $startDate) {
                 $query->where('transaction_date', '>=', $validated['date_from']);
             }
-            if (!empty($validated['date_to'])) {
+            if ($endDate) {
                 $query->where('transaction_date', '<=', $validated['date_to']);
             }
 
