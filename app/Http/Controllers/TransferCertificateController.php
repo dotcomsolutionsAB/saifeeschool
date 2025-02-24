@@ -13,7 +13,8 @@ use League\Csv\Statement;
 use Illuminate\Support\Facades\Storage; // For file storage
 use Illuminate\Support\Facades\File;
 
-use Barryvdh\DomPDF\Facade as Pdf;
+
+use Barryvdh\DomPDF\Facades\Pdf;
 
 
 class TransferCertificateController extends Controller
