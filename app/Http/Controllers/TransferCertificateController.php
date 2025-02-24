@@ -12,9 +12,8 @@ use League\Csv\Reader;
 use League\Csv\Statement;
 use Illuminate\Support\Facades\Storage; // For file storage
 use Illuminate\Support\Facades\File;
-use Mpdf\Mpdf; // For PDF generation
 
-use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\Facade as Pdf;
 
 
 class TransferCertificateController extends Controller

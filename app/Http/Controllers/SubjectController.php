@@ -23,6 +23,7 @@ class SubjectController extends Controller
             // Define the path to the CSV file
             // $csvFilePath = $request->file('csv_file')->getRealPath();
             $csvFilePath = storage_path('app/public/studSubj.csv');
+            
 
             if (!file_exists($csvFilePath)) {
                 return response()->json(['message' => 'CSV file not found.'], 404);
