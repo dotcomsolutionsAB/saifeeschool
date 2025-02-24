@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Storage; // For file storage
 use Illuminate\Support\Facades\File;
 use Mpdf\Mpdf; // For PDF generation
 
+use Barryvdh\DomPDF\Facade\Pdf;
+
+
 class TransferCertificateController extends Controller
 {
     //
@@ -566,92 +569,93 @@ private function exportPdf(array $data)
         ],
     ]);
 }
+
+
 public function printPdf($id)
-{
-    try {
-        // Fetch the record by ID
-        $record = TransferCertificateModel::findOrFail($id);
+    {
+        try {
+            // Fetch the record by ID
+            $record = TransferCertificateModel::findOrFail($id);
 
-        // Prepare data for the PDF template
-        $data = [
-            'serial_no' => $record->serial_no,
-            'date' => \Carbon\Carbon::parse($record->dated)->format('d-m-Y'),
-            'roll_no' => $record->st_roll_no,
-            'name' => $record->name,
-            'father_name' => $record->father_name,
-            'joining_class' => $record->joining_class ?? 'N/A',
-            'joining_date' => $record->joining_date ? \Carbon\Carbon::parse($record->joining_date)->format('d-m-Y') : 'N/A',
-            'leaving_date' => $record->leaving_date ? \Carbon\Carbon::parse($record->leaving_date)->format('d-m-Y') : 'N/A',
-            'prev_school' => $record->prev_school ?? 'N/A',
-            'character' => $record->character ?? 'N/A',
-            'class' => $record->class ?? 'N/A',
-            'stream' => $record->stream ?? 'N/A',
-            'date_from' => $record->date_from ? \Carbon\Carbon::parse($record->date_from)->format('d-m-Y') : 'N/A',
-            'date_to' => $record->date_to ? \Carbon\Carbon::parse($record->date_to)->format('d-m-Y') : 'N/A',
-            'dob' => $record->dob ? \Carbon\Carbon::parse($record->dob)->format('d-m-Y') : 'N/A',
-            'promotion' => $record->promotion ?? 'N/A',
-        ];
+            // Prepare data for the PDF template
+            $data = [
+                'serial_no' => $record->serial_no,
+                'date' => Carbon::parse($record->dated)->format('d-m-Y'),
+                'roll_no' => $record->st_roll_no,
+                'name' => $record->name,
+                'father_name' => $record->father_name,
+                'joining_class' => $record->joining_class ?? 'N/A',
+                'joining_date' => $record->joining_date ? Carbon::parse($record->joining_date)->format('d-m-Y') : 'N/A',
+                'leaving_date' => $record->leaving_date ? Carbon::parse($record->leaving_date)->format('d-m-Y') : 'N/A',
+                'prev_school' => $record->prev_school ?? 'N/A',
+                'character' => $record->character ?? 'N/A',
+                'class' => $record->class ?? 'N/A',
+                'stream' => $record->stream ?? 'N/A',
+                'date_from' => $record->date_from ? Carbon::parse($record->date_from)->format('d-m-Y') : 'N/A',
+                'date_to' => $record->date_to ? Carbon::parse($record->date_to)->format('d-m-Y') : 'N/A',
+                'dob' => $record->dob ? Carbon::parse($record->dob)->format('d-m-Y') : 'N/A',
+                'dob_words' => $this->convertDateToWords($record->dob),
+                'promotion' => $record->promotion ?? 'N/A',
+                'status' => $record->status == '0' ? 'ORIGINAL' : 'DUPLICATE',
+            ];
 
-        // Define the file name and directory
-        $directory = "exports";
-        $fileName = 'TransferCertificate_' . now()->format('Y_m_d_H_i_s') . '.pdf';
-        $fullPath = storage_path("app/public/{$directory}/{$fileName}");
+            // Load Blade View and Generate PDF
+            $pdf = Pdf::loadView('pdf.transfer_certificate', $data)
+                      ->setPaper('a4', 'portrait');
 
-        // Ensure the directory exists
-        if (!is_dir(dirname($fullPath))) {
-            mkdir(dirname($fullPath), 0755, true);
+            // Define file name and storage path
+            $directory = "exports";
+            $fileName = 'TransferCertificate_' . now()->format('Y_m_d_H_i_s') . '.pdf';
+            $storagePath = "public/{$directory}/{$fileName}";
+
+            // Ensure directory exists
+            if (!Storage::exists($directory)) {
+                Storage::makeDirectory($directory, 0755, true);
+            }
+
+            // Store the PDF in storage
+            Storage::put($storagePath, $pdf->output());
+
+            // Return metadata about the file
+            return response()->json([
+                'code' => 200,
+                'status' => true,
+                'message' => 'PDF generated successfully.',
+                'data' => [
+                    'file_url' => Storage::url($storagePath), // Correct URL for accessing the file
+                    'file_name' => $fileName,
+                    'file_size' => Storage::size($storagePath),
+                    'content_type' => 'application/pdf',
+                ],
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'Record not found.',
+                'error' => $e->getMessage(),
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'An error occurred while generating the PDF.',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        // Generate the PDF using mPDF
-        $mpdf = new \Mpdf\Mpdf([
-            'format' => 'A4',
-            'orientation' => 'P',
-            'margin_header' => 10,
-            'margin_footer' => 10,
-            'margin_top' => 20,
-            'margin_bottom' => 20,
-            'margin_left' => 15,
-            'margin_right' => 15,
-        ]);
-
-        // Set the title for the PDF
-        $mpdf->SetTitle('Transfer Certificate');
-
-        // Render the HTML template
-        $html = view('exports.transfer_certificate', compact('data'))->render();
-
-        // Write HTML to the PDF
-        $mpdf->WriteHTML($html);
-
-        // Output the PDF to a file
-        $mpdf->Output($fullPath, \Mpdf\Output\Destination::FILE);
-
-        // Return metadata about the file
-        return response()->json([
-            'code' => 200,
-            'status' => true,
-            'message' => 'PDF generated successfully.',
-            'data' => [
-                'file_url' => url('storage/exports/' . $fileName),
-                'file_name' => $fileName,
-                'file_size' => filesize($fullPath),
-                'content_type' => 'application/pdf',
-            ],
-        ]);
-    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        return response()->json([
-            'code' => 404,
-            'status' => false,
-            'message' => 'Record not found.',
-            'error' => $e->getMessage(),
-        ], 404);
-    } catch (\Exception $e) {
-        return response()->json([
-            'code' => 500,
-            'status' => false,
-            'message' => 'An error occurred while generating the PDF.',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
+
+    // Function to convert date to words
+    private function convertDateToWords($dateString)
+    {
+        if (!$dateString) return 'N/A';
+
+        $timestamp = strtotime($dateString);
+        $day = date('j', $timestamp);
+        $month = date('F', $timestamp);
+        $year = date('Y', $timestamp);
+
+        return strtoupper("$day DAY OF $month, $year");
+    }
 }
