@@ -38,6 +38,7 @@ return [
     | application. If disabled, a simple generic error page is shown.
     |
     */
+   
 
     'debug' => (bool) env('APP_DEBUG', false),
 
@@ -121,6 +122,9 @@ return [
     'maintenance' => [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
+    ],
+    'aliases' => [
+        'Pdf' => Barryvdh\DomPDF\Facade::class,
     ],
 
 ];
