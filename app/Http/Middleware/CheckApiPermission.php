@@ -34,7 +34,7 @@ class CheckApiPermission
 
     public function handle(Request $request, Closure $next, string $permission): Response
     {
-        \Log::info('CheckApiPermission middleware triggered.');
+       // \Log::info('CheckApiPermission middleware triggered.');
 
         $user = Auth::user();
         if (!$user || !$user->can($permission)) {
