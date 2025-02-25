@@ -582,7 +582,8 @@ public function printPdf($id)
                 'serial_no' => $record->serial_no,
                 'date' => Carbon::parse($record->dated)->format('d-m-Y'),
                 'registration_no' => $record->registration_no, // 🔹 Ensure this line exists
-    
+               
+                 'dated' => $record->dated ? Carbon::parse($record->dated)->format('d-m-Y') : 'N/A', // 🔹 Added `dated`
                 'roll_no' => $record->st_roll_no,
                 'name' => $record->name,
                 'father_name' => $record->father_name,
