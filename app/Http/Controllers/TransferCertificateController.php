@@ -572,83 +572,82 @@ private function exportPdf(array $data)
 
 
 public function printPdf($id)
-    {
-        try {
-            // Fetch the record by ID
-            $record = TransferCertificateModel::findOrFail($id);
+{
+    try {
+        // Fetch the record by ID
+        $record = TransferCertificateModel::findOrFail($id);
 
-            // Prepare data for the PDF template
-            $data = [
-                'serial_no' => $record->serial_no,
-                'date' => Carbon::parse($record->dated)->format('d-m-Y'),
-                'registration_no' => $record->registration_no, // 🔹 Ensure this line exists
-               
-                 'dated' => $record->dated ? Carbon::parse($record->dated)->format('d-m-Y') : 'N/A', // 🔹 Added `dated`
-                'roll_no' => $record->st_roll_no,
-                'name' => $record->name,
-                'father_name' => $record->father_name,
-                'joining_class' => $record->joining_class ?? 'N/A',
-                'joining_date' => $record->joining_date ? Carbon::parse($record->joining_date)->format('d-m-Y') : 'N/A',
-                'leaving_date' => $record->leaving_date ? Carbon::parse($record->leaving_date)->format('d-m-Y') : 'N/A',
-                'prev_school' => $record->prev_school ?? 'N/A',
-                'character' => $record->character ?? 'N/A',
-                'class' => $record->class ?? 'N/A',
-                'stream' => $record->stream ?? 'N/A',
-                'date_from' => $record->date_from ? Carbon::parse($record->date_from)->format('d-m-Y') : 'N/A',
-                'date_to' => $record->date_to ? Carbon::parse($record->date_to)->format('d-m-Y') : 'N/A',
-                'dob' => $record->dob ? Carbon::parse($record->dob)->format('d-m-Y') : 'N/A',
-                'dob_words' => $this->convertDateToWords($record->dob),
-                'promotion' => $record->promotion ?? 'N/A',
-                'status' => $record->status == '0' ? 'ORIGINAL' : 'DUPLICATE',
-            ];
+        // Prepare data for the PDF template
+        $data = [
+            'serial_no' => $record->serial_no,
+            'registration_no' => $record->registration_no ?? 'N/A',
+            'dated' => $record->dated ? Carbon::parse($record->dated)->format('d-m-Y') : 'N/A',
+            'roll_no' => $record->st_roll_no,
+            'name' => $record->name ?? 'N/A',
+            'father_name' => $record->father_name ?? 'N/A',
+            'joining_class' => $record->joining_class ?? 'N/A',
+            'joining_date' => $record->joining_date ? Carbon::parse($record->joining_date)->format('d-m-Y') : 'N/A',
+            'leaving_date' => $record->leaving_date ? Carbon::parse($record->leaving_date)->format('d-m-Y') : 'N/A',
+            'prev_school' => $record->prev_school ?? 'N/A',
+            'character' => $record->character ?? 'N/A',
+            'class' => $record->class ?? 'N/A',
+            'stream' => $record->stream ?? 'N/A',
+            'date_from' => $record->date_from ? Carbon::parse($record->date_from)->format('d-m-Y') : 'N/A',
+            'date_to' => $record->date_to ? Carbon::parse($record->date_to)->format('d-m-Y') : 'N/A',
+            'dob' => $record->dob ? Carbon::parse($record->dob)->format('d-m-Y') : 'N/A',
+            'dob_words' => $this->convertDateToWords($record->dob),
+            'promotion' => strtoupper($record->promotion ?? 'N/A'),
+            'status' => $record->status == '0' ? 'ORIGINAL' : 'DUPLICATE',
+        ];
 
-            // Load Blade View and Generate PDF
-            $pdf = Pdf::loadView('pdf.transfer_certificate', $data)
-                      ->setPaper('a4', 'portrait');
+        // Load Blade View and Generate PDF
+        $pdf = Pdf::loadView('pdf.transfer_certificate', $data)->setPaper('a4', 'portrait');
 
-            // Define file name and storage path
-            $directory = "exports";
-            $fileName = 'TransferCertificate_' . now()->format('Y_m_d_H_i_s') . '.pdf';
-            $storagePath = "public/{$directory}/{$fileName}";
+        // Define file name and storage path
+        $directory = "public/exports"; // Store in `storage/app/public/exports/`
+        $fileName = 'TransferCertificate_' . now()->format('Y_m_d_H_i_s') . '.pdf';
+        $storagePath = "{$directory}/{$fileName}";
 
-            // Ensure directory exists
-            if (!Storage::exists($directory)) {
-                Storage::makeDirectory($directory, 0755, true);
-            }
-
-            // Store the PDF in storage
-            Storage::put($storagePath, $pdf->output());
-
-            // Return metadata about the file
-            return response()->json([
-                'code' => 200,
-                'status' => true,
-                'message' => 'PDF generated successfully.',
-                'data' => [
-                    'file_url' => Storage::url($storagePath), // Correct URL for accessing the file
-                    'file_name' => $fileName,
-                    'file_size' => Storage::size($storagePath),
-                    'content_type' => 'application/pdf',
-                ],
-            ]);
-
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'code' => 404,
-                'status' => false,
-                'message' => 'Record not found.',
-                'error' => $e->getMessage(),
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'code' => 500,
-                'status' => false,
-                'message' => 'An error occurred while generating the PDF.',
-                'error' => $e->getMessage(),
-            ], 500);
+        // Ensure directory exists
+        if (!Storage::exists($directory)) {
+            Storage::makeDirectory($directory, 0755, true);
         }
-    }
 
+        // Store the PDF in storage
+        Storage::put($storagePath, $pdf->output());
+
+        // Get the full public URL
+        $fullUrl = URL::to(Storage::url($storagePath));
+
+        // Return metadata about the file
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'PDF generated successfully.',
+            'data' => [
+                'file_url' => $fullUrl, // Full public URL
+                'file_name' => $fileName,
+                'file_size' => Storage::size($storagePath),
+                'content_type' => 'application/pdf',
+            ],
+        ]);
+
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json([
+            'code' => 404,
+            'status' => false,
+            'message' => 'Record not found.',
+            'error' => $e->getMessage(),
+        ], 404);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while generating the PDF.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
     // Function to convert date to words
     private function convertDateToWords($dateString)
     {
