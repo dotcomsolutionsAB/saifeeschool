@@ -24,7 +24,7 @@ use App\Http\Controllers\RazorpayController; // Razorpay Controller
 use App\Http\Controllers\RazorpayService; // Razorpay Service
 use Illuminate\Validation\Rule; // For advanced validation rules
 use Carbon\Carbon; // For date manipulation
-use log
+
 class StudentController extends Controller
 {
     public function register(Request $request)
