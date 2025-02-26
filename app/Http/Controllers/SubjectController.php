@@ -273,7 +273,7 @@ class SubjectController extends Controller
         $subjects = DB::table('t_subjectFM as sfm')
             ->join('t_subjects as subj', 'sfm.subj_id', '=', 'subj.id')
             ->where('sfm.cg_id', $cg_id)
-            ->select('subj.id AS subject_id', 'subj.subj_name AS subject_name', 'sfm.type')
+            ->select('subj.id AS subj_id', 'subj.subj_name AS subj_name', 'sfm.type')
             ->orderBy('subj.serial')
             ->get();
 

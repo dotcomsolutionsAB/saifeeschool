@@ -65,6 +65,7 @@ class MarksController extends Controller
                 ]);
     
                 return response()->json([
+                    'code'=>200,
                     'message' => 'Marks updated successfully.',
                     'data' => $existingMarks,
                 ], 200);
@@ -86,12 +87,14 @@ class MarksController extends Controller
                 ]);
     
                 return response()->json([
+                    'code'=>200,
                     'message' => 'Marks record created successfully.',
                     'data' => $marks,
                 ], 201);
             }
         } catch (\Exception $e) {
             return response()->json([
+                'code'=>500,
                 'message' => 'Failed to process marks.',
                 'error' => $e->getMessage(),
             ], 500);
