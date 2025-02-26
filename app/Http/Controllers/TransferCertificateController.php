@@ -648,16 +648,18 @@ public function printPdf($id)
             'error' => $e->getMessage(),
         ], 500);
     }
-    // Function to convert date to words
-    private function convertDateToWords($dateString)
-    {
-        if (!$dateString) return 'N/A';
+   
+   
+}
+public function convertDateToWords($dateString)
+{
+    if (!$dateString) return 'N/A';
 
-        $timestamp = strtotime($dateString);
-        $day = date('j', $timestamp);
-        $month = date('F', $timestamp);
-        $year = date('Y', $timestamp);
+    $timestamp = strtotime($dateString);
+    $day = date('j', $timestamp);
+    $month = date('F', $timestamp);
+    $year = date('Y', $timestamp);
 
-        return strtoupper("$day DAY OF $month, $year");
-    }
+    return strtoupper("$day DAY OF $month, $year");
+}
 }
