@@ -7,20 +7,18 @@
         @page {
             size: A4;
             margin: 0;
-            transform: scale(1.2); /* Scale the entire document */
-            background-image: url('{{ storage_path("app/public/pdf/tc.jpg") }}');
-            background-size: contain;
         }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-           
+            background-image: url('{{ storage_path("app/public/pdf/tc.jpg") }}');
             background-size: cover;
             background-position: top left;
             width: 210mm;
             height: 297mm;
             position: relative;
+            font-size: 18px; /* 🔹 Increase font size */
         }
         .container {
             position: absolute;
@@ -30,29 +28,29 @@
         }
         .field {
             position: absolute;
-            font-size: 18px;
+            font-size: 26px; /* 🔹 Increased for clarity */
             font-weight: bold;
             text-align: center;
         }
         /* Positioning Each Field Based on MPDF setXY */
         .serial-no { top: 82mm; left: 35mm; width: 20mm; }
         .reg-no { top: 82mm; left: 172mm; width: 20mm; }
-        .name { top: 98mm; left: 50mm; width: 140mm; font-style: italic; }
-        .father-name { top: 108mm; left: 25mm; width: 165mm; font-style: italic; }
-        .joining-date { top: 119mm; left: 72mm; width: 60mm; font-style: italic; }
-        .joining-class { top: 119mm; left: 120mm; width: 60mm; font-style: italic; }
-        .leaving-date { top: 129mm; left: 160mm; width: 30mm; font-style: italic; }
-        .prev-school { top: 129mm; left: 10mm; width: 120mm; font-style: italic; }
-        .character { top: 140mm; left: 20mm; width: 30mm; font-style: italic; }
-        .class { top: 151mm; left: 80mm; width: 30mm; font-style: italic; }
-        .stream { top: 151mm; left: 150mm; width: 30mm; font-style: italic; }
-        .date-from { top: 161mm; left: 65mm; width: 30mm; font-style: italic; }
-        .date-to { top: 161mm; left: 125mm; width: 30mm; font-style: italic; }
-        .dob { top: 192mm; left: 150mm; width: 30mm; font-style: italic; }
-        .dob-words { top: 203mm; left: 25mm; width: 165mm; font-size: 12px; font-style: italic; }
-        .promotion { top: 214mm; left: 50mm; width: 50mm; font-style: italic; text-transform: uppercase; }
-        .dated { top: 232mm; left: 23mm; width: 50mm; font-size: 12px; }
-        .status { top: 280mm; left: 85mm; width: 40mm; font-size: 12px; border: 1px solid #000; padding: 3mm; }
+        .name { top: 98mm; left: 50mm; width: 140mm; font-size: 28px; font-style: italic; } /* 🔹 Increased */
+        .father-name { top: 108mm; left: 25mm; width: 165mm; font-size: 28px; font-style: italic; } /* 🔹 Increased */
+        .joining-date { top: 119mm; left: 72mm; width: 60mm; font-size: 26px; }
+        .joining-class { top: 119mm; left: 120mm; width: 60mm; font-size: 26px; }
+        .leaving-date { top: 129mm; left: 160mm; width: 30mm; font-size: 26px; }
+        .prev-school { top: 129mm; left: 10mm; width: 120mm; font-size: 24px; font-style: italic; }
+        .character { top: 140mm; left: 20mm; width: 30mm; font-size: 26px; }
+        .class { top: 151mm; left: 80mm; width: 30mm; font-size: 26px; }
+        .stream { top: 151mm; left: 150mm; width: 30mm; font-size: 26px; }
+        .date-from { top: 161mm; left: 65mm; width: 30mm; font-size: 26px; }
+        .date-to { top: 161mm; left: 125mm; width: 30mm; font-size: 26px; }
+        .dob { top: 192mm; left: 150mm; width: 30mm; font-size: 26px; }
+        .dob-words { top: 203mm; left: 25mm; width: 165mm; font-size: 24px; font-style: italic; } /* 🔹 Increased */
+        .promotion { top: 214mm; left: 50mm; width: 50mm; font-size: 26px; font-style: italic; text-transform: uppercase; }
+        .dated { top: 232mm; left: 23mm; width: 50mm; font-size: 24px; }
+        .status { top: 280mm; left: 85mm; width: 40mm; font-size: 26px; border: 1px solid #000; padding: 3mm; }
     </style>
 </head>
 <body>
