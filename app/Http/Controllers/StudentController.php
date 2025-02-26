@@ -1674,7 +1674,7 @@ class StudentController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            \Log::error('PDF generation error: ' . $e->getMessage());
+           
             return response()->json([
                 'code' => 500,
                 'status' => false,

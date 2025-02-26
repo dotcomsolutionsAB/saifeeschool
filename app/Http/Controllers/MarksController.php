@@ -33,6 +33,7 @@ class MarksController extends Controller
             $idParts = explode('-', $processedMarksId);
             if (count($idParts) !== 4) {
                 return response()->json([
+                    'code'=>400,
                     'message' => "Invalid marks_id format. Expected: st_id-cg_id-term-subj_id[-P].",
                 ], 400);
             }
