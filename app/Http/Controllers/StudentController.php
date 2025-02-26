@@ -1603,100 +1603,82 @@ class StudentController extends Controller
     }
 
     private function exportPdf(array $data)
-{
-    // Increase memory limit and execution time
-    ini_set('memory_limit', '512M');
-    set_time_limit(300);
-
-    // Define the path for storing the file
-    $directory = "exports";
-    $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
-    $storagePath = storage_path("app/public/{$directory}");
-    $fullPath = "{$storagePath}/{$fileName}";
-
-    // Ensure the directory exists
-    if (!is_dir($storagePath)) {
-        mkdir($storagePath, 0755, true);
-    }
-
-    // Initialize mPDF with custom temp directory
-    $mpdf = new \Mpdf\Mpdf([
-        'format' => 'A4',
-        'orientation' => 'P',
-        'margin_header' => 10,
-        'margin_footer' => 10,
-        'margin_top' => 20,
-        'margin_bottom' => 20,
-        'margin_left' => 15,
-        'margin_right' => 15,
-        'tempDir' => storage_path('app/mpdf_temp'), // Custom temporary directory
-    ]);
-
-    $mpdf->SetTitle('Student Export');
-
-    try {
-        $firstPage = true; // Track first page to avoid unnecessary page breaks
-
-        foreach ($data as $className => $students) {
-            // Ensure students data exists and is an array
-            if (!is_array($students) || empty($students)) {
-                continue; // Skip empty classes
-            }
-        
-            // Add a new page for each class (except the first one)
-            if (!$firstPage) {
-                $mpdf->AddPage();
-            }
-            $firstPage = false;
-        
-            // Render class header and write to PDF
-            $headerHtml = view('exports.class_header', ['class' => $className])->render();
-            $mpdf->WriteHTML($headerHtml);
-        
-            // Process students in chunks of 50 for better memory management
-            collect($students)->chunk(50)->each(function ($chunk) use ($mpdf) {
-                if ($chunk->isEmpty()) {
-                    return; // Skip empty chunks
-                }
-        
-                // Use output buffering to prevent memory leaks
-                ob_start();
-                echo view('exports.students_pdf', ['data' => $chunk])->render();
-                $html = ob_get_clean();
-        
-                // Write HTML to PDF
-                $mpdf->WriteHTML($html);
-            });
+    {
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
+    
+        $directory = "exports";
+        $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
+        $storagePath = storage_path("app/public/{$directory}");
+        $fullPath = "{$storagePath}/{$fileName}";
+    
+        // ✅ Ensure the directory exists
+        if (!is_dir($storagePath)) {
+            mkdir($storagePath, 0755, true);
         }
-
-        // Save the PDF to the directory
-        $mpdf->Output($fullPath, \Mpdf\Output\Destination::FILE);
-
-        // Generate the full file URL
-        $fullFileUrl = url("storage/{$directory}/{$fileName}");
-
-        // Return file metadata
-        return response()->json([
-            'code' => 200,
-            'status' => true,
-            'message' => 'File available for download',
-            'data' => [
-                'file_url' => $fullFileUrl,
-                'file_name' => $fileName,
-                'file_size' => filesize($fullPath),
-                'content_type' => 'application/pdf',
-            ],
+    
+        // ✅ Initialize mPDF
+        $mpdf = new \Mpdf\Mpdf([
+            'format' => 'A4',
+            'orientation' => 'P',
+            'margin_top' => 20,
+            'margin_bottom' => 20,
+            'margin_left' => 15,
+            'margin_right' => 15,
+            'tempDir' => storage_path('app/mpdf_temp'),
         ]);
-    } catch (\Exception $e) {
-       
-        return response()->json([
-            'code' => 500,
-            'status' => false,
-            'message' => 'An error occurred while generating the PDF.',
-            'error' => $e->getMessage(),
-        ]);
+    
+        $mpdf->SetTitle('Student Export');
+    
+        try {
+            $firstPage = true;
+    
+            foreach ($data as $className => $students) {
+                if (!is_array($students) || empty($students)) {
+                    continue; // Skip empty classes
+                }
+    
+                // ✅ Ensure each class starts on a new page (except the first one)
+                if (!$firstPage) {
+                    $mpdf->AddPage();
+                }
+                $firstPage = false;
+    
+                // ✅ Render class header and write to PDF
+                $headerHtml = view('exports.class_header', ['class' => $className])->render();
+                $mpdf->WriteHTML($headerHtml);
+    
+                // ✅ Process students in smaller chunks of 25 for better performance
+                collect($students)->chunk(25)->each(function ($chunk) use ($mpdf) {
+                    if ($chunk->isEmpty()) {
+                        return; // Skip empty chunks
+                    }
+    
+                    ob_start(); // Start output buffering
+                    echo view('exports.students_pdf', ['data' => $chunk])->render();
+                    $html = ob_get_clean(); // Get the output and clean buffer
+    
+                    $mpdf->WriteHTML($html);
+                    flush(); // ✅ Helps Laravel process the output faster
+                });
+            }
+    
+            // ✅ Stream the PDF directly instead of saving to disk (faster)
+            return response()->streamDownload(function () use ($mpdf) {
+                $mpdf->Output();
+            }, $fileName, [
+                'Content-Type' => 'application/pdf',
+            ]);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'An error occurred while generating the PDF.',
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
-}
     public function initiatePayment(Request $request)
     {
         $validated = $request->validate([
