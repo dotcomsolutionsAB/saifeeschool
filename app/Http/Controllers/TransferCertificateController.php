@@ -605,20 +605,20 @@ public function printPdf($id)
         $pdf = Pdf::loadView('pdf.transfer_certificate', $data)->setPaper('a4', 'portrait');
 
         // Define storage path in public storage
-        $directory = "public/exports"; // Stores in `storage/app/public/exports/`
+        $directory = "exports"; // Stores in `storage/app/public/exports/`
         $fileName = 'TransferCertificate_' . now()->format('Y_m_d_H_i_s') . '.pdf';
-        $storagePath = "{$directory}/{$fileName}";
+        $fullPath = storage_path("app/public/{$directory}/{$fileName}");
 
         // Ensure the directory exists in storage
-        if (!Storage::exists($directory)) {
-            Storage::makeDirectory($directory, 0755, true);
+        if (!is_dir(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
         }
 
         // Store the PDF in storage
-        Storage::put($storagePath, $pdf->output());
+        Storage::put($fullPath, $pdf->output());
 
         // Get the full public URL
-        $fullUrl = URL::to(Storage::url($storagePath));
+        $fullUrl = URL::to(Storage::url($fullPath));
 
         // Return metadata about the file
         return response()->json([
@@ -628,7 +628,7 @@ public function printPdf($id)
             'data' => [
                 'file_url' => $fullUrl, // Full public URL
                 'file_name' => $fileName,
-                'file_size' => Storage::size($storagePath),
+                'file_size' => Storage::size($fullPath),
                 'content_type' => 'application/pdf',
             ],
         ]);
