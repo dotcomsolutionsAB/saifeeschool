@@ -604,12 +604,12 @@ public function printPdf($id)
         // Load Blade View and Generate PDF
         $pdf = Pdf::loadView('pdf.transfer_certificate', $data)->setPaper('a4', 'portrait');
 
-        // Define file name and storage path
-        $directory = "public/exports"; // Store in `storage/app/public/exports/`
+        // Define storage path in public storage
+        $directory = "public/exports"; // Stores in `storage/app/public/exports/`
         $fileName = 'TransferCertificate_' . now()->format('Y_m_d_H_i_s') . '.pdf';
         $storagePath = "{$directory}/{$fileName}";
 
-        // Ensure directory exists
+        // Ensure the directory exists in storage
         if (!Storage::exists($directory)) {
             Storage::makeDirectory($directory, 0755, true);
         }
@@ -648,7 +648,6 @@ public function printPdf($id)
             'error' => $e->getMessage(),
         ], 500);
     }
-}
     // Function to convert date to words
     private function convertDateToWords($dateString)
     {
