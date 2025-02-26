@@ -16,21 +16,21 @@
             position: relative; 
         }
         .container { position: absolute; width: 100%; height: 100%; }
-        .field { position: absolute; font-size: 16px; font-weight: bold; }
+        .field { position: absolute; font-size: 36px; font-weight: bold; }
 
         /* Positioning Each Field Based on FPDF setXY */
-        .receipt-no { top: 5mm; left: 20mm; } /* Receipt ID */
-        .date { top: 45mm; left: 160mm; } /* Date */
+        .receipt-no { top: 5mm; left: 20mm; font-size: 38px} /* Receipt ID */
+        .date { top: 45mm; left: 160mm;font-size: 38px } /* Date */
 
-        .name { top: 56mm; left: 75mm; } /* Student Name */
-        .roll-no { top: 69mm; left: 50mm; } /* Roll Number */
-        .class { top: 69mm; left: 130mm; } /* Class */
+        .name { top: 56mm; left: 75mm; font-size: 38px} /* Student Name */
+        .roll-no { top: 69mm; left: 50mm;font-size: 38px } /* Roll Number */
+        .class { top: 69mm; left: 130mm; font-size: 38px} /* Class */
 
-        .payment-method { top: 81mm; left: 60mm; } /* Payment Mode */
-        .amount-in-words { top: 93mm; left: 60mm; width: 120mm; font-size: 14px; } /* Amount in Words */
+        .payment-method { top: 81mm; left: 60mm; font-size: 38px} /* Payment Mode */
+        .amount-in-words { top: 93mm; left: 60mm; width: 120mm; font-size: 14px; font-size: 38px} /* Amount in Words */
 
-        .amount { top: 122mm; left: 25mm; font-size: 24px; } /* Amount Paid */
-        .status { top: 122mm; left: 160mm; font-size: 16px; border: 1px solid #000; padding: 3mm; text-align: center; } /* Status (Original/Duplicate) */
+        .amount { top: 122mm; left: 25mm; font-size: 24px; font-size: 38px} /* Amount Paid */
+        .status { top: 122mm; left: 160mm; font-size: 36px; border: 1px solid #000; padding: 3mm; text-align: center; } /* Status (Original/Duplicate) */
 
     </style>
 </head>
