@@ -7,7 +7,7 @@
         @page { size: A4; margin: 0; }
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-image: url('{{ storage_path("app/public/pdf/cc.jpg") }}'); background-size: cover; width: 210mm; height: 297mm; position: relative; }
         .container { position: absolute; width: 100%; height: 100%; padding: 20mm; }
-        .field { position: absolute; font-size: 14px; font-weight: bold; text-align: center; }
+        .field { position: absolute; font-size: 18px; font-weight: bold; text-align: center; }
 
         /* Positioning Fields */
         .serial-no { top: 82mm; left: 30mm; width: 20mm; }

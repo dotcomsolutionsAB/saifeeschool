@@ -27,7 +27,7 @@
         }
         .field {
             position: absolute;
-            font-size: 14px;
+            font-size: 18px;
             font-weight: bold;
             text-align: center;
         }
