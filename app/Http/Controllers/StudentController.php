@@ -1603,86 +1603,86 @@ class StudentController extends Controller
     }
 
     private function exportPdf(array $data)
-    {
-        // Increase memory limit and execution time
-        ini_set('memory_limit', '512M');
-        set_time_limit(300);
-    
-        // Define the path for storing the file
-        $directory = "exports";
-        $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
-        $storagePath = storage_path("app/public/{$directory}");
-        $fullPath = "{$storagePath}/{$fileName}";
-    
-        // Ensure the directory exists
-        if (!is_dir($storagePath)) {
-            mkdir($storagePath, 0755, true);
-        }
-    
-        // Initialize mPDF with custom temp directory
-        $mpdf = new \Mpdf\Mpdf([
-            'format' => 'A4',
-            'orientation' => 'P',
-            'margin_header' => 10,
-            'margin_footer' => 10,
-            'margin_top' => 20,
-            'margin_bottom' => 20,
-            'margin_left' => 15,
-            'margin_right' => 15,
-            'tempDir' => storage_path('app/mpdf_temp'), // Custom temporary directory
-        ]);
-    
-        $mpdf->SetTitle('Student Export');
-    
-        try {
-            // Group data by student class
-            $groupedData = collect($data)->groupBy('class');
-    
-            foreach ($groupedData as $class => $students) {
-                // Add a new page for each class except the first one
-                if ($mpdf->page > 1) {
-                    $mpdf->AddPage();
-                }
-    
-                // Set a page header for this class using a dedicated Blade view
-                // The view 'exports.class_header' should receive the current class name
-                $headerHtml = view('exports.class_header', ['class' => $class])->render();
-                $mpdf->SetHTMLHeader($headerHtml);
-    
-                // Render the table for the current class. In your view ('exports.students_pdf'),
-                // remove the academic year column and include the 'st_house' details.
-                $tableHtml = view('exports.students_pdf', ['data' => $students])->render();
-                $mpdf->WriteHTML($tableHtml);
-            }
-    
-            // Save the PDF to the directory
-            $mpdf->Output($fullPath, \Mpdf\Output\Destination::FILE);
-    
-            // Generate the full file URL
-            $fullFileUrl = url("storage/{$directory}/{$fileName}");
-    
-            // Return file metadata
-            return response()->json([
-                'code' => 200,
-                'status' => true,
-                'message' => 'File available for download',
-                'data' => [
-                    'file_url' => $fullFileUrl,
-                    'file_name' => $fileName,
-                    'file_size' => filesize($fullPath),
-                    'content_type' => 'application/pdf',
-                ],
-            ]);
-        } catch (\Exception $e) {
-           
-            return response()->json([
-                'code' => 500,
-                'status' => false,
-                'message' => 'An error occurred while generating the PDF.',
-                'error' => $e->getMessage(),
-            ]);
-        }
+{
+    // Increase memory limit and execution time
+    ini_set('memory_limit', '512M');
+    set_time_limit(300);
+
+    // Define the path for storing the file
+    $directory = "exports";
+    $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
+    $storagePath = storage_path("app/public/{$directory}");
+    $fullPath = "{$storagePath}/{$fileName}";
+
+    // Ensure the directory exists
+    if (!is_dir($storagePath)) {
+        mkdir($storagePath, 0755, true);
     }
+
+    // Initialize mPDF with custom temp directory
+    $mpdf = new \Mpdf\Mpdf([
+        'format' => 'A4',
+        'orientation' => 'P',
+        'margin_header' => 10,
+        'margin_footer' => 10,
+        'margin_top' => 20,
+        'margin_bottom' => 20,
+        'margin_left' => 15,
+        'margin_right' => 15,
+        'tempDir' => storage_path('app/mpdf_temp'), // Custom temporary directory
+    ]);
+
+    $mpdf->SetTitle('Student Export');
+
+    try {
+        $firstPage = true; // Track first page to avoid unnecessary page breaks
+
+        foreach ($data as $className => $students) {
+            // Ensure each class starts on a new page (except the first one)
+            if (!$firstPage) {
+                $mpdf->AddPage();
+            }
+            $firstPage = false;
+
+            // Render class header
+            $headerHtml = view('exports.class_header', ['class' => $className])->render();
+            $mpdf->WriteHTML($headerHtml);
+
+            // Process students in chunks of 50 to avoid memory issues
+            collect($students)->chunk(50)->each(function ($chunk) use ($mpdf) {
+                $html = view('exports.students_pdf', ['data' => $chunk])->render();
+                $mpdf->WriteHTML($html);
+            });
+        }
+
+        // Save the PDF to the directory
+        $mpdf->Output($fullPath, \Mpdf\Output\Destination::FILE);
+
+        // Generate the full file URL
+        $fullFileUrl = url("storage/{$directory}/{$fileName}");
+
+        // Return file metadata
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'File available for download',
+            'data' => [
+                'file_url' => $fullFileUrl,
+                'file_name' => $fileName,
+                'file_size' => filesize($fullPath),
+                'content_type' => 'application/pdf',
+            ],
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('PDF generation error: ' . $e->getMessage());
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while generating the PDF.',
+            'error' => $e->getMessage(),
+        ]);
+    }
+}
     public function initiatePayment(Request $request)
     {
         $validated = $request->validate([

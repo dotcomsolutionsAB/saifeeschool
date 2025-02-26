@@ -18,8 +18,8 @@ class MarksController extends Controller
     {
         // ✅ Validate input
         $validated = $request->validate([
-            'marks_id' => 'required|string', // Must be in format st_id-cg_id-term-subj_id[-P]
-            'marks' => 'required|numeric|min:0', // Either theory marks or practical marks
+            'marks_id' => 'required|string', // Format: st_id-cg_id-term-subj_id[-P]
+            'marks' => 'required', // Can be numeric (for m type) or string (for g type)
         ]);
     
         try {
@@ -33,7 +33,7 @@ class MarksController extends Controller
             $idParts = explode('-', $processedMarksId);
             if (count($idParts) !== 4) {
                 return response()->json([
-                    'code'=>400,
+                    'code' => 400,
                     'message' => "Invalid marks_id format. Expected: st_id-cg_id-term-subj_id[-P].",
                 ], 400);
             }
@@ -54,6 +54,26 @@ class MarksController extends Controller
     
             $ay_id = $classGroup->ay_id; // ✅ Use `ay_id` from `t_class_groups`
     
+            // ✅ Fetch subject type and max marks from `t_subjectfm`
+            $subject = DB::table('t_subjectfm')->where('id', $subj_id)->select('type', 'max_marks')->first();
+            if (!$subject) {
+                return response()->json(['message' => 'Invalid subject ID.'], 400);
+            }
+    
+            // ✅ Validate marks based on subject type
+            if ($subject->type === 'm') { // Type "m" → Numeric Only
+                if (!is_numeric($validated['marks']) || intval($validated['marks']) != $validated['marks']) {
+                    return response()->json(['message' => 'Marks must be an integer for this subject type.'], 400);
+                }
+                if ($validated['marks'] > $subject->max_marks) {
+                    return response()->json(['message' => 'Marks cannot exceed the subject\'s max marks.'], 400);
+                }
+            } elseif ($subject->type === 'g') { // Type "g" → Grade Only
+                if (is_numeric($validated['marks'])) {
+                    return response()->json(['message' => 'Marks must be a grade character for this subject type.'], 400);
+                }
+            }
+    
             // ✅ Check if marks already exist for the same `marks_id`
             $existingMarks = MarksModel::where('marks_id', $processedMarksId)->first();
     
@@ -66,7 +86,7 @@ class MarksController extends Controller
                 ]);
     
                 return response()->json([
-                    'code'=>200,
+                    'code' => 200,
                     'message' => 'Marks updated successfully.',
                     'data' => $existingMarks,
                 ], 200);
@@ -88,14 +108,14 @@ class MarksController extends Controller
                 ]);
     
                 return response()->json([
-                    'code'=>200,
+                    'code' => 200,
                     'message' => 'Marks record created successfully.',
                     'data' => $marks,
                 ], 201);
             }
         } catch (\Exception $e) {
             return response()->json([
-                'code'=>500,
+                'code' => 500,
                 'message' => 'Failed to process marks.',
                 'error' => $e->getMessage(),
             ], 500);
