@@ -8,12 +8,14 @@
             size: A4;
             margin: 0;
             transform: scale(1.2); /* Scale the entire document */
+            background-image: url('{{ storage_path("app/public/pdf/tc.jpg") }}');
+            background-size: contain;
         }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-image: url('{{ storage_path("app/public/pdf/tc.jpg") }}');
+           
             background-size: cover;
             background-position: top left;
             width: 210mm;

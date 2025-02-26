@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>Character Certificate</title>
     <style>
-        @page { size: A4; margin: 0;   transform: scale(1.2); /* Scale the entire document */}
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-image: url('{{ storage_path("app/public/pdf/cc.jpg") }}'); background-size: cover; width: 210mm; height: 297mm; position: relative; }
+        @page { size: A4; margin: 0;   transform: scale(1.2); /* Scale the entire document */ background-image: url('{{ storage_path("app/public/pdf/cc.jpg") }}'); background-size: contain;}
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0;  background-size: cover; width: 210mm; height: 297mm; position: relative; }
         .container { position: absolute; width: 100%; height: 100%; padding: 20mm; }
         .field { position: absolute; font-size: 18px; font-weight: bold; text-align: center; }
 
