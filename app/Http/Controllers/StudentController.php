@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator; // For validations
 use Illuminate\Support\Facades\DB; // For database operations
@@ -24,7 +24,7 @@ use App\Http\Controllers\RazorpayController; // Razorpay Controller
 use App\Http\Controllers\RazorpayService; // Razorpay Service
 use Illuminate\Validation\Rule; // For advanced validation rules
 use Carbon\Carbon; // For date manipulation
-
+use log
 class StudentController extends Controller
 {
     public function register(Request $request)
