@@ -214,7 +214,7 @@ return [
          *
          * @var int
          */
-        'dpi' => 96,
+        'dpi' => 300,
 
         /**
          * Enable embedded PHP
@@ -297,5 +297,7 @@ return [
          */
         'enable_html5_parser' => true,
     ],
+   
+    
 
 ];
