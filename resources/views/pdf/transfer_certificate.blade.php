@@ -18,7 +18,7 @@
             width: 210mm;
             height: 297mm;
             position: relative;
-            font-size: 28px; /* 🔹 Increase font size */
+            font-size: 38px; /* 🔹 Increase font size */
         }
         .container {
             position: absolute;

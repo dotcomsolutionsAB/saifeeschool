@@ -9,10 +9,10 @@
             font-family: Arial, sans-serif; 
             margin: 0; 
             padding: 0; 
-            font-size: 22px; /* 🔹 Slightly increased base font size */
+            font-size: 24px; /* 🔹 Base font size */
             background-image: url('{{ storage_path("app/public/pdf/cc.jpg") }}'); 
-            background-size: cover; /* Ensures full background fit */
-            background-position: center; 
+            background-size: cover; /* 🔹 Ensures full-page clarity */
+            background-position: top left; 
             width: 210mm; 
             height: 297mm; 
             position: relative; 
@@ -20,7 +20,7 @@
         .container { position: absolute; width: 100%; height: 100%; padding: 20mm; }
         .field { 
             position: absolute; 
-            font-size: 56px; /* 🔹 Increased font size for 300 DPI */
+            font-size: 72px; /* 🔹 Further increased font size for 300 DPI */
             font-weight: bold; 
             text-align: center; 
         }
