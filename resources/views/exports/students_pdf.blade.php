@@ -17,18 +17,19 @@
         }
         h3 {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             font-size: 18px;
         }
-        p {
+        .class-header {
             text-align: center;
-            font-size: 14px;
-            margin-top: -10px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 30px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 15px;
         }
         table, th, td {
             border: 1px solid black;
@@ -48,46 +49,54 @@
 <body>
     <div class="container">
         <h3>Student Data</h3>
-        @if(isset($academicYear))
-            <p>Academic Year: {{ $academicYear }}</p>
-        @endif
 
-        <table>
-            <thead>
-                <tr>
-                    <th>SN</th>
-                    <th>Roll No</th>
-                    <th>Name</th>
-                    <th>Class</th>
-                    <th>Gender</th>
-                    <th>DOB</th>
-                    <th>ITS</th>
-                    <th>Mobile</th>
-                    <th>Bohra</th>
-                    <th>Academic Year</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($data as $student)
+        @php
+            $firstClass = true;
+        @endphp
+
+        @foreach($data as $class => $students)
+            @if(!$firstClass)
+                <div class="page-break"></div>
+            @endif
+            @php $firstClass = false; @endphp
+            
+            <div class="class-header">Class: {{ $class }}</div>
+
+            <table>
+                <thead>
                     <tr>
-                        <td>{{ $student['SN'] }}</td>
-                        <td>{{ $student['Roll No'] }}</td>
-                        <td>{{ $student['Name'] }}</td>
-                        <td>{{ $student['Class'] }}</td>
-                        <td>{{ $student['Gender'] }}</td>
-                        <td>{{ $student['DOB'] }}</td>
-                        <td>{{ $student['ITS'] }}</td>
-                        <td>{{ $student['Mobile'] }}</td>
-                        <td>{{ $student['Bohra'] }}</td>
-                        <td>{{ $student['Academic Year'] }}</td>
+                        <th>SN</th>
+                        <th>Roll No</th>
+                        <th>Name</th>
+                        <th>Gender</th>
+                        <th>DOB</th>
+                        <th>ITS</th>
+                        <th>Mobile</th>
+                        <th>Bohra</th>
+                        <th>House</th>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="11" style="text-align: center;">No student data available</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @forelse($students as $index => $student)
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $student['Roll No'] }}</td>
+                            <td>{{ $student['Name'] }}</td>
+                            <td>{{ $student['Gender'] }}</td>
+                            <td>{{ $student['DOB'] }}</td>
+                            <td>{{ $student['ITS'] }}</td>
+                            <td>{{ $student['Mobile'] }}</td>
+                            <td>{{ $student['Bohra'] }}</td>
+                            <td>{{ $student['st_house'] }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="9" style="text-align: center;">No student data available</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        @endforeach
     </div>
 </body>
 </html>

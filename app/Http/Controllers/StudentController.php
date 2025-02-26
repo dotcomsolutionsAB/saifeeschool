@@ -1484,13 +1484,9 @@ class StudentController extends Controller
     
         try {
             // Initialize query with relationships
-            $query = StudentClassModel::with(['student', 'classGroup', 'academicYear']);
+            $query = StudentClassModel::with(['student', 'classGroup']);
     
             // Apply filters
-            if (!empty($validated['ay_id'])) {
-                $query->where('ay_id', $validated['ay_id']);
-            }
-    
             if (!empty($validated['cg_id'])) {
                 $cgIds = explode(',', $validated['cg_id']); // Convert to array
                 $query->whereIn('cg_id', $cgIds);
@@ -1538,17 +1534,19 @@ class StudentController extends Controller
                         continue;
                     }
     
-                    $data[] = [
-                        'SN' => count($data) + 1,
+                    $className = optional($studentClass->classGroup)->cg_name ?? 'Unknown Class';
+    
+                    // Group students by class
+                    $data[$className][] = [
+                        'SN' => count($data[$className] ?? []) + 1,
                         'Roll No' => $student->st_roll_no,
                         'Name' => $student->st_first_name . ' ' . $student->st_last_name,
-                        'Class' => optional($studentClass->classGroup)->cg_name ?? 'Class group not found',
                         'Gender' => $student->st_gender === 'M' ? 'Male' : ($student->st_gender === 'F' ? 'Female' : 'Not Specified'),
                         'DOB' => $student->st_dob ? \Carbon\Carbon::parse($student->st_dob)->format('d-m-Y') : 'N/A',
                         'ITS' => $student->st_its_id ?? 'N/A',
                         'Mobile' => $student->st_mobile ?? 'N/A',
                         'Bohra' => $student->st_bohra ? 'Yes' : 'No',
-                        'Academic Year' => optional($studentClass->academicYear)->ay_name ?? 'N/A',
+                        'st_house' => $student->st_house ?? 'N/A',
                     ];
                 }
             });
@@ -1559,10 +1557,10 @@ class StudentController extends Controller
     
             // Export as Excel or PDF
             if ($validated['type'] === 'excel') {
-                return $this->exportExcel($data);
+                return $this->exportExcel(collect($data)->flatten(1)->toArray()); // Flatten array for Excel
             }
     
-            return $this->exportPdf($data);
+            return $this->exportPdf($data); // Grouped data for PDF
     
         } catch (\Exception $e) {
             return response()->json([
@@ -1637,16 +1635,24 @@ class StudentController extends Controller
         $mpdf->SetTitle('Student Export');
     
         try {
-            // Chunk data to process large datasets
-            $htmlChunks = collect($data)
-                ->chunk(100) // Process 100 records at a time
-                ->map(function ($chunk) {
-                    return view('exports.students_pdf', ['data' => $chunk])->render();
-                });
+            // Group data by student class
+            $groupedData = collect($data)->groupBy('class');
     
-            // Write each chunk to the PDF
-            foreach ($htmlChunks as $chunkHtml) {
-                $mpdf->WriteHTML($chunkHtml);
+            foreach ($groupedData as $class => $students) {
+                // Add a new page for each class except the first one
+                if ($mpdf->page > 1) {
+                    $mpdf->AddPage();
+                }
+    
+                // Set a page header for this class using a dedicated Blade view
+                // The view 'exports.class_header' should receive the current class name
+                $headerHtml = view('exports.class_header', ['class' => $class])->render();
+                $mpdf->SetHTMLHeader($headerHtml);
+    
+                // Render the table for the current class. In your view ('exports.students_pdf'),
+                // remove the academic year column and include the 'st_house' details.
+                $tableHtml = view('exports.students_pdf', ['data' => $students])->render();
+                $mpdf->WriteHTML($tableHtml);
             }
     
             // Save the PDF to the directory
