@@ -1638,19 +1638,33 @@ class StudentController extends Controller
         $firstPage = true; // Track first page to avoid unnecessary page breaks
 
         foreach ($data as $className => $students) {
-            // Ensure each class starts on a new page (except the first one)
+            // Ensure students data exists and is an array
+            if (!is_array($students) || empty($students)) {
+                continue; // Skip empty classes
+            }
+        
+            // Add a new page for each class (except the first one)
             if (!$firstPage) {
                 $mpdf->AddPage();
             }
             $firstPage = false;
-
-            // Render class header
+        
+            // Render class header and write to PDF
             $headerHtml = view('exports.class_header', ['class' => $className])->render();
             $mpdf->WriteHTML($headerHtml);
-
-            // Process students in chunks of 50 to avoid memory issues
+        
+            // Process students in chunks of 50 for better memory management
             collect($students)->chunk(50)->each(function ($chunk) use ($mpdf) {
-                $html = view('exports.students_pdf', ['data' => $chunk])->render();
+                if ($chunk->isEmpty()) {
+                    return; // Skip empty chunks
+                }
+        
+                // Use output buffering to prevent memory leaks
+                ob_start();
+                echo view('exports.students_pdf', ['data' => $chunk])->render();
+                $html = ob_get_clean();
+        
+                // Write HTML to PDF
                 $mpdf->WriteHTML($html);
             });
         }

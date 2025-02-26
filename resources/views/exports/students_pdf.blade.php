@@ -79,15 +79,15 @@
                 <tbody>
                     @forelse($students as $index => $student)
                         <tr>
-                        <td>{{ (int) $index + 1 }}</td>
-                            <td>{{ $student['Roll No'] }}</td>
-                            <td>{{ $student['Name'] }}</td>
-                            <td>{{ $student['Gender'] }}</td>
-                            <td>{{ $student['DOB'] }}</td>
-                            <td>{{ $student['ITS'] }}</td>
-                            <td>{{ $student['Mobile'] }}</td>
-                            <td>{{ $student['Bohra'] }}</td>
-                            <td>{{ $student['st_house'] }}</td>
+                        <td>{{ is_numeric($index) ? (int) $index + 1 : 'N/A' }}</td>
+                        <td>{{ isset($student['Roll No']) ? $student['Roll No'] : 'N/A' }}</td>
+<td>{{ isset($student['Name']) ? $student['Name'] : 'N/A' }}</td>
+<td>{{ isset($student['Gender']) ? $student['Gender'] : 'N/A' }}</td>
+<td>{{ isset($student['DOB']) ? $student['DOB'] : 'N/A' }}</td>
+<td>{{ isset($student['ITS']) ? $student['ITS'] : 'N/A' }}</td>
+<td>{{ isset($student['Mobile']) ? $student['Mobile'] : 'N/A' }}</td>
+<td>{{ isset($student['Bohra']) ? $student['Bohra'] : 'N/A' }}</td>
+<td>{{ isset($student['st_house']) ? $student['st_house'] : 'N/A' }}</td>
                         </tr>
                     @empty
                         <tr>
