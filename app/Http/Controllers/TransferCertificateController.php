@@ -615,10 +615,10 @@ public function printPdf($id)
         }
 
         // Store the PDF in storage
-        Storage::put($fullPath, $pdf->output());
+        file_put_contents($fullPath, $pdf->output());
 
-        // Get the full public URL
-        $fullUrl = URL::to(Storage::url($fullPath));
+// Get the full public URL
+$fullUrl = url("storage/exports/{$fileName}");
 
         // Return metadata about the file
         return response()->json([
