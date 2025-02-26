@@ -43,13 +43,13 @@ class MarksController extends Controller
             // ✅ Fetch student details
             $student = DB::table('t_students')->where('id', $st_id)->select('st_roll_no')->first();
             if (!$student) {
-                return response()->json(['message' => 'Invalid student ID.'], 400);
+                return response()->json(['code'=>400,'message' => 'Invalid student ID.'], 400);
             }
     
             // ✅ Fetch `ay_id` from `t_class_groups` using `cg_id`
             $classGroup = DB::table('t_class_groups')->where('id', $cg_id)->select('ay_id')->first();
             if (!$classGroup) {
-                return response()->json(['message' => 'Invalid class group ID.'], 400);
+                return response()->json(['code'=>400,'message' => 'Invalid class group ID.'], 400);
             }
     
             $ay_id = $classGroup->ay_id; // ✅ Use `ay_id` from `t_class_groups`
@@ -57,20 +57,20 @@ class MarksController extends Controller
             // ✅ Fetch subject type and max marks from `t_subjectfm`
             $subject = DB::table('t_subjectFM')->where('subj_id', $subj_id)->select('type', 'marks')->first();
             if (!$subject) {
-                return response()->json(['message' => 'Invalid subject ID.'], 400);
+                return response()->json(['code'=>400,'message' => 'Invalid subject ID.'], 400);
             }
     
             // ✅ Validate marks based on subject type
             if ($subject->type === 'M') { // Type "m" → Numeric Only
                 if (!is_numeric($validated['marks']) || intval($validated['marks']) != $validated['marks']) {
-                    return response()->json(['message' => 'Marks must be an integer for this subject type.'], 400);
+                    return response()->json(['code'=>400,'message' => 'Marks must be an integer for this subject type.'], 400);
                 }
-                if ($validated['marks'] > $subject->max_marks) {
-                    return response()->json(['message' => 'Marks cannot exceed the subject\'s max marks.'], 400);
+                if ($validated['marks'] > $subject->marks) {
+                    return response()->json(['code'=>400,'message' => 'Marks cannot exceed the subject\'s max marks.'], 400);
                 }
             } elseif ($subject->type === 'G') { // Type "g" → Grade Only
                 if (is_numeric($validated['marks'])) {
-                    return response()->json(['message' => 'Marks must be a grade character for this subject type.'], 400);
+                    return response()->json(['code'=>400,'message' => 'Marks must be a grade character for this subject type.'], 400);
                 }
             }
     
