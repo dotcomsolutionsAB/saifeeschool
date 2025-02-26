@@ -61,14 +61,14 @@ class MarksController extends Controller
             }
     
             // ✅ Validate marks based on subject type
-            if ($subject->type === 'm') { // Type "m" → Numeric Only
+            if ($subject->type === 'M') { // Type "m" → Numeric Only
                 if (!is_numeric($validated['marks']) || intval($validated['marks']) != $validated['marks']) {
                     return response()->json(['message' => 'Marks must be an integer for this subject type.'], 400);
                 }
                 if ($validated['marks'] > $subject->max_marks) {
                     return response()->json(['message' => 'Marks cannot exceed the subject\'s max marks.'], 400);
                 }
-            } elseif ($subject->type === 'g') { // Type "g" → Grade Only
+            } elseif ($subject->type === 'G') { // Type "g" → Grade Only
                 if (is_numeric($validated['marks'])) {
                     return response()->json(['message' => 'Marks must be a grade character for this subject type.'], 400);
                 }

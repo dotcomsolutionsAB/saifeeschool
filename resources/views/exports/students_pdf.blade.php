@@ -79,7 +79,7 @@
                 <tbody>
                     @forelse($students as $index => $student)
                         <tr>
-                            <td>{{ $index + 1 }}</td>
+                        <td>{{ (int) $index + 1 }}</td>
                             <td>{{ $student['Roll No'] }}</td>
                             <td>{{ $student['Name'] }}</td>
                             <td>{{ $student['Gender'] }}</td>
