@@ -9,7 +9,13 @@ use Illuminate\Support\Facades\Log;
 use League\Csv\Reader;
 use League\Csv\Statement;
 use App\Models\ClassGroupModel;
-use Mpdf\Mpdf;
+
+use App\Models\StudentModel;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use NumberFormatter;
+use Carbon\Carbon;
 
 class FeeController extends Controller
 {
@@ -1010,6 +1016,77 @@ class FeeController extends Controller
             'message' => 'An error occurred while fetching fees data.',
             'error' => $e->getMessage(),
         ]);
+    }
+}
+public function printFeeReceipt($id)
+{
+    try {
+        // Fetch Fee Record
+        $fee = FeeModel::findOrFail($id);
+        
+        // Fetch Student Record
+        $student = StudentModel::findOrFail($fee->st_id);
+
+        // Convert Fee Amount to Words
+        $formatter = new NumberFormatter("en", NumberFormatter::SPELLOUT);
+        $amountInWords = ucfirst($formatter->format($fee->f_total_paid)) . " only";
+
+        // Prepare Data for Blade View
+        $data = [
+            'receipt_no' => $fee->id,
+            'date' => Carbon::parse($fee->f_paid_date)->format('d-m-Y'),
+            'name' => $student->st_first_name . ' ' . $student->st_last_name,
+            'roll_no' => $student->st_roll_no,
+            'class' => $student->class->cg_name ?? 'N/A', // Assuming class is related
+            'amount' => number_format($fee->f_total_paid, 2),
+            'amount_in_words' => strtoupper($amountInWords),
+            'payment_method' => $fee->fpp_name ?? 'N/A',
+            'status' => $fee->f_paid == '1' ? 'PAID' : 'UNPAID'
+        ];
+
+        // Generate PDF
+        $pdf = Pdf::loadView('pdf.fee_receipt', $data)->setPaper('A4', 'portrait');
+
+        // Define File Path
+        $directory = "exports";
+        $fileName = "FeeReceipt_" . now()->format('Y_m_d_H_i_s') . ".pdf";
+        $fullPath = storage_path("app/public/{$directory}/{$fileName}");
+
+        // Ensure the directory exists in storage
+        if (!is_dir(dirname($fullPath))) {
+            mkdir(dirname($fullPath), 0755, true);
+        }
+
+        // Store the PDF in storage
+        file_put_contents($fullPath, $pdf->output());
+        $fullUrl = url("storage/exports/{$fileName}");
+
+        // Return Response
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Fee Receipt PDF generated successfully.',
+            'data' => [
+                'file_url' => $fullUrl, // Full public URL
+                'file_name' => $fileName,
+                'file_size' => filesize($fullPath),
+                'content_type' => 'application/pdf',
+            ],
+        ]);
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json([
+            'code' => 404,
+            'status' => false,
+            'message' => 'Fee record not found.',
+            'error' => $e->getMessage(),
+        ], 404);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while generating the PDF.',
+            'error' => $e->getMessage(),
+        ], 500);
     }
 }
 

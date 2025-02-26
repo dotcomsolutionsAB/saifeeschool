@@ -181,6 +181,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::get('/import', [FeeController::class, 'importCsv'])
                 ->middleware(['check-api-permission:fee.full']); 
+        Route::get('/fee/print/{id}', [FeeController::class, 'printFeeReceipt']);
     });
 
     // Fee-plan-period Routes
@@ -477,7 +478,7 @@ Route::prefix('transactions')->group(function () {
 
         Route::post('/export-daily', [DailyTransactionController::class, 'export'])
                 ->middleware(['check-api-permission:accounts.full, accounts.view']);
-                
+
         Route::post('/export', [TransactionController::class, 'export'])
                 ->middleware(['check-api-permission:accounts.full, accounts.view']);
 
