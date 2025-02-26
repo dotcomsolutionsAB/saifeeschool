@@ -35,22 +35,22 @@
         /* Positioning Each Field Based on MPDF setXY */
         .serial-no { top: 82mm; left: 35mm; width: 20mm; }
         .reg-no { top: 82mm; left: 172mm; width: 20mm; }
-        .name { top: 98mm; left: 50mm; width: 140mm; font-size: 28px; font-style: italic; } /* 🔹 Increased */
-        .father-name { top: 108mm; left: 25mm; width: 165mm; font-size: 28px; font-style: italic; } /* 🔹 Increased */
-        .joining-date { top: 119mm; left: 72mm; width: 60mm; font-size: 26px; }
-        .joining-class { top: 119mm; left: 120mm; width: 60mm; font-size: 26px; }
-        .leaving-date { top: 129mm; left: 160mm; width: 30mm; font-size: 26px; }
+        .name { top: 98mm; left: 50mm; width: 140mm; font-size: 38px; font-style: italic; } /* 🔹 Increased */
+        .father-name { top: 108mm; left: 25mm; width: 165mm; font-size: 38px; font-style: italic; } /* 🔹 Increased */
+        .joining-date { top: 119mm; left: 72mm; width: 60mm; font-size: 36px; }
+        .joining-class { top: 119mm; left: 120mm; width: 60mm; font-size: 36px; }
+        .leaving-date { top: 129mm; left: 160mm; width: 30mm; font-size: 36px; }
         .prev-school { top: 129mm; left: 10mm; width: 120mm; font-size: 24px; font-style: italic; }
-        .character { top: 140mm; left: 20mm; width: 30mm; font-size: 26px; }
-        .class { top: 151mm; left: 80mm; width: 30mm; font-size: 26px; }
-        .stream { top: 151mm; left: 150mm; width: 30mm; font-size: 26px; }
-        .date-from { top: 161mm; left: 65mm; width: 30mm; font-size: 26px; }
-        .date-to { top: 161mm; left: 125mm; width: 30mm; font-size: 26px; }
-        .dob { top: 192mm; left: 150mm; width: 30mm; font-size: 26px; }
+        .character { top: 140mm; left: 20mm; width: 30mm; font-size: 36px; }
+        .class { top: 151mm; left: 80mm; width: 30mm; font-size: 36px; }
+        .stream { top: 151mm; left: 150mm; width: 30mm; font-size: 36px; }
+        .date-from { top: 161mm; left: 65mm; width: 30mm; font-size: 36px; }
+        .date-to { top: 161mm; left: 125mm; width: 30mm; font-size: 36px; }
+        .dob { top: 192mm; left: 150mm; width: 30mm; font-size: 36px; }
         .dob-words { top: 203mm; left: 25mm; width: 165mm; font-size: 24px; font-style: italic; } /* 🔹 Increased */
-        .promotion { top: 214mm; left: 50mm; width: 50mm; font-size: 26px; font-style: italic; text-transform: uppercase; }
+        .promotion { top: 214mm; left: 50mm; width: 50mm; font-size: 36px; font-style: italic; text-transform: uppercase; }
         .dated { top: 232mm; left: 23mm; width: 50mm; font-size: 24px; }
-        .status { top: 280mm; left: 85mm; width: 40mm; font-size: 26px; border: 1px solid #000; padding: 3mm; }
+        .status { top: 380mm; left: 85mm; width: 40mm; font-size: 36px; border: 1px solid #000; padding: 3mm; }
     </style>
 </head>
 <body>

@@ -26,17 +26,17 @@
         }
 
         /* Positioning Fields */
-        .serial-no { top: 82mm; left: 30mm; width: 25mm; }
-        .reg-no { top: 82mm; left: 172mm; width: 25mm; }
-        .name { top: 100mm; left: 50mm; width: 150mm; font-style: italic; }
-        .years { top: 109mm; left: 170mm; width: 40mm; font-style: italic; text-transform: uppercase; }
-        .joining-date { top: 116mm; left: 35mm; width: 35mm; font-style: italic; }
-        .leaving-date { top: 116mm; left: 85mm; width: 35mm; font-style: italic; }
-        .stream { top: 125mm; left: 50mm; width: 35mm; font-style: italic; }
-        .date-from { top: 125mm; left: 110mm; width: 60mm; font-style: italic; }
-        .dob { top: 145mm; left: 10mm; width: 200mm; font-style: italic; }
+        .serial-no { top: 82mm; left: 30mm; width: 25mm;font-size: 38px; }
+        .reg-no { top: 82mm; left: 172mm; width: 25mm; font-size: 38px;}
+        .name { top: 100mm; left: 50mm; width: 150mm; font-size: 38px; font-style: italic; }
+        .years { top: 109mm; left: 170mm; width: 40mm;  font-size: 38px;font-style: italic; text-transform: uppercase; }
+        .joining-date { top: 116mm; left: 35mm; width: 35mm; font-size: 38px; font-style: italic; }
+        .leaving-date { top: 116mm; left: 85mm; width: 35mm;  font-size: 38px;font-style: italic; }
+        .stream { top: 125mm; left: 50mm; width: 35mm;  font-size: 38px; font-style: italic; }
+        .date-from { top: 125mm; left: 110mm; width: 60mm;  font-size: 38px; font-style: italic; }
+        .dob { top: 145mm; left: 10mm; width: 200mm; font-size: 38px;font-style: italic; }
 
-    </style>
+    </style> 
 </head>
 <body>
     <div class="container">
