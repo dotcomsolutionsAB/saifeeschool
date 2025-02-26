@@ -7,6 +7,7 @@
         @page {
             size: A4;
             margin: 0;
+            transform: scale(1.2); /* Scale the entire document */
         }
         body {
             font-family: Arial, sans-serif;
