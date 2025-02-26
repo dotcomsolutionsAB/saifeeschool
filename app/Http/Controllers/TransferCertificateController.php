@@ -628,7 +628,7 @@ $fullUrl = url("storage/exports/{$fileName}");
             'data' => [
                 'file_url' => $fullUrl, // Full public URL
                 'file_name' => $fileName,
-                'file_size' => Storage::size($fullPath),
+                'file_size' => filesize($fullPath),
                 'content_type' => 'application/pdf',
             ],
         ]);

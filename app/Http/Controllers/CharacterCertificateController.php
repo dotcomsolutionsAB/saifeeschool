@@ -15,6 +15,10 @@ use App\Models\StudentDetailsModel;
 use Illuminate\Support\Facades\Storage; 
 use Mpdf\Mpdf; 
 
+use Illuminate\Support\Facades\URL;
+use Barryvdh\DomPDF\Facade\Pdf;
+
+
 
 class CharacterCertificateController extends Controller
 {
@@ -416,83 +420,80 @@ class CharacterCertificateController extends Controller
         ], 404);
     }
 }
-public function printPdf($id)
+
+
+public function printPdf($id_list)
 {
     try {
-        // Validate request to ensure 'id' is provided
-        
+        // Convert the comma-separated string to an array
+        $idArray = explode(',', $id_list);
 
-        // Fetch the record by ID
-        $record = CharacterCertificateModel::findOrFail($id);
+        // Fetch multiple records
+        $records = CharacterCertificateModel::whereIn('id', $idArray)->get();
+
+        if ($records->isEmpty()) {
+            return response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'No records found.',
+            ], 404);
+        }
 
         // Prepare data for the PDF template
-        $data = [
-            'serial_no' => $record->serial_no,
-            'date' => \Carbon\Carbon::parse($record->dated)->format('d-m-Y'),
-            'roll_no' => $record->st_roll_no,
-            'name' => $record->name,
-            'registration_no' => $record->registration_no,
-            'joining_date' => $record->joining_date ? \Carbon\Carbon::parse($record->joining_date)->format('d-m-Y') : 'N/A',
-            'leaving_date' => $record->leaving_date ? \Carbon\Carbon::parse($record->leaving_date)->format('d-m-Y') : 'N/A',
-            'stream' => $record->stream ?? 'N/A',
-            'date_from' => $record->date_from ?? 'N/A',
-            'dob' => $record->dob ? \Carbon\Carbon::parse($record->dob)->format('d-m-Y') : 'N/A',
-            'dob_words' => $record->dob_words ?? 'N/A',
-        ];
+        $data = $records->map(function ($record) {
+            $joining_date = $record->joining_date ? Carbon::parse($record->joining_date)->format('d-m-Y') : 'N/A';
+            $leaving_date = $record->leaving_date ? Carbon::parse($record->leaving_date)->format('d-m-Y') : 'N/A';
+            $dob = $record->dob ? Carbon::parse($record->dob)->format('d-m-Y') : 'N/A';
 
-        // Define the file name and directory
+            // Calculate years in school
+            $joining_year = Carbon::parse($record->joining_date)->year ?? 'N/A';
+            $leaving_year = Carbon::parse($record->leaving_date)->year ?? 'N/A';
+            $years = is_numeric($joining_year) && is_numeric($leaving_year) ? $leaving_year - $joining_year : 'N/A';
+
+            return [
+                'serial_no' => $record->serial_no,
+                'registration_no' => $record->registration_no ?? 'N/A',
+                'name' => $record->name ?? 'N/A',
+                'joining_date' => $joining_date,
+                'leaving_date' => $leaving_date,
+                'stream' => $record->stream ?? 'N/A',
+                'date_from' => $record->date_from ?? 'N/A',
+                'dob' => $dob,
+                'dob_words' => $record->dob_words ?? 'N/A',
+                'years_in_words' => $this->yearsInWords($years),
+            ];
+        });
+
+        // Load Blade View and Generate PDF
+        $pdf = Pdf::loadView('pdf.character_certificate', compact('data'))
+            ->setPaper('a4', 'portrait');
+
+        // Define file name and storage path
         $directory = "exports";
         $fileName = 'CharacterCertificate_' . now()->format('Y_m_d_H_i_s') . '.pdf';
         $fullPath = storage_path("app/public/{$directory}/{$fileName}");
 
-        // Ensure the directory exists
+        // Ensure directory exists
         if (!is_dir(dirname($fullPath))) {
             mkdir(dirname($fullPath), 0755, true);
         }
 
-        // Generate the PDF using mPDF
-        $mpdf = new \Mpdf\Mpdf([
-            'format' => 'A4',
-            'orientation' => 'P',
-            'margin_header' => 10,
-            'margin_footer' => 10,
-            'margin_top' => 20,
-            'margin_bottom' => 20,
-            'margin_left' => 15,
-            'margin_right' => 15,
-        ]);
-
-        // Set the title for the PDF
-        $mpdf->SetTitle('Character Certificate');
-
-        // Render the HTML template (Make sure you have a Blade file: resources/views/exports/character_certificate.blade.php)
-        $html = view('exports.character_certificate', compact('data'))->render();
-
-        // Write HTML to the PDF
-        $mpdf->WriteHTML($html);
-
-        // Output the PDF to a file
-        $mpdf->Output($fullPath, \Mpdf\Output\Destination::FILE);
-
+        // Store the PDF in storage
+        file_put_contents($fullPath, $pdf->output());
+        $fullUrl = url("storage/exports/{$fileName}");
         // Return metadata about the file
         return response()->json([
             'code' => 200,
             'status' => true,
             'message' => 'PDF generated successfully.',
             'data' => [
-                'file_url' => url('storage/exports/' . $fileName),
+                'file_url' => $fullUrl, // Correct URL for accessing the file
                 'file_name' => $fileName,
                 'file_size' => filesize($fullPath),
                 'content_type' => 'application/pdf',
             ],
         ]);
-    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        return response()->json([
-            'code' => 404,
-            'status' => false,
-            'message' => 'Record not found.',
-            'error' => $e->getMessage(),
-        ], 404);
+
     } catch (\Exception $e) {
         return response()->json([
             'code' => 500,
@@ -501,6 +502,17 @@ public function printPdf($id)
             'error' => $e->getMessage(),
         ], 500);
     }
+}
+
+private function yearsInWords($years)
+{
+    $words = [
+        'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
+        'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen',
+        'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty'
+    ];
+
+    return ($years >= 0 && $years <= 20) ? $words[$years] : $years;
 }
 
 public function export(Request $request)
