@@ -18,7 +18,7 @@
             width: 210mm;
             height: 297mm;
             position: relative;
-            font-size: 18px; /* 🔹 Increase font size */
+            font-size: 28px; /* 🔹 Increase font size */
         }
         .container {
             position: absolute;
@@ -28,7 +28,7 @@
         }
         .field {
             position: absolute;
-            font-size: 26px; /* 🔹 Increased for clarity */
+            font-size: 46px; /* 🔹 Increased for clarity */
             font-weight: bold;
             text-align: center;
         }
