@@ -55,7 +55,7 @@ class MarksController extends Controller
             $ay_id = $classGroup->ay_id; // ✅ Use `ay_id` from `t_class_groups`
     
             // ✅ Fetch subject type and max marks from `t_subjectfm`
-            $subject = DB::table('t_subjectfm')->where('id', $subj_id)->select('type', 'max_marks')->first();
+            $subject = DB::table('t_subjectFM')->where('id', $subj_id)->select('type', 'marks')->first();
             if (!$subject) {
                 return response()->json(['message' => 'Invalid subject ID.'], 400);
             }
