@@ -1470,107 +1470,101 @@ class StudentController extends Controller
     }
 
     public function export(Request $request)
-    {
-        $validated = $request->validate([
-            'type' => 'required|in:excel,pdf', // Type of export
-            'cg_id' => 'nullable|string', // Comma-separated Class Group IDs
-            'bohra' => 'nullable|in:0,1', // Bohra status
-            'gender' => 'nullable|in:M,F', // Gender
-            'ay_id' => 'nullable|integer|exists:t_academic_years,id', // Academic Year ID
-            'search' => 'nullable|string|max:255', // Search term for student names or ITS IDs
-            'dob_from' => 'nullable|date', // Start of DOB range
-            'dob_to' => 'nullable|date|after_or_equal:dob_from', // End of DOB range
-        ]);
-    
-        try {
-            // Initialize query with relationships
-            $query = StudentClassModel::with(['student', 'classGroup']);
-    
-            // Apply filters
-            if (!empty($validated['cg_id'])) {
-                $cgIds = explode(',', $validated['cg_id']); // Convert to array
-                $query->whereIn('cg_id', $cgIds);
-            }
-    
-            if (isset($validated['bohra'])) {
-                $query->whereHas('student', function ($subQuery) use ($validated) {
-                    $subQuery->where('st_bohra', $validated['bohra']);
-                });
-            }
-    
-            if (!empty($validated['gender'])) {
-                $query->whereHas('student', function ($subQuery) use ($validated) {
-                    $subQuery->where('st_gender', $validated['gender']);
-                });
-            }
-    
-            if (!empty($validated['search'])) {
-                $searchTerm = '%' . strtolower(trim($validated['search'])) . '%';
-                $query->whereHas('student', function ($subQuery) use ($searchTerm) {
-                    $subQuery->whereRaw('LOWER(st_first_name) like ?', [$searchTerm])
-                        ->orWhereRaw('LOWER(st_last_name) like ?', [$searchTerm])
-                        ->orWhereRaw('LOWER(st_its_id) like ?', [$searchTerm]);
-                });
-            }
-    
-            if (!empty($validated['dob_from']) || !empty($validated['dob_to'])) {
-                $query->whereHas('student', function ($subQuery) use ($validated) {
-                    if (!empty($validated['dob_from'])) {
-                        $subQuery->where('st_dob', '>=', $validated['dob_from']);
-                    }
-                    if (!empty($validated['dob_to'])) {
-                        $subQuery->where('st_dob', '<=', $validated['dob_to']);
-                    }
-                });
-            }
-    
-            // Process data using chunking to optimize memory usage
-            $data = [];
-            $query->chunk(500, function ($studentClasses) use (&$data) {
-                foreach ($studentClasses as $index => $studentClass) {
-                    $student = $studentClass->student;
-    
-                    if (!$student) {
-                        continue;
-                    }
-    
-                    $className = optional($studentClass->classGroup)->cg_name ?? 'Unknown Class';
-    
-                    // Group students by class
-                    $data[$className][] = [
-                        'SN' => count($data[$className] ?? []) + 1,
-                        'Roll No' => $student->st_roll_no,
-                        'Name' => $student->st_first_name . ' ' . $student->st_last_name,
-                        'Gender' => $student->st_gender === 'M' ? 'Male' : ($student->st_gender === 'F' ? 'Female' : 'Not Specified'),
-                        'DOB' => $student->st_dob ? \Carbon\Carbon::parse($student->st_dob)->format('d-m-Y') : 'N/A',
-                        'ITS' => $student->st_its_id ?? 'N/A',
-                        'Mobile' => $student->st_mobile ?? 'N/A',
-                        'Bohra' => $student->st_bohra ? 'Yes' : 'No',
-                        'st_house' => $student->st_house ?? 'N/A',
-                    ];
+{
+    $validated = $request->validate([
+        'type' => 'required|in:excel,pdf', // Type of export
+        'cg_id' => 'nullable|string', // Comma-separated Class Group IDs
+        'bohra' => 'nullable|in:0,1', // Bohra status
+        'gender' => 'nullable|in:M,F', // Gender
+        'ay_id' => 'required|integer|exists:t_academic_years,id', // Academic Year ID (Required)
+        'search' => 'nullable|string|max:255', // Search term for student names or ITS IDs
+        'dob_from' => 'nullable|date', // Start of DOB range
+        'dob_to' => 'nullable|date|after_or_equal:dob_from', // End of DOB range
+    ]);
+
+    try {
+        // ✅ Initialize Query for Students based on Academic Year
+        $query = StudentClassModel::with(['student', 'classGroup'])
+            ->where('ay_id', $validated['ay_id']);
+
+        // ✅ If `cg_id` is given, filter by specific classes, else fetch ALL classes for the year
+        if (!empty($validated['cg_id'])) {
+            $cgIds = explode(',', $validated['cg_id']);
+            $query->whereIn('cg_id', $cgIds);
+        }
+
+        // ✅ Apply Filters for Bohra, Gender, Search, and DOB
+        if (isset($validated['bohra'])) {
+            $query->whereHas('student', function ($subQuery) use ($validated) {
+                $subQuery->where('st_bohra', $validated['bohra']);
+            });
+        }
+
+        if (!empty($validated['gender'])) {
+            $query->whereHas('student', function ($subQuery) use ($validated) {
+                $subQuery->where('st_gender', $validated['gender']);
+            });
+        }
+
+        if (!empty($validated['search'])) {
+            $searchTerm = '%' . strtolower(trim($validated['search'])) . '%';
+            $query->whereHas('student', function ($subQuery) use ($searchTerm) {
+                $subQuery->whereRaw('LOWER(st_first_name) like ?', [$searchTerm])
+                    ->orWhereRaw('LOWER(st_last_name) like ?', [$searchTerm])
+                    ->orWhereRaw('LOWER(st_its_id) like ?', [$searchTerm]);
+            });
+        }
+
+        if (!empty($validated['dob_from']) || !empty($validated['dob_to'])) {
+            $query->whereHas('student', function ($subQuery) use ($validated) {
+                if (!empty($validated['dob_from'])) {
+                    $subQuery->where('st_dob', '>=', $validated['dob_from']);
+                }
+                if (!empty($validated['dob_to'])) {
+                    $subQuery->where('st_dob', '<=', $validated['dob_to']);
                 }
             });
-    
-            if (empty($data)) {
-                return response()->json(['message' => 'No data available for export.'], 404);
-            }
-    
-            // Export as Excel or PDF
-            if ($validated['type'] === 'excel') {
-                return $this->exportExcel(collect($data)->flatten(1)->toArray()); // Flatten array for Excel
-            }
-    
-            return $this->exportPdf($data); // Grouped data for PDF
-    
-        } catch (\Exception $e) {
-            return response()->json([
-                'code' => 500,
-                'status' => false,
-                'message' => 'An error occurred while exporting data.',
-                'error' => $e->getMessage(),
-            ]);
         }
+
+        // ✅ Fetch Data Efficiently Using Chunking
+        $data = [];
+        $query->chunk(250, function ($studentClasses) use (&$data) {
+            foreach ($studentClasses as $index => $studentClass) {
+                $student = $studentClass->student;
+                if (!$student) continue;
+
+                $className = optional($studentClass->classGroup)->cg_name ?? 'Unknown Class';
+                $data[$className][] = [
+                    'SN' => count($data[$className] ?? []) + 1,
+                    'Roll No' => $student->st_roll_no,
+                    'Name' => $student->st_first_name . ' ' . $student->st_last_name,
+                    'Gender' => $student->st_gender === 'M' ? 'Male' : 'Female',
+                    'DOB' => $student->st_dob ? \Carbon\Carbon::parse($student->st_dob)->format('d-m-Y') : 'N/A',
+                    'ITS' => $student->st_its_id ?? 'N/A',
+                    'Mobile' => $student->st_mobile ?? 'N/A',
+                    'Bohra' => $student->st_bohra ? 'Yes' : 'No',
+                    'st_house' => $student->st_house ?? 'N/A',
+                ];
+            }
+        });
+
+        if (empty($data)) {
+            return response()->json(['message' => 'No data available for export.'], 404);
+        }
+
+        return $validated['type'] === 'excel' ? 
+            $this->exportExcel(collect($data)->flatten(1)->toArray()) : 
+            $this->exportPdf($data);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while exporting data.',
+            'error' => $e->getMessage(),
+        ]);
     }
+}
     private function exportExcel(array $data)
     {
         // Define the directory and file name for storing the file
@@ -1607,15 +1601,7 @@ class StudentController extends Controller
         ini_set('memory_limit', '512M');
         set_time_limit(300);
     
-        $directory = "exports";
         $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
-        $storagePath = storage_path("app/public/{$directory}");
-        $fullPath = "{$storagePath}/{$fileName}";
-    
-        // ✅ Ensure the directory exists
-        if (!is_dir($storagePath)) {
-            mkdir($storagePath, 0755, true);
-        }
     
         // ✅ Initialize mPDF
         $mpdf = new \Mpdf\Mpdf([
@@ -1648,8 +1634,8 @@ class StudentController extends Controller
                 $headerHtml = view('exports.class_header', ['class' => $className])->render();
                 $mpdf->WriteHTML($headerHtml);
     
-                // ✅ Process students in smaller chunks of 25 for better performance
-                collect($students)->chunk(25)->each(function ($chunk) use ($mpdf) {
+                // ✅ Process students in smaller chunks of 50 for better performance
+                collect($students)->chunk(50)->each(function ($chunk) use ($mpdf) {
                     if ($chunk->isEmpty()) {
                         return; // Skip empty chunks
                     }
