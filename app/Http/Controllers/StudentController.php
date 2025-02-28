@@ -1596,10 +1596,16 @@ class StudentController extends Controller
         ]);
     }
 
+    private function writeToStatusFile($message)
+    {
+        $statusFile = storage_path("app/public/exports_status.txt");
+        file_put_contents($statusFile, $message . PHP_EOL, FILE_APPEND);
+    }
+    
     private function exportPdf(array $data)
     {
-        ini_set('memory_limit', '1024M'); // Increase memory for large files
-        set_time_limit(600); // Increase execution time
+        ini_set('memory_limit', '1024M'); 
+        set_time_limit(600);
     
         $directory = "exports";
         $storagePath = storage_path("app/public/{$directory}");
@@ -1607,16 +1613,20 @@ class StudentController extends Controller
             mkdir($storagePath, 0755, true);
         }
     
-        $filePaths = []; // Store individual class PDFs
+        $filePaths = []; 
         $mergedPdfPath = "{$storagePath}/Students_export_" . now()->format('Y_m_d_H_i_s') . ".pdf";
+    
+        // ✅ Start Writing Status Updates
+        $this->writeToStatusFile("Starting PDF Generation...");
     
         try {
             foreach ($data as $className => $students) {
                 if (!is_array($students) || empty($students)) {
-                    continue; // Skip empty classes
+                    continue;
                 }
     
-                // ✅ Generate individual PDF for each class
+                $this->writeToStatusFile("Processing Class: $className...");
+    
                 $mpdf = new \Mpdf\Mpdf([
                     'format' => 'A4',
                     'orientation' => 'P',
@@ -1629,12 +1639,12 @@ class StudentController extends Controller
     
                 $mpdf->SetTitle("Student Export - $className");
     
-                // ✅ Render class header
                 $headerHtml = view('exports.class_header', ['class' => $className])->render();
                 $mpdf->WriteHTML($headerHtml);
     
-                // ✅ Process students in smaller chunks of 50
-                collect($students)->chunk(50)->each(function ($chunk) use ($mpdf) {
+                collect($students)->chunk(50)->each(function ($chunk, $chunkIndex) use ($mpdf, $className) {
+                    $this->writeToStatusFile("Writing chunk $chunkIndex for class: $className...");
+    
                     if ($chunk->isEmpty()) return;
                     ob_start();
                     echo view('exports.students_pdf', ['data' => $chunk])->render();
@@ -1642,39 +1652,15 @@ class StudentController extends Controller
                     $mpdf->WriteHTML($html);
                 });
     
-                // ✅ Save each class PDF
                 $classPdfPath = "{$storagePath}/class_{$className}_" . now()->format('Y_m_d_H_i_s') . ".pdf";
                 $mpdf->Output($classPdfPath, \Mpdf\Output\Destination::FILE);
                 $filePaths[] = $classPdfPath;
+    
+                $this->writeToStatusFile("Finished Class: $className!");
             }
     
-            // ✅ Merge All PDFs Using mPDF's SetSourceFile()
-            if (count($filePaths) > 1) {
-                $mpdf = new \Mpdf\Mpdf([
-                    'format' => 'A4',
-                    'orientation' => 'P',
-                    'tempDir' => storage_path('app/mpdf_temp'),
-                ]);
+            $this->writeToStatusFile("Export Completed!");
     
-                foreach ($filePaths as $file) {
-                    $pageCount = $mpdf->SetSourceFile($file);
-                    for ($i = 1; $i <= $pageCount; $i++) {
-                        $tplId = $mpdf->ImportPage($i);
-                        $mpdf->UseTemplate($tplId);
-                        if ($i < $pageCount) {
-                            $mpdf->AddPage();
-                        }
-                    }
-                }
-    
-                // ✅ Save merged PDF
-                $mpdf->Output($mergedPdfPath, \Mpdf\Output\Destination::FILE);
-            } else {
-                // If only one file exists, use it directly
-                rename($filePaths[0], $mergedPdfPath);
-            }
-    
-            // ✅ Return Download Link
             $fileUrl = url("storage/exports/" . basename($mergedPdfPath));
             return response()->json([
                 'code' => 200,
@@ -1689,6 +1675,8 @@ class StudentController extends Controller
             ]);
     
         } catch (\Exception $e) {
+            $this->writeToStatusFile("PDF Generation Error: " . $e->getMessage());
+    
             return response()->json([
                 'code' => 500,
                 'status' => false,
