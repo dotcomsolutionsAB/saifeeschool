@@ -1598,62 +1598,94 @@ class StudentController extends Controller
 
     private function exportPdf(array $data)
     {
-        ini_set('memory_limit', '512M');
-        set_time_limit(300);
+        ini_set('memory_limit', '1024M'); // Increase memory for large files
+        set_time_limit(600); // Increase execution time
     
-        $fileName = 'Students_export_' . now()->format('Y_m_d_H_i_s') . '.pdf';
+        $directory = "exports";
+        $storagePath = storage_path("app/public/{$directory}");
+        if (!is_dir($storagePath)) {
+            mkdir($storagePath, 0755, true);
+        }
     
-        // ✅ Initialize mPDF
-        $mpdf = new \Mpdf\Mpdf([
-            'format' => 'A4',
-            'orientation' => 'P',
-            'margin_top' => 20,
-            'margin_bottom' => 20,
-            'margin_left' => 15,
-            'margin_right' => 15,
-            'tempDir' => storage_path('app/mpdf_temp'),
-        ]);
-    
-        $mpdf->SetTitle('Student Export');
+        $filePaths = []; // Store individual class PDFs
+        $mergedPdfPath = "{$storagePath}/Students_export_" . now()->format('Y_m_d_H_i_s') . ".pdf";
     
         try {
-            $firstPage = true;
-    
             foreach ($data as $className => $students) {
                 if (!is_array($students) || empty($students)) {
                     continue; // Skip empty classes
                 }
     
-                // ✅ Ensure each class starts on a new page (except the first one)
-                if (!$firstPage) {
-                    $mpdf->AddPage();
-                }
-                $firstPage = false;
+                // ✅ Generate individual PDF for each class
+                $mpdf = new \Mpdf\Mpdf([
+                    'format' => 'A4',
+                    'orientation' => 'P',
+                    'margin_top' => 20,
+                    'margin_bottom' => 20,
+                    'margin_left' => 15,
+                    'margin_right' => 15,
+                    'tempDir' => storage_path('app/mpdf_temp'),
+                ]);
     
-                // ✅ Render class header and write to PDF
+                $mpdf->SetTitle("Student Export - $className");
+    
+                // ✅ Render class header
                 $headerHtml = view('exports.class_header', ['class' => $className])->render();
                 $mpdf->WriteHTML($headerHtml);
     
-                // ✅ Process students in smaller chunks of 50 for better performance
+                // ✅ Process students in smaller chunks of 50
                 collect($students)->chunk(50)->each(function ($chunk) use ($mpdf) {
-                    if ($chunk->isEmpty()) {
-                        return; // Skip empty chunks
-                    }
-    
-                    ob_start(); // Start output buffering
+                    if ($chunk->isEmpty()) return;
+                    ob_start();
                     echo view('exports.students_pdf', ['data' => $chunk])->render();
-                    $html = ob_get_clean(); // Get the output and clean buffer
-    
+                    $html = ob_get_clean();
                     $mpdf->WriteHTML($html);
-                    flush(); // ✅ Helps Laravel process the output faster
                 });
+    
+                // ✅ Save each class PDF
+                $classPdfPath = "{$storagePath}/class_{$className}_" . now()->format('Y_m_d_H_i_s') . ".pdf";
+                $mpdf->Output($classPdfPath, \Mpdf\Output\Destination::FILE);
+                $filePaths[] = $classPdfPath;
             }
     
-            // ✅ Stream the PDF directly instead of saving to disk (faster)
-            return response()->streamDownload(function () use ($mpdf) {
-                $mpdf->Output();
-            }, $fileName, [
-                'Content-Type' => 'application/pdf',
+            // ✅ Merge All PDFs Using mPDF's SetSourceFile()
+            if (count($filePaths) > 1) {
+                $mpdf = new \Mpdf\Mpdf([
+                    'format' => 'A4',
+                    'orientation' => 'P',
+                    'tempDir' => storage_path('app/mpdf_temp'),
+                ]);
+    
+                foreach ($filePaths as $file) {
+                    $pageCount = $mpdf->SetSourceFile($file);
+                    for ($i = 1; $i <= $pageCount; $i++) {
+                        $tplId = $mpdf->ImportPage($i);
+                        $mpdf->UseTemplate($tplId);
+                        if ($i < $pageCount) {
+                            $mpdf->AddPage();
+                        }
+                    }
+                }
+    
+                // ✅ Save merged PDF
+                $mpdf->Output($mergedPdfPath, \Mpdf\Output\Destination::FILE);
+            } else {
+                // If only one file exists, use it directly
+                rename($filePaths[0], $mergedPdfPath);
+            }
+    
+            // ✅ Return Download Link
+            $fileUrl = url("storage/exports/" . basename($mergedPdfPath));
+            return response()->json([
+                'code' => 200,
+                'status' => true,
+                'message' => 'File available for download',
+                'data' => [
+                    'file_url' => $fileUrl,
+                    'file_name' => basename($mergedPdfPath),
+                    'file_size' => filesize($mergedPdfPath),
+                    'content_type' => 'application/pdf',
+                ],
             ]);
     
         } catch (\Exception $e) {
