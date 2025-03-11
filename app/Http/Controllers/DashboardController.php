@@ -20,7 +20,7 @@ class DashboardController extends Controller
     
             // ✅ Fetch the current academic year ID (`ay_id`) where `is_current = '1'`
             $currentAcademicYear = DB::table('t_academic_years')
-                ->where('is_current', '1')
+                ->where('ay_current', '1')
                 ->value('id');
     
             // ✅ If no current academic year is found, return an error response
