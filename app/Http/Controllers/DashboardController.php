@@ -74,7 +74,7 @@ class DashboardController extends Controller
     try {
         // ✅ Get Current Academic Year ID
         $currentAcademicYear = DB::table('t_academic_years')
-            ->where('is_current', '1')
+            ->where('ay_current', '1')
             ->value('id');
 
         if (!$currentAcademicYear) {
