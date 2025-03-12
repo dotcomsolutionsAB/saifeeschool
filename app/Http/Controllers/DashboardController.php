@@ -108,7 +108,7 @@ class DashboardController extends Controller
                 ->where('t_student_classes.ay_id', function ($query) {
                     $query->select('id')
                         ->from('t_academic_years')
-                        ->where('is_current', '1')
+                        ->where('ay_current', '1')
                         ->limit(1);
                 })
                 ->select('t_class_groups.cg_name')
