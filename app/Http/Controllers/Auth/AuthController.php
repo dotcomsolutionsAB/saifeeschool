@@ -18,23 +18,51 @@ class AuthController extends Controller
             'username' => 'required',
             'password' => 'required',
         ]);
-
-        if(Auth::attempt(['username' => $request->username, 'password' => $request->password]))
-        {
+    
+        if (Auth::attempt(['username' => $request->username, 'password' => $request->password])) {
             $user = Auth::user();
-
-            // Generate a sanctrum token
+    
+            // ✅ Generate Sanctum Token
             $generated_token = $user->createToken('API TOKEN')->plainTextToken;
-
-            $get_current_year = AcademicYearModel::select('id')->where('ay_current', 1)->first();
-
-            if ($get_current_year == null) {
-                $current_year_id = 1;
+    
+            // ✅ Get Current Academic Year
+            $get_current_year = DB::table('t_academic_years')
+                ->select('id')
+                ->where('ay_current', 1)
+                ->first();
+    
+            $current_year_id = $get_current_year->id ?? 1;
+    
+            // ✅ If the user's role is "student", fetch `st_id` from `t_students`
+            if ($user->role === 'student') {
+                $student = DB::table('t_students')
+                    ->select('id')
+                    ->where('st_roll_no', $user->username)
+                    ->first();
+    
+                if (!$student) {
+                    return response()->json([
+                        'code' => 404,
+                        'status' => false,
+                        'message' => 'Student not found for the given username!',
+                    ], 404);
+                }
+    
+                return response()->json([
+                    'code' => 200,
+                    'status' => true,
+                    'message' => 'Student logged in successfully!',
+                    'data' => [
+                        'token' => $generated_token,
+                        'name' => $user->name,
+                        'role' => $user->role,
+                        'st_id' => $student->id, // ✅ Returning `st_id`
+                        'ay_id' => $current_year_id,
+                    ],
+                ], 200);
             }
-            else {
-                $current_year_id = $get_current_year->id;
-            }
-
+    
+            // ✅ If user is NOT a student, return regular response
             return response()->json([
                 'code' => 200,
                 'status' => true,
@@ -45,19 +73,16 @@ class AuthController extends Controller
                     'role' => $user->role,
                     'ay_id' => $current_year_id,
                 ],
-                
             ], 200);
         }
-
-        else {
-            return response()->json([
-                'code' => 200,
-                'success' => false,
-                'message' => 'Invalid username or password!',
-            ], 200);
-        }
+    
+        // ❌ Invalid Login Response
+        return response()->json([
+            'code' => 401,
+            'status' => false,
+            'message' => 'Invalid username or password!',
+        ], 401);
     }
-
     // user `logout`
     public function logout(Request $request)
     {
