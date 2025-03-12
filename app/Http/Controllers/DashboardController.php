@@ -96,6 +96,7 @@ class DashboardController extends Controller
     
             if (!$student) {
                 return response()->json([
+                    'code'=> 400,
                     'status' => 'error',
                     'message' => 'Student not found',
                 ], 404);
@@ -116,6 +117,7 @@ class DashboardController extends Controller
     
             // ✅ Format Response
             return response()->json([
+                'code'=> 200,
                 'status' => 'success',
                 'message' => 'Student dashboard data retrieved successfully',
                 'data' => [
@@ -131,6 +133,7 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             // ❌ Error Handling
             return response()->json([
+                'code'=> 500,
                 'status' => 'error',
                 'message' => 'Failed to retrieve student dashboard data',
                 'error' => $e->getMessage(),
@@ -150,6 +153,7 @@ class DashboardController extends Controller
 
         if (!$currentAcademicYear) {
             return response()->json([
+                'code' => 400,
                 'status' => 'error',
                 'message' => 'No active academic year found',
             ], 400);
@@ -177,6 +181,7 @@ class DashboardController extends Controller
 
         // ✅ Format Response
         return response()->json([
+            'code'=>200,
             'status' => 'success',
             'message' => 'Fee breakdown retrieved successfully',
             'data' => [
@@ -206,6 +211,7 @@ class DashboardController extends Controller
 
     } catch (\Exception $e) {
         return response()->json([
+            'code'=>500,
             'status' => 'error',
             'message' => 'Failed to retrieve fee breakdown',
             'error' => $e->getMessage(),
