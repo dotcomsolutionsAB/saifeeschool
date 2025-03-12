@@ -541,6 +541,7 @@ Route::prefix('transactions')->group(function () {
 
     Route::post('/dashboard', [DashboardController::class, 'dashboard']);
     Route::post('/dashboardfee', [DashboardController::class, 'getFeeBreakdown']);
+    Route::post('/dashboard_student', [DashboardController::class, 'studentDashboard']);
    
 
     Route::get('/blood-groups', [UserController::class, 'getBloodGroups']);

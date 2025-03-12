@@ -80,6 +80,63 @@ class DashboardController extends Controller
             ], 500);
         }
     }
+    public function studentDashboard(Request $request)
+    {
+        try {
+            // ✅ Validate Input
+            $validated = $request->validate([
+                'st_id' => 'required|integer|exists:t_students,id',
+            ]);
+    
+            // ✅ Get Student Details
+            $student = DB::table('t_students')
+                ->where('id', $validated['st_id'])
+                ->select('id', 'st_roll_no', 'st_first_name', 'st_last_name', 'st_wallet', 'st_deposit')
+                ->first();
+    
+            if (!$student) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Student not found',
+                ], 404);
+            }
+    
+            // ✅ Get Student Class (from `t_student_classes`)
+            $studentClass = DB::table('t_student_classes')
+                ->join('t_class_groups', 't_student_classes.cg_id', '=', 't_class_groups.id')
+                ->where('t_student_classes.st_id', $validated['st_id'])
+                ->where('t_student_classes.ay_id', function ($query) {
+                    $query->select('id')
+                        ->from('t_academic_years')
+                        ->where('is_current', '1')
+                        ->limit(1);
+                })
+                ->select('t_class_groups.cg_name')
+                ->first();
+    
+            // ✅ Format Response
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Student dashboard data retrieved successfully',
+                'data' => [
+                    'st_id' => $student->id,
+                    'roll_no' => $student->st_roll_no,
+                    'name' => $student->st_first_name . ' ' . $student->st_last_name,
+                    'class' => $studentClass->cg_name ?? 'Not Assigned',
+                    'st_wallet' => $student->st_wallet ?? 0,
+                    'st_deposit' => $student->st_deposit ?? 0,
+                ],
+            ], 200);
+    
+        } catch (\Exception $e) {
+            // ❌ Error Handling
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to retrieve student dashboard data',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     public function getFeeBreakdown(Request $request)
 {
