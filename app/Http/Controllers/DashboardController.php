@@ -11,31 +11,43 @@ use App\Models\FeeModel;
 class DashboardController extends Controller
 {
     //
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         try {
-            // ✅ Get current month and year from the server
+            $validated = $request->validate([
+                'ay_id' => 'required|integer|exists:t_academic_years,id',
+            ]);
+    
+            // ✅ Get the selected academic year ID
+            $currentAcademicYear = $validated['ay_id'];
+    
+            // ✅ Get current month and year
             $currentMonth = now()->month;
             $currentYear = now()->year;
     
-            // ✅ Fetch the current academic year ID (`ay_id`) where `is_current = '1'`
-            $currentAcademicYear = DB::table('t_academic_years')
-                ->where('ay_current', '1')
-                ->value('id');
-    
-            // ✅ If no current academic year is found, return an error response
-            if (!$currentAcademicYear) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'No active academic year found',
-                ], 400);
-            }
-    
-            // ✅ Fetch dashboard stats
+            // ✅ Fetch Total Teachers
             $getTeacherNumber = TeacherModel::count();
-            $getStudentNumber = StudentModel::where('ay_id', $currentAcademicYear)->count();
-            $maleCount = StudentModel::where('ay_id', $currentAcademicYear)->where('st_gender', 'M')->count();
-            $femaleCount = StudentModel::where('ay_id', $currentAcademicYear)->where('st_gender', 'F')->count();
+    
+            // ✅ Fetch Student Count using `t_student_classes`
+            $getStudentNumber = DB::table('t_student_classes')
+                ->where('ay_id', $currentAcademicYear)
+                ->count();
+    
+            // ✅ Fetch Male Students using `t_student_classes`
+            $maleCount = DB::table('t_student_classes')
+                ->join('t_students', 't_students.id', '=', 't_student_classes.st_id')
+                ->where('t_student_classes.ay_id', $currentAcademicYear)
+                ->where('t_students.st_gender', 'M')
+                ->count();
+    
+            // ✅ Fetch Female Students using `t_student_classes`
+            $femaleCount = DB::table('t_student_classes')
+                ->join('t_students', 't_students.id', '=', 't_student_classes.st_id')
+                ->where('t_student_classes.ay_id', $currentAcademicYear)
+                ->where('t_students.st_gender', 'F')
+                ->count();
+    
+            // ✅ Calculate Fee Statistics
             $totalAmount = FeeModel::where('f_paid', '0')->sum('fpp_amount');
             $totalLateFeesPaid = FeeModel::where('f_late_fee_applicable', '1')->sum('f_total_paid');
             $currentMonthAmount = FeeModel::where('f_paid', '0')
@@ -72,10 +84,12 @@ class DashboardController extends Controller
     public function getFeeBreakdown(Request $request)
 {
     try {
+        $validated = $request->validate([
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+          
+        ]);
         // ✅ Get Current Academic Year ID
-        $currentAcademicYear = DB::table('t_academic_years')
-            ->where('ay_current', '1')
-            ->value('id');
+        $currentAcademicYear = $validated['ay_id'];
 
         if (!$currentAcademicYear) {
             return response()->json([
