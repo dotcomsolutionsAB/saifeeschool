@@ -29,7 +29,7 @@
         .payment-method { top: 81mm; left: 60mm; font-size: 48px} /* Payment Mode */
         .amount-in-words { top: 93mm; left: 60mm; width: 120mm; font-size: 14px; font-size: 48px} /* Amount in Words */
 
-        .amount { top: 122mm; left: 25mm; font-size: 24px; font-size: 48px} /* Amount Paid */
+        .amount { top: 122mm; left: 27mm; font-size: 24px; font-size: 48px} /* Amount Paid */
         .status { top: 122mm; left: 160mm; font-size: 36px; border: 1px solid #000; padding: 3mm; text-align: center; } /* Status (Original/Duplicate) */
 
     </style>
