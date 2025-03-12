@@ -628,5 +628,69 @@ public function export(Request $request)
             ],
         ]);
     }
+    public function getStudentTransactions(Request $request)
+    {
+        try {
+            // ✅ Validate request
+            $validated = $request->validate([
+                'st_id'  => 'required|integer|exists:t_txns,st_id', // Must exist in transactions
+                'offset' => 'nullable|integer|min:0',
+                'limit'  => 'nullable|integer|min:1|max:100', // Max 100 records per request
+            ]);
+    
+            // ✅ Set Pagination Defaults
+            $offset = $validated['offset'] ?? 0;
+            $limit  = $validated['limit'] ?? 10;
+    
+            // ✅ Fetch Transactions for the Given Student (`st_id`)
+            $transactionsQuery = DB::table('t_txns as txn')
+                ->join('t_students as stu', 'txn.st_id', '=', 'stu.id')
+                ->leftJoin('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
+                ->leftJoin('t_class_groups as cg', 'sc.cg_id', '=', 'cg.id')
+                ->leftJoin('t_txn_types as tt', 'txn.txn_type_id', '=', 'tt.id')
+                ->leftJoin('t_fees as f', 'txn.f_id', '=', 'f.id')
+                ->selectRaw("
+                    txn.id as txn_id,
+                    stu.st_roll_no,
+                    stu.id as student_id,
+                    CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS student_name,
+                    COALESCE(cg.cg_name, 'N/A') AS class_name,
+                    txn.txn_amount as amount,
+                    txn.txn_mode as mode,
+                    txn.txn_date,
+                    txn.txn_time,
+                    tt.txn_type_from AS txn_from,
+                    tt.txn_type_to AS txn_to,
+                    txn.txn_reason,
+                    COALESCE(f.fpp_name, 'Payment from student') AS narration
+                ")
+                ->where('txn.st_id', $validated['st_id'])
+                ->orderBy('txn.txn_date', 'desc') // ✅ Sort by latest first
+                ->offset($offset)
+                ->limit($limit);
+    
+            // ✅ Fetch Data
+            $total_count = $transactionsQuery->count();
+            $transactions = $transactionsQuery->get();
+    
+            // ✅ Return JSON Response
+            return response()->json([
+                'code'      => 200,
+                'status'    => true,
+                'message'   => 'Student transactions fetched successfully.',
+                'data'      => $transactions,
+                'total'     => $total_count,
+                'count'     => count($transactions),
+            ]);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'code'    => 500,
+                'status'  => false,
+                'message' => 'An error occurred while fetching transactions.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
 
 }

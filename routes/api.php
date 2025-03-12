@@ -483,7 +483,9 @@ Route::prefix('transactions')->group(function () {
 
         Route::post('/export', [TransactionController::class, 'export'])
                 ->middleware(['check-api-permission:accounts.full, accounts.view']);
-
+        
+                Route::post('/student', [TransactionController::class, 'getStudentTransactions']);
+                
     });
 
     Route::get('/import_txn', [TransactionController::class, 'importCsv'])
@@ -494,6 +496,8 @@ Route::prefix('transactions')->group(function () {
 
     Route::get('/fetch_txns', [TransactionTypeController::class, 'fetchTransactions'])
             ->middleware(['check-api-permission:accounts.full, accounts.view']);
+
+    
 
     // For Test, not associate to others
     Route::post('/create-order', [RazorpayController::class, 'createOrder']);
@@ -544,6 +548,7 @@ Route::prefix('transactions')->group(function () {
     Route::post('/dashboard', [DashboardController::class, 'dashboard']);
     Route::post('/dashboardfee', [DashboardController::class, 'getFeeBreakdown']);
     Route::post('/dashboard_student', [DashboardController::class, 'studentDashboard']);
+
    
 
     Route::get('/blood-groups', [UserController::class, 'getBloodGroups']);
