@@ -2005,7 +2005,65 @@ class StudentController extends Controller
         ], 500);
     }
 }
+public function getUnpaidFeesStudent(Request $request)
+{
+    try {
+        // ✅ Validate request
+        $validated = $request->validate([
+            'st_id' => 'required|integer|exists:t_fees,st_id',
+            'offset' => 'nullable|integer|min:0',
+            'limit' => 'nullable|integer|min:1|max:100', // Max 100 records per request
+        ]);
 
+        $offset = $validated['offset'] ?? 0;
+        $limit = $validated['limit'] ?? 10; // Default limit to 10
+
+        // ✅ Fetch Student Wallet Balance
+        $studentWallet = DB::table('t_students')
+            ->where('id', $validated['st_id'])
+            ->value('st_wallet');
+
+        // ✅ Fetch unpaid fees (`f_paid = 0`), sorted by `fpp_due_date` (ASC)
+        $fees = FeeModel::where('st_id', $validated['st_id'])
+            ->where('f_paid', '0')
+            ->orderBy('fpp_due_date', 'asc') // Sort by due date (earliest first)
+            ->offset($offset)
+            ->limit($limit)
+            ->get()
+            ->map(function ($fee) {
+                $totalAmount = (($fee->fpp_amount + ($fee->f_late_fee_applicable == '1' ? $fee->fpp_late_fee : 0)) - ($fee->f_concession ?? 0));
+                return [
+                    'id' => (string) $fee->id, // Unique fee entry ID
+                    'fpp_id' => (string) $fee->fpp_id, // Fee Plan ID
+                    'fpp_name' => $fee->fpp_name, // Fee type (e.g., Monthly Fee, Admission Fee)
+                    'fpp_due_date' => $fee->fpp_due_date, // Due date (in original format)
+                    'fpp_amount' => (string) $fee->fpp_amount, // Base amount
+                    'fpp_late_fee' => (string) $fee->fpp_late_fee, // Late fee (if applicable)
+                    'f_late_fee_applicable' => (string) $fee->f_late_fee_applicable, // Is late fee applicable?
+                    'f_concession' => (string) ($fee->f_concession ?? '0'), // Concession applied
+                    'total_amount' => (string) $totalAmount, // Final payable amount
+                ];
+            });
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Unpaid fees fetched successfully.',
+            'data' => $fees,
+            'total_unpaid' => (string) $fees->sum('total_amount'), // Total unpaid fee amount
+            'student_wallet' => (string) ($studentWallet ?? 0), // Student wallet balance
+            'count' => (string) $fees->count(), // Number of pending fees
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching unpaid fees.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
 public function getPaidFees(Request $request)
 {
     try {
