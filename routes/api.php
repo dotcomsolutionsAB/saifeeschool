@@ -558,5 +558,6 @@ Route::prefix('transactions')->group(function () {
     Route::get('/house-options', [UserController::class, 'getHouseOptions']);
 
     Route::post('/pay-fees', [PaymentController::class, 'processFeePayment']);
+    Route::post('/payment/confirmation', [PaymentController::class, 'paymentConfirmation']);
 
     });
