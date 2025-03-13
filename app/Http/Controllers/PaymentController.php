@@ -11,99 +11,107 @@ class PaymentController extends Controller
 {
     //
     public function processFeePayment(Request $request)
-{
-    try {
-        // ✅ Validate request
-        $validated = $request->validate([
-            'st_id'   => 'required|integer|exists:t_students,id', // Student ID
-            'fpp_ids' => 'required|string', // Comma-separated Fee Plan Period IDs
-            
-        ]);
-
-        $st_id = $validated['st_id'];
-        $fpp_ids = explode(',', $validated['fpp_ids']); // Convert to array
-       
-
-        // ✅ Fetch Student Wallet Balance
-        $student = DB::table('t_students')->where('id', $st_id)->select('st_wallet')->first();
-        $wallet_balance = $student->st_wallet ?? 0;
-
-        // ✅ Fetch Fee Details
-        $fees = DB::table('t_fees')
-            ->whereIn('fpp_id', $fpp_ids)
-            ->where('st_id', $st_id)
-            ->get();
-
-        if ($fees->isEmpty()) {
+    {
+        try {
+            // ✅ Validate request
+            $validated = $request->validate([
+                'st_id'   => 'required|integer|exists:t_students,id', // Student ID
+                'fpp_ids' => 'required|string', // Comma-separated Fee Plan Period IDs
+            ]);
+    
+            $st_id = $validated['st_id'];
+            $fpp_ids = explode(',', $validated['fpp_ids']); // Convert to array
+    
+            // ✅ Fetch Student Wallet Balance
+            $student = DB::table('t_students')->where('id', $st_id)->select('st_wallet')->first();
+            $wallet_balance = $student->st_wallet ?? 0;
+    
+            // ✅ Fetch Fee Details
+            $fees = DB::table('t_fees')
+                ->whereIn('fpp_id', $fpp_ids)
+                ->where('st_id', $st_id)
+                ->get();
+    
+            if ($fees->isEmpty()) {
+                return response()->json([
+                    'code'    => 404,
+                    'status'  => false,
+                    'message' => 'No valid fees found for this student.',
+                ], 404);
+            }
+    
+            // ✅ Calculate Total Payable Amount
+            $totalAmount = $fees->sum(function ($fee) {
+                $late_fee = (strtotime('today') > strtotime($fee->fpp_due_date)) ? $fee->fpp_late_fee : 0;
+                return ($fee->fpp_amount + $late_fee) - ($fee->f_concession ?? 0);
+            });
+    
+            // ✅ Calculate Amount to Pay After Wallet Deduction
+            $balance = max(0, $totalAmount - $wallet_balance);
+    
+            // ✅ Prepare Payment Processing
+            $merchant_id = "357605";
+            $key = "3508370376005002";
+            $ref_no = time() . mt_rand(10000, 99999);
+            $return_url = "https://admin.saifeeschool.in/_student/confirmation.php";
+            $paymode = "9";
+            $man_fields = "{$ref_no}|{$st_id}|{$balance}";
+    
+            // ✅ Encrypt Data for Payment
+            $encryptedData = [
+                'sub_merchant_id' => $this->aes128Encrypt($st_id, $key),
+                'reference_no'    => $this->aes128Encrypt($ref_no, $key),
+                'amount'          => $this->aes128Encrypt($balance, $key),
+                'return_url'      => $this->aes128Encrypt($return_url, $key),
+                'paymode'         => $this->aes128Encrypt($paymode, $key),
+                'mandatory_fields'=> $this->aes128Encrypt($man_fields, $key),
+                'optional_fields' => $this->aes128Encrypt("", $key),
+            ];
+    
+            // ✅ Insert Payment Log
+            DB::table('t_pg_logs')->insert([
+                'pg_reference_no' => $ref_no,
+                'st_id'           => $st_id,
+                'remarks'         => "Fee Payment: " . implode(',', $fpp_ids),
+                'f_id'            => implode(',', $fpp_ids),
+                'amount'          => $balance,
+                'status'          => 'pending',
+                'created_at'      => now(),
+            ]);
+    
+            // ✅ Generate Payment URL
+            $payment_url = "https://eazypay.icicibank.com/EazyPG?merchantid={$merchant_id}"
+                . "&mandatory%20fields={$encryptedData['mandatory_fields']}"
+                . "&optional%20fields={$encryptedData['optional_fields']}"
+                . "&returnurl={$encryptedData['return_url']}"
+                . "&Reference%20No={$encryptedData['reference_no']}"
+                . "&submerchantid={$encryptedData['sub_merchant_id']}"
+                . "&transaction%20amount={$encryptedData['amount']}"
+                . "&paymode={$encryptedData['paymode']}";
+    
+            // ✅ Response Data
             return response()->json([
-                'code'    => 404,
+                'code'           => 200,
+                'status'         => true,
+                'message'        => 'Payment details processed successfully.',
+                'total_amount'   => number_format($totalAmount, 2),
+                'wallet_balance' => number_format($wallet_balance, 2),
+                'balance_to_pay' => number_format($balance, 2),
+                'payment_url'    => $payment_url, // ✅ Returning only the payment URL
+            ]);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'code'    => 500,
                 'status'  => false,
-                'message' => 'No valid fees found for this student.',
-            ], 404);
+                'message' => 'An error occurred while processing payment.',
+                'error'   => $e->getMessage(),
+            ], 500);
         }
-
-        // ✅ Calculate Total Payable Amount
-        $totalAmount = 0;
-        foreach ($fees as $fee) {
-            $late_fee = (strtotime('today') > strtotime($fee->fpp_due_date)) ? $fee->fpp_late_fee : 0;
-            $totalAmount += ($fee->fpp_amount + $late_fee) - ($fee->f_concession ?? 0);
-        }
-
-        // ✅ Calculate Amount to Pay After Wallet Deduction
-        $balance = max(0, $totalAmount - $wallet_balance);
-
-        // ✅ Prepare Payment Processing
-        $merchant_id = "357605";
-        $key = "3508370376005002";
-        $ref_no = time() . mt_rand(10000, 99999);
-        $return_url = "https://admin.saifeeschool.in/_student/confirmation.php";
-        $paymode = "9";
-        $man_fields = $ref_no . "|" . $st_id . "|" . $balance;
-
-        // ✅ Encrypt Data for Payment
-        $e_sub_mer_id = $this->aes128Encrypt($st_id, $key);
-        $e_ref_no = $this->aes128Encrypt($ref_no, $key);
-        $e_amt = $this->aes128Encrypt($balance, $key);
-        $e_return_url = $this->aes128Encrypt($return_url, $key);
-        $e_paymode = $this->aes128Encrypt($paymode, $key);
-        $e_man_fields = $this->aes128Encrypt($man_fields, $key);
-        $e_opt_fields=$this->aes128Encrypt("",$key);
-
-        // ✅ Insert Payment Log
-        DB::table('t_pg_logs')->insert([
-            'pg_reference_no' => $ref_no,
-            'st_id'           => $st_id,
-            'remarks'         => "Fee Payment: " . implode(',', $fpp_ids),
-            'f_id'            => implode(',', $fpp_ids),
-            'amount'          => $balance,
-            'status'          => 'pending',
-            'created_at'      => now(),
-        ]);
-
-        // ✅ Generate Payment URL
-        $payment_url = "https://eazypay.icicibank.com/EazyPG?merchantid={$merchant_id}&mandatory%20fields={$e_man_fields}&optional%20fields={$e_opt_fields}&returnurl={$e_return_url}&Reference%20No={$e_ref_no}&submerchantid={$e_sub_mer_id}&transaction%20amount={$e_amt}&paymode={$e_paymode}";
-        // ✅ Response Data
-        return response()->json([
-            'code'           => 200,
-            'status'         => true,
-            'message'        => 'Payment details processed successfully.',
-            'total_amount'   => number_format($totalAmount, 2),
-            'wallet_balance' => number_format($wallet_balance, 2),
-            'balance_to_pay' => number_format($balance, 2),
-            'payment_url'    => $payment_url, // ✅ Only returning the payment URL
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'code'    => 500,
-            'status'  => false,
-            'message' => 'An error occurred while processing payment.',
-            'error'   => $e->getMessage(),
-        ], 500);
     }
-}
-private function aes128Encrypt($plaintext, $key) {
-    $cipher = "aes-128-ecb"; // Ensure lowercase
-    return base64_encode(openssl_encrypt($plaintext, $cipher, $key, OPENSSL_RAW_DATA));
-}
+    
+    private function aes128Encrypt($plaintext, $key)
+    {
+        return base64_encode(openssl_encrypt($plaintext, "aes-128-ecb", $key, OPENSSL_RAW_DATA));
+    }
 }
