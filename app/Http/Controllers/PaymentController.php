@@ -62,11 +62,12 @@ class PaymentController extends Controller
                 'sub_merchant_id' => $this->aes128Encrypt($st_id, $key),
                 'reference_no'    => $this->aes128Encrypt($ref_no, $key),
                 'amount'          => $this->aes128Encrypt($balance, $key),
-                'return_url'      => $this->aes128Encrypt($return_url, $key),
+                'return_url'      => urlencode($this->aes128Encrypt($return_url, $key)),
                 'paymode'         => $this->aes128Encrypt($paymode, $key),
                 'mandatory_fields'=> $this->aes128Encrypt($man_fields, $key),
                 'optional_fields' => $this->aes128Encrypt("", $key),
             ];
+            
     
             // ✅ Insert Payment Log
             DB::table('t_pg_logs')->insert([
