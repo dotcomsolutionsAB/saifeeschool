@@ -69,13 +69,14 @@ class PaymentController extends Controller
         $e_man_fields = $this->aes128Encrypt($man_fields, $key);
 
         // ✅ Insert Payment Log
-        DB::table('pg_logs_bk')->insert([
-            'pg_reference_no'  => $ref_no,
-            'pg_sub_merchant'  => $st_id,
-            'ref_no'           => $st_id,
-            'remarks'          => "Fee Payment: " . implode(',', $fpp_ids),
-            'f_id'             => implode(',', $fpp_ids),
-            'timestamp'        => now(),
+        DB::table('t_pg_logs')->insert([
+            'pg_reference_no' => $ref_no,
+            'st_id'           => $st_id,
+            'remarks'         => "Fee Payment: " . implode(',', $fpp_ids),
+            'f_id'            => implode(',', $fpp_ids),
+            'amount'          => $balance,
+            'status'          => 'pending',
+            'created_at'      => now(),
         ]);
 
         // ✅ Generate Payment URL
