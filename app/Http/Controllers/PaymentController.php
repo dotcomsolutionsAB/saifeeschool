@@ -30,7 +30,7 @@ class PaymentController extends Controller
 
         // ✅ Fetch Fee Details
         $fees = DB::table('t_fees')
-            ->whereIn('id', $fpp_ids)
+            ->whereIn('fpp_id', $fpp_ids)
             ->where('st_id', $st_id)
             ->get();
 
