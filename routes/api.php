@@ -31,6 +31,7 @@ use App\Http\Controllers\PermissionRoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CSVUploadController;
+use App\Http\Controllers\PaymentController;
 
 Route::post('/upload', [CSVUploadController::class, 'uploadCSV']);
 Route::post('/upload/terms', [CSVUploadController::class, 'uploadTerms']);
@@ -555,5 +556,7 @@ Route::prefix('transactions')->group(function () {
 
 // Route for fetching house options
     Route::get('/house-options', [UserController::class, 'getHouseOptions']);
+
+    Route::post('/pay-fees', [PaymentController::class, 'processFeePayment']);
 
     });
