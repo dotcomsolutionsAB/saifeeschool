@@ -82,14 +82,14 @@ class PaymentController extends Controller
 
         // ✅ Generate Payment URL
         $payment_url = "https://eazypay.icicibank.com/EazyPG"
-    . "?merchantid=" . $merchant_id
-    . "&mandatory fields=" . urlencode($e_man_fields)
-    . "&optional fields=" . urlencode($e_opt_fields)
-    . "&returnurl=" . urlencode($e_return_url)
-    . "&Reference No=" . urlencode($e_ref_no)
-    . "&submerchantid=" . urlencode($e_sub_mer_id)
-    . "&transaction amount=" . urlencode($e_amt)
-    . "&paymode=" . urlencode($e_paymode);
+        . "?merchantid=" . $merchant_id
+        . "&mandatory%20fields=" . urlencode($e_man_fields) // Proper space encoding
+        . "&optional%20fields=" . urlencode($e_opt_fields)
+        . "&returnurl=" . urlencode($e_return_url)
+        . "&Reference%20No=" . urlencode($e_ref_no)
+        . "&submerchantid=" . urlencode($e_sub_mer_id)
+        . "&transaction%20amount=" . urlencode($e_amt)
+        . "&paymode=" . urlencode($e_paymode);
         // ✅ Response Data
         return response()->json([
             'code'           => 200,
