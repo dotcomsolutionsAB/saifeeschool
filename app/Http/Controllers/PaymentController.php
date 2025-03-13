@@ -67,6 +67,7 @@ class PaymentController extends Controller
         $e_return_url = $this->aes128Encrypt($return_url, $key);
         $e_paymode = $this->aes128Encrypt($paymode, $key);
         $e_man_fields = $this->aes128Encrypt($man_fields, $key);
+        $e_opt_fields=$this->aes128Encrypt("",$key);
 
         // ✅ Insert Payment Log
         DB::table('t_pg_logs')->insert([
@@ -80,8 +81,15 @@ class PaymentController extends Controller
         ]);
 
         // ✅ Generate Payment URL
-        $payment_url = "https://eazypay.icicibank.com/EazyPG?merchantid=$merchant_id&mandatory fields=$e_man_fields&optional fields=&returnurl=$e_return_url&Reference No=$e_ref_no&submerchantid=$e_sub_mer_id&transaction amount=$e_amt&paymode=$e_paymode";
-
+        $payment_url = "https://eazypay.icicibank.com/EazyPG"
+    . "?merchantid=" . $merchant_id
+    . "&mandatory fields=" . urlencode($e_man_fields)
+    . "&optional fields=" . urlencode($e_opt_fields)
+    . "&returnurl=" . urlencode($e_return_url)
+    . "&Reference No=" . urlencode($e_ref_no)
+    . "&submerchantid=" . urlencode($e_sub_mer_id)
+    . "&transaction amount=" . urlencode($e_amt)
+    . "&paymode=" . urlencode($e_paymode);
         // ✅ Response Data
         return response()->json([
             'code'           => 200,
