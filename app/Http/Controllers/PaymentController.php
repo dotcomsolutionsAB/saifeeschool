@@ -82,7 +82,7 @@ class PaymentController extends Controller
             // ✅ Generate Payment URL
             $payment_url = "https://eazypay.icicibank.com/EazyPG?merchantid={$merchant_id}"
                 . "&mandatory%20fields={$encryptedData['mandatory_fields']}"
-                . "&optional%20fields={$encryptedData['optional_fields']}"
+                . "&optional%20fields="
                 . "&returnurl={$encryptedData['return_url']}"
                 . "&Reference%20No={$encryptedData['reference_no']}"
                 . "&submerchantid={$encryptedData['sub_merchant_id']}"
