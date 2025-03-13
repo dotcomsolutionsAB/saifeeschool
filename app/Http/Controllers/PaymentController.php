@@ -58,12 +58,12 @@ class PaymentController extends Controller
         $ref_no = time() . mt_rand(10000, 99999);
         $return_url = "https://admin.saifeeschool.in/_student/confirmation.php";
         $paymode = "9";
-        $man_fields = $ref_no . "|" . $st_id . "|" . $amount;
+        $man_fields = $ref_no . "|" . $st_id . "|" . $balance;
 
         // ✅ Encrypt Data for Payment
         $e_sub_mer_id = $this->aes128Encrypt($st_id, $key);
         $e_ref_no = $this->aes128Encrypt($ref_no, $key);
-        $e_amt = $this->aes128Encrypt($amount, $key);
+        $e_amt = $this->aes128Encrypt($balance, $key);
         $e_return_url = $this->aes128Encrypt($return_url, $key);
         $e_paymode = $this->aes128Encrypt($paymode, $key);
         $e_man_fields = $this->aes128Encrypt($man_fields, $key);
