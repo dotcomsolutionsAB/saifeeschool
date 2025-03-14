@@ -53,7 +53,7 @@ class PaymentController extends Controller
             $merchant_id = "357605";
             $key = "3508370376005002";
             $ref_no = time() . mt_rand(10000, 99999);
-            $return_url = "https://saifeeschool.dotcombusiness.in/api/payment/confirmation";
+            $return_url = "https://admin.saifeeschool.in/_student/confirmation.php";
             $paymode = "9";
             $man_fields = "{$ref_no}|{$st_id}|{$balance}";
     
