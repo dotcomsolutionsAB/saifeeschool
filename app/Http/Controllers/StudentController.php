@@ -839,6 +839,7 @@ class StudentController extends Controller
                         $searchTerm = '%' . trim($validated['search']) . '%'; // Trim and wildcard the search term
                         $query->whereRaw('LOWER(st_first_name) like ?', [strtolower($searchTerm)])
                             ->orWhereRaw('LOWER(st_last_name) like ?', [strtolower($searchTerm)])
+                            ->orWhereRaw('st_roll_no like ?', [strtolower($searchTerm)])
                             ->orWhereRaw('LOWER(st_its_id) like ?', [strtolower($searchTerm)]);
                     });
                 }
@@ -1970,6 +1971,7 @@ class StudentController extends Controller
         // Fetch unpaid fees (`f_paid = '0'`)
         $fees = FeeModel::where('st_id', $validated['st_id'])
             ->where('f_paid', '0')
+            ->where('f_active','1')
             ->offset($offset)
             ->limit($limit)
             ->get()
@@ -2026,6 +2028,7 @@ public function getUnpaidFeesStudent(Request $request)
         // ✅ Fetch unpaid fees (`f_paid = 0`), sorted by `fpp_due_date` (ASC)
         $fees = FeeModel::where('st_id', $validated['st_id'])
             ->where('f_paid', '0')
+            ->where('f_active','1')
             ->orderBy('fpp_due_date', 'asc') // Sort by due date (earliest first)
             ->offset($offset)
             ->limit($limit)
@@ -2108,8 +2111,7 @@ public function getPaidFees(Request $request)
             'message' => 'Paid fees fetched successfully.',
             'data' => $fees,
             'total_paid' => (string) $fees->sum('total_amount'), // Total paid amount in current page
-            'count' => (string) $fees->count(), // Number of paid fees in current page
-            'total_count' => (string) $totalCount, // Total count of paid fees (without pagination)
+            'count' => (string) $totalCount, // Total count of paid fees (without pagination)
             'offset' => (string) $offset,
             'limit' => (string) $limit
         ]);
