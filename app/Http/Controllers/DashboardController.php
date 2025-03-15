@@ -57,6 +57,7 @@ class DashboardController extends Controller
     
             // ✅ Return a successful response
             return response()->json([
+                'code'=>200,
                 'status' => 'success',
                 'message' => 'Dashboard data retrieved successfully',
                 'data' => [
@@ -151,6 +152,22 @@ class DashboardController extends Controller
         // ✅ Get Current Academic Year ID
         $currentAcademicYear = $validated['ay_id'];
 
+        $month_no = [
+            'My',
+            'January',
+            'February',
+            'March',
+            'April',
+            'May',
+            'June',
+            'July',
+            'August',
+            'September',
+            'October',
+            'November',
+            'December'
+        ];
+
         if (!$currentAcademicYear) {
             return response()->json([
                 'code' => 400,
@@ -168,12 +185,15 @@ class DashboardController extends Controller
         // ✅ Fetch Admission Fees
         $admissionFees = FeeModel::where('ay_id', $currentAcademicYear)
             ->where('fp_main_admission_fee', '1')
+            ->where('f_active', '1')
             ->selectRaw('SUM(fpp_amount) as total_amount, SUM(f_total_paid) as fee_paid, SUM(fpp_amount - f_total_paid) as fee_due, SUM(f_late_fee_paid) as late_fee_collected')
             ->first();
 
         // ✅ Fetch Monthly Fees (Grouped by Month)
         $monthlyFees = FeeModel::where('ay_id', $currentAcademicYear)
             ->where('fp_main_monthly_fee', '1')
+            ->where('f_recurring', '1')
+            ->where('f_active', '1')
             ->groupBy('fpp_month_no')
             ->orderBy('fpp_month_no')
             ->selectRaw('fpp_month_no, SUM(fpp_amount) as total_amount, SUM(f_total_paid) as fee_paid, SUM(fpp_amount - f_total_paid) as fee_due, SUM(f_late_fee_paid) as late_fee_collected')
@@ -200,6 +220,7 @@ class DashboardController extends Controller
                 'monthly_fees' => $monthlyFees->map(function ($month) {
                     return [
                         'month_no' => $month->fpp_month_no,
+                        'month'=>$month_no[$month->fpp_month_no],
                         'total_amount' => $month->total_amount,
                         'fee_paid' => $month->fee_paid,
                         'fee_due' => $month->fee_due,
