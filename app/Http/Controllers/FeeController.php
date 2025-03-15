@@ -1094,6 +1094,33 @@ public function printFeeReceipt($id)
 }
 
 
+private function exportExcel(array $data)
+{
+    // Define the directory and file name for storing the file
+    $directory = "exports";
+    $fileName = 'fees_export_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
+    $fullPath = "{$directory}/{$fileName}";
+
+    // Store the file in the 'public' disk under the exports directory
+    Excel::store(new FeesExport(collect($data)), $fullPath, 'public');
+
+    // Generate the public URL for the file
+    $fullFileUrl = url('storage/' . $fullPath);
+
+    // Return file metadata
+    return response()->json([
+        'code' => 200,
+        'status' => true,
+        'message' => 'File available for download',
+        'data' => [
+            'file_url' => $fullFileUrl,
+            'file_name' => $fileName,
+            'file_size' => Storage::disk('public')->size($fullPath),
+            'content_type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ],
+    ]);
+}
+
 public function exportFees(Request $request)
 {
     try {
@@ -1108,10 +1135,8 @@ public function exportFees(Request $request)
             ]);
         }
 
-        // Generate filename
-        $fileName = 'fees_report_' . now()->format('Ymd_His') . '.xlsx';
-
-        return Excel::download(new FeesExport($transactions), $fileName);
+        // Convert collection to array for export
+        return $this->exportExcel($transactions->toArray());
 
     } catch (\Exception $e) {
         return response()->json([
