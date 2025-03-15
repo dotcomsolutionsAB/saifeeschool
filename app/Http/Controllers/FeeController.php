@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use NumberFormatter;
 use Carbon\Carbon;
+use App\Exports\FeesExport;
+use Maatwebsite\Excel\Facades\Excel;
+
 
 class FeeController extends Controller
 {
@@ -1088,6 +1091,114 @@ public function printFeeReceipt($id)
             'error' => $e->getMessage(),
         ], 500);
     }
+}
+use 
+
+public function exportFees(Request $request)
+{
+    try {
+        // Fetch data using existing logic from `index_all()`
+        $transactions = $this->fetchFeesData($request); 
+
+        if ($transactions->isEmpty()) {
+            return response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'No data available for export.',
+            ]);
+        }
+
+        // Generate filename
+        $fileName = 'fees_report_' . now()->format('Ymd_His') . '.xlsx';
+
+        return Excel::download(new FeesExport($transactions), $fileName);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while exporting data.',
+            'error' => $e->getMessage(),
+        ]);
+    }
+}
+private function fetchFeesData(Request $request)
+{
+    $validated = $request->validate([
+        'search'    => 'nullable|string|max:255',
+        'cg_id'     => 'nullable|string',
+        'status'    => 'nullable|in:paid,unpaid',
+        'year'      => 'nullable|integer',
+        'date_from' => 'nullable|date',
+        'date_to'   => 'nullable|date|after_or_equal:date_from',
+        'type'      => 'nullable|in:monthly,admission,one_time,recurring',
+    ]);
+
+    $query = DB::table('t_fees as fees')
+        ->join('t_students as stu', 'fees.st_id', '=', 'stu.id')
+        ->leftJoin('t_class_groups as cg', 'fees.cg_id', '=', 'cg.id')
+        ->selectRaw("
+            stu.st_roll_no,
+            CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS student_name,
+            fees.fpp_name AS fee_name,
+            fees.fpp_amount AS base_amount,
+            fees.fpp_due_date AS due_date,
+            IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, '0') AS late_fee,
+            fees.f_concession AS concession,
+            (fees.fpp_amount + IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, 0) - IFNULL(fees.f_concession, 0)) AS total_amount,
+            IF(fees.f_paid = '1', '1', '0') AS payment_status
+        ")
+        ->orderBy('fees.fpp_due_date', 'asc');
+
+    // Apply filters
+    if (!empty($validated['search'])) {
+        $searchTerm = '%' . trim($validated['search']) . '%';
+        $query->where(function ($q) use ($searchTerm) {
+            $q->where('stu.st_roll_no', 'LIKE', $searchTerm)
+              ->orWhere('stu.st_first_name', 'LIKE', $searchTerm)
+              ->orWhere('stu.st_last_name', 'LIKE', $searchTerm);
+        });
+    }
+
+    if (!empty($validated['cg_id'])) {
+        $cgIds = explode(',', $validated['cg_id']);
+        $query->whereIn('fees.cg_id', $cgIds);
+    }
+
+    if (!empty($validated['status'])) {
+        $query->where('fees.f_paid', $validated['status'] === 'paid' ? '1' : '0');
+    }
+
+    if (!empty($validated['year'])) {
+        $query->where('fees.fpp_year_no', $validated['year']);
+    }
+
+    if (!empty($validated['date_from'])) {
+        $query->whereDate('fees.fpp_due_date', '>=', $validated['date_from']);
+    }
+
+    if (!empty($validated['date_to'])) {
+        $query->whereDate('fees.fpp_due_date', '<=', $validated['date_to']);
+    }
+
+    if (!empty($validated['type'])) {
+        switch ($validated['type']) {
+            case 'monthly':
+                $query->where('fees.fp_recurring', '1')->where('fees.fp_main_monthly_fee', '1');
+                break;
+            case 'admission':
+                $query->where('fees.fp_main_admission_fee', '1');
+                break;
+            case 'one_time':
+                $query->where('fees.fp_recurring', '0')->where('fees.fp_main_monthly_fee', '1');
+                break;
+            case 'recurring':
+                $query->where('fees.fp_recurring', '1')->where('fees.fp_main_monthly_fee', '0');
+                break;
+        }
+    }
+
+    return $query->get();
 }
 
 }

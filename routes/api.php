@@ -185,6 +185,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/import', [FeeController::class, 'importCsv'])
                 ->middleware(['check-api-permission:fee.full']); 
         Route::get('/print/{id}', [FeeController::class, 'printFeeReceipt']);
+
+        Route::get('/export', [FeeController::class, 'exportFees'])->name('export.fees');
     });
 
     // Fee-plan-period Routes
