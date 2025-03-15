@@ -1092,7 +1092,7 @@ public function printFeeReceipt($id)
         ], 500);
     }
 }
-use 
+
 
 public function exportFees(Request $request)
 {

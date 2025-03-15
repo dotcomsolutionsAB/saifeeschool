@@ -55,4 +55,4 @@ class FeesExport implements FromCollection, WithHeadings, WithMapping
             $transaction->payment_status === '1' ? 'Paid' : 'Pending',
         ];
     }
-}s
+}

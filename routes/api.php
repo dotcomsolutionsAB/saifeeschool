@@ -186,7 +186,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
                 ->middleware(['check-api-permission:fee.full']); 
         Route::get('/print/{id}', [FeeController::class, 'printFeeReceipt']);
 
-        Route::get('/export', [FeeController::class, 'exportFees'])->name('export.fees');
+        Route::post('/export', [FeeController::class, 'exportFees'])->name('export.fees');
     });
 
     // Fee-plan-period Routes
