@@ -24,6 +24,8 @@ use App\Http\Controllers\RazorpayController; // Razorpay Controller
 use App\Http\Controllers\RazorpayService; // Razorpay Service
 use Illuminate\Validation\Rule; // For advanced validation rules
 use Carbon\Carbon; // For date manipulation
+use Barryvdh\DomPDF\Facade as PDF;
+
 
 class StudentController extends Controller
 {
@@ -1605,88 +1607,70 @@ class StudentController extends Controller
     
     private function exportPdf(array $data)
     {
-        ini_set('memory_limit', '1024M'); 
+        ini_set('memory_limit', '1024M');
         set_time_limit(600);
     
-        $directory = "exports";
-        $storagePath = storage_path("app/public/{$directory}");
-        if (!is_dir($storagePath)) {
-            mkdir($storagePath, 0755, true);
-        }
-    
-        $filePaths = []; 
-        $mergedPdfPath = "{$storagePath}/Students_export_" . now()->format('Y_m_d_H_i_s') . ".pdf";
-    
-        // ✅ Start Writing Status Updates
-        $this->writeToStatusFile("Starting PDF Generation...");
-    
         try {
-            foreach ($data as $className => $students) {
-                if (!is_array($students) || empty($students)) {
-                    continue;
-                }
+            // ✅ Define storage paths
+            $directory = "exports";
+            $storagePath = storage_path("app/public/{$directory}");
     
-                $this->writeToStatusFile("Processing Class: $className...");
-    
-                $mpdf = new \Mpdf\Mpdf([
-                    'format' => 'A4',
-                    'orientation' => 'P',
-                    'margin_top' => 20,
-                    'margin_bottom' => 20,
-                    'margin_left' => 15,
-                    'margin_right' => 15,
-                    'tempDir' => storage_path('app/mpdf_temp'),
-                ]);
-    
-                $mpdf->SetTitle("Student Export - $className");
-    
-                $headerHtml = view('exports.class_header', ['class' => $className])->render();
-                $mpdf->WriteHTML($headerHtml);
-    
-                collect($students)->chunk(50)->each(function ($chunk, $chunkIndex) use ($mpdf, $className) {
-                    $this->writeToStatusFile("Writing chunk $chunkIndex for class: $className...");
-    
-                    if ($chunk->isEmpty()) return;
-                    ob_start();
-                    echo view('exports.students_pdf', ['data' => $chunk])->render();
-                    $html = ob_get_clean();
-                    $mpdf->WriteHTML($html);
-                });
-    
-                $classPdfPath = "{$storagePath}/class_{$className}_" . now()->format('Y_m_d_H_i_s') . ".pdf";
-                $mpdf->Output($classPdfPath, \Mpdf\Output\Destination::FILE);
-                $filePaths[] = $classPdfPath;
-    
-                $this->writeToStatusFile("Finished Class: $className!");
+            if (!is_dir($storagePath)) {
+                mkdir($storagePath, 0755, true);
             }
     
-            $this->writeToStatusFile("Export Completed!");
+            // ✅ Generate file name
+            $fileName = "Students_export_" . now()->format('Y_m_d_H_i_s') . ".pdf";
+            $fullFilePath = "{$storagePath}/{$fileName}";
+            
+            // ✅ Generate PDF Content
+            $html = view('exports.students_pdf', ['data' => $data])->render();
+            
+            // ✅ Generate PDF using Dompdf
+            $pdf = PDF::loadHTML($html)->setPaper('A4', 'portrait')->setOptions([
+                'defaultFont' => 'sans-serif',
+                'isHtml5ParserEnabled' => true,
+                'isPhpEnabled' => true
+            ]);
     
-            $fileUrl = url("storage/exports/" . basename($mergedPdfPath));
+            // ✅ Save the file
+            Storage::disk('public')->put("{$directory}/{$fileName}", $pdf->output());
+    
+            // ✅ Ensure the file exists before responding
+            if (!Storage::disk('public')->exists("{$directory}/{$fileName}")) {
+                return response()->json([
+                    'code' => 500,
+                    'status' => false,
+                    'message' => 'Failed to generate PDF file.',
+                    'error' => 'File does not exist after creation.'
+                ]);
+            }
+    
+            // ✅ Generate public file URL
+            $fileUrl = url("storage/exports/{$fileName}");
+    
             return response()->json([
                 'code' => 200,
                 'status' => true,
-                'message' => 'File available for download',
+                'message' => 'PDF file available for download.',
                 'data' => [
                     'file_url' => $fileUrl,
-                    'file_name' => basename($mergedPdfPath),
-                    'file_size' => filesize($mergedPdfPath),
-                    'content_type' => 'application/pdf',
-                ],
+                    'file_name' => $fileName,
+                    'file_size' => Storage::disk('public')->size("{$directory}/{$fileName}"),
+                    'content_type' => 'application/pdf'
+                ]
             ]);
     
         } catch (\Exception $e) {
-            $this->writeToStatusFile("PDF Generation Error: " . $e->getMessage());
-    
             return response()->json([
                 'code' => 500,
                 'status' => false,
                 'message' => 'An error occurred while generating the PDF.',
-                'error' => $e->getMessage(),
+                'error' => $e->getMessage()
             ]);
         }
     }
-    public function initiatePayment(Request $request)
+        public function initiatePayment(Request $request)
     {
         $validated = $request->validate([
             'amount' => 'required|numeric|min:1',
