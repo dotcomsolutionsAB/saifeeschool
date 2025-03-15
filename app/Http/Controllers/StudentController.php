@@ -1607,8 +1607,8 @@ class StudentController extends Controller
     
     private function exportPdf(array $data)
     {
-        ini_set('memory_limit', '1024M');
-        set_time_limit(600);
+        ini_set('memory_limit', '1024M'); // Prevents memory exhaustion
+        set_time_limit(600); // Prevents timeout
     
         try {
             // ✅ Define storage paths
@@ -1622,22 +1622,28 @@ class StudentController extends Controller
             // ✅ Generate file name
             $fileName = "Students_export_" . now()->format('Y_m_d_H_i_s') . ".pdf";
             $fullFilePath = "{$storagePath}/{$fileName}";
-            
-            // ✅ Generate PDF Content
-            $html = view('exports.students_pdf', ['data' => $data])->render();
-            
-            // ✅ Generate PDF using Dompdf
-            $pdf = PDF::loadHTML($html)->setPaper('A4', 'portrait')->setOptions([
-                'defaultFont' => 'sans-serif',
-                'isHtml5ParserEnabled' => true,
-                'isPhpEnabled' => true
+    
+            // ✅ Initialize mPDF
+            $mpdf = new Mpdf([
+                'mode' => 'utf-8',
+                'format' => 'A4',
+                'orientation' => 'P', // Portrait mode
+                'margin_top' => 20,
+                'margin_bottom' => 20,
+                'margin_left' => 15,
+                'margin_right' => 15,
+                'tempDir' => storage_path('app/mpdf_temp'), // Prevents permission issues
             ]);
     
-            // ✅ Save the file
-            Storage::disk('public')->put("{$directory}/{$fileName}", $pdf->output());
+            // ✅ Generate PDF Content
+            $html = view('exports.students_pdf', ['data' => $data])->render();
+            $mpdf->WriteHTML($html);
     
-            // ✅ Ensure the file exists before responding
-            if (!Storage::disk('public')->exists("{$directory}/{$fileName}")) {
+            // ✅ Save the PDF file
+            $mpdf->Output($fullFilePath, \Mpdf\Output\Destination::FILE);
+    
+            // ✅ Ensure file exists before responding
+            if (!file_exists($fullFilePath)) {
                 return response()->json([
                     'code' => 500,
                     'status' => false,
@@ -1656,7 +1662,7 @@ class StudentController extends Controller
                 'data' => [
                     'file_url' => $fileUrl,
                     'file_name' => $fileName,
-                    'file_size' => Storage::disk('public')->size("{$directory}/{$fileName}"),
+                    'file_size' => filesize($fullFilePath),
                     'content_type' => 'application/pdf'
                 ]
             ]);
