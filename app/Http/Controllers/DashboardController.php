@@ -220,7 +220,7 @@ class DashboardController extends Controller
                 'monthly_fees' => $monthlyFees->map(function ($month) use ($month_no) {
                     return [
                         'month_no' => $month->fpp_month_no,
-                        'month'=>$month_no[$month->fpp_month_no],
+                        'month_name'=>$month_no[$month->fpp_month_no],
                         'total_amount' => $month->total_amount,
                         'fee_paid' => $month->fee_paid,
                         'fee_due' => $month->fee_due,
