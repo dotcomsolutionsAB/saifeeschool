@@ -192,7 +192,7 @@ class DashboardController extends Controller
         // ✅ Fetch Monthly Fees (Grouped by Month)
         $monthlyFees = FeeModel::where('ay_id', $currentAcademicYear)
             ->where('fp_main_monthly_fee', '1')
-            ->where('f_recurring', '1')
+            ->where('fp_recurring', '1')
             ->where('f_active', '1')
             ->groupBy('fpp_month_no')
             ->orderBy('fpp_month_no')
