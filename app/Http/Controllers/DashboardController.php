@@ -217,7 +217,7 @@ class DashboardController extends Controller
                     'fee_due' => $admissionFees->fee_due ?? 0,
                     'late_fee_collected' => $admissionFees->late_fee_collected ?? 0,
                 ],
-                'monthly_fees' => $monthlyFees->map(function ($month) {
+                'monthly_fees' => $monthlyFees->map(function ($month) use ($month_no) {
                     return [
                         'month_no' => $month->fpp_month_no,
                         'month'=>$month_no[$month->fpp_month_no],
