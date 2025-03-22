@@ -1,16 +1,16 @@
 <?php
+
 namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpFoundation\Response;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class CheckTokenTimeout
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
         $user = Auth::user();
 
@@ -19,48 +19,42 @@ class CheckTokenTimeout
         }
 
         $token = $request->user()->currentAccessToken();
-        $timeout = 10; // 10 seconds for testing, change to 14400 for 4 hours
 
-        $lastUsedAt = $token->my_last_updated_at ?? $token->created_at;
+        // Get the timeout duration (10 seconds for testing, change to 14400 for 4hrs)
+        $timeout = 10;
 
-        // Ensure Carbon instance
-        if (!$lastUsedAt instanceof Carbon) {
-            $lastUsedAt = Carbon::parse($lastUsedAt);
-        }
+        // Get token from DB to access custom column `my_last_updated_at`
+        $dbToken = PersonalAccessToken::find($token->id);
+        $lastUsed = $dbToken->my_last_updated_at ? Carbon::parse($dbToken->my_last_updated_at) : Carbon::parse($dbToken->created_at);
+        $now = now();
 
-        $now = Carbon::now();
-        $diff = now()->diffInRealSeconds($lastUsedAt, false); // includes microseconds
+        $diffInSeconds = $now->diffInSeconds($lastUsed);
 
-        // ⏱️ Timeout response
-        if ($diff > $timeout) {
-            return response()->json([
-                'code' => 401,
-                'status' => false,
-                'message' => '⏱️ Session timed out. Please login again.',
-                'last_used_at' => $lastUsedAt->toDateTimeString(),
-                'now' => $now->toDateTimeString(),
-                'seconds_since_last_used' => $diff,
-                'timeout' => $timeout,
-            ], 401);
-        }
-
-        // ✅ Update the token's last used timestamp
-        $token->forceFill([
-            'my_last_updated_at' => $now,
-        ])->save();
-
-        // 🔍 Optional debug response
-        if ($request->has('debug-timeout') && $request->query('debug-timeout') === 'true') {
+        // 🧪 Debug mode via query param
+        if ($request->has('debug-timeout')) {
             return response()->json([
                 'status' => '✅ Middleware triggered',
                 'user_id' => $user->id,
                 'token_id' => $token->id,
-                'last_used_at' => $lastUsedAt->toDateTimeString(),
+                'last_used_at' => $lastUsed->toDateTimeString(),
                 'now' => $now->toDateTimeString(),
-                'seconds_since_last_used' => $diff,
-                'timeout' => $timeout,
+                'seconds_since_last_used' => $diffInSeconds,
+                'timeout' => $timeout
             ]);
         }
+
+        // ❌ Inactive too long
+        if ($diffInSeconds > $timeout) {
+            return response()->json([
+                'code' => 401,
+                'status' => false,
+                'message' => 'Session Timeout: Please login again.',
+            ], 401);
+        }
+
+        // ✅ Update token usage timestamp
+        $dbToken->my_last_updated_at = $now;
+        $dbToken->save();
 
         return $next($request);
     }
