@@ -1226,4 +1226,35 @@ private function fetchFeesData(Request $request)
     return $query->get();
 }
 
+public function getOneTimeFeePlans()
+{
+    try {
+        $feePlans = DB::table('t_fee_plans')
+            ->where('fp_recurring', '0')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return $feePlans->isNotEmpty()
+            ? response()->json([
+                'code' => 200,
+                'status' => true,
+                'message' => 'One-time fee plans fetched successfully.',
+                'data' => $feePlans,
+                'count' => $feePlans->count(),
+            ])
+            : response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'No one-time fee plans found.',
+            ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while fetching one-time fee plans.',
+            'error' => $e->getMessage(),
+        ]);
+    }
+}
+
 }
