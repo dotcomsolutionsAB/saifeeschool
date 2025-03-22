@@ -28,7 +28,7 @@ class CheckTokenTimeout
         $lastUsed = $dbToken->my_last_updated_at ? Carbon::parse($dbToken->my_last_updated_at) : Carbon::parse($dbToken->created_at);
         $now = now();
 
-        $diffInSeconds = $now->diffInSeconds($lastUsed);
+        $diffInSeconds = $lastUsed->diffInSeconds($now);
 
         // 🧪 Debug mode via query param
         if ($request->has('debug-timeout')) {
