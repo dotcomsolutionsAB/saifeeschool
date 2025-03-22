@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
+use Carbon\Carbon;
 
 class CheckTokenTimeout
 {
@@ -19,13 +20,16 @@ class CheckTokenTimeout
 
         $token = $request->user()->currentAccessToken();
 
-        // Use your custom column `my_last_updated_at`
-        $timeout = 600; // 10 seconds for testing, change to 14400 for 4 hours
-        $lastUsed = $token->my_last_updated_at ?? $token->created_at;
+        $timeout = 600; // 10 seconds for testing
         $now = now();
+
+        // Convert to Carbon instance safely
+        $lastUsed = $token->my_last_updated_at 
+                    ? Carbon::parse($token->my_last_updated_at) 
+                    : $token->created_at;
+
         $elapsedSeconds = $now->diffInSeconds($lastUsed);
 
-        // For debugging if `debug-timeout=true` is passed
         if ($request->has('debug-timeout')) {
             return response()->json([
                 'status' => '✅ Middleware reached',
