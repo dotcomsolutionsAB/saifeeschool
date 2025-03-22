@@ -2060,52 +2060,67 @@ public function getUnpaidFeesStudent(Request $request)
 public function getPaidFees(Request $request)
 {
     try {
-        // Validate request
         $validated = $request->validate([
             'st_id' => 'required|integer|exists:t_fees,st_id',
             'offset' => 'nullable|integer|min:0',
-            'limit' => 'nullable|integer|min:1|max:100', // Limit max to 100
+            'limit' => 'nullable|integer|min:1|max:100',
         ]);
 
         $offset = $validated['offset'] ?? 0;
-        $limit = $validated['limit'] ?? 10; // Default limit to 10
+        $limit = $validated['limit'] ?? 10;
 
-        // Fetch paid fees (`f_paid = '1'`), ordered by `f_paid_date` DESC
-        $query = FeeModel::where('st_id', $validated['st_id'])
+        // Get all matching paid fees
+        $query = FeeModel::with('academicYear') // Ensure relationship is loaded
+            ->where('st_id', $validated['st_id'])
             ->where('f_paid', '1')
             ->orderByDesc('f_paid_date');
 
-        // Get total count of paid fees before applying limit
         $totalCount = $query->count();
 
-        // Apply pagination (offset & limit)
-        $fees = $query->offset($offset)->limit($limit)->get()
-            ->map(function ($fee) {
-                return [
-                    'id' => (string) $fee->id, // Unique fee entry ID
-                    'fpp_id' => (string) $fee->fpp_id, // Fee Plan ID
-                    'fpp_name' => $fee->fpp_name, // Fee type
-                    'fpp_due_date' => $fee->fpp_due_date, // Date is already in datetime format
-                    'fpp_amount' => (string) $fee->fpp_amount, // Base amount
-                    'fpp_late_fee' => (string) $fee->fpp_late_fee, // Late fee
-                    'f_late_fee_applicable' => (string) $fee->f_late_fee_applicable, // Is late fee applicable?
-                    'f_concession' => (string) ($fee->f_concession ?? '0'), // Concession
-                    'total_amount' => (string) (($fee->fpp_amount + ($fee->f_late_fee_applicable == '1' ? $fee->fpp_late_fee : 0)) - ($fee->f_concession ?? 0)), // Final amount
-                    'date_paid' => $fee->f_paid_date ?? 'N/A', // Payment date
-                ];
+        $fees = $query->offset($offset)->limit($limit)->get()->map(function ($fee) {
+            $total = ($fee->fpp_amount + ($fee->f_late_fee_applicable == '1' ? $fee->fpp_late_fee : 0)) - ($fee->f_concession ?? 0);
+            return [
+                'id' => (string) $fee->id,
+                'fpp_id' => (string) $fee->fpp_id,
+                'fpp_name' => $fee->fpp_name,
+                'fpp_due_date' => $fee->fpp_due_date,
+                'fpp_amount' => (string) $fee->fpp_amount,
+                'fpp_late_fee' => (string) $fee->fpp_late_fee,
+                'f_late_fee_applicable' => (string) $fee->f_late_fee_applicable,
+                'f_concession' => (string) ($fee->f_concession ?? '0'),
+                'total_amount' => (string) $total,
+                'date_paid' => $fee->f_paid_date ?? 'N/A',
+                'ay_name' => optional($fee->academicYear)->ay_name ?? 'Unknown',
+            ];
+        });
+
+        // Group fees by academic year name
+        $grouped = $fees->groupBy('ay_name')->map(function ($items, $year) {
+            return $items->map(function ($item) {
+                unset($item['ay_name']); // remove ay_name from each item after grouping
+                return $item;
             });
+        });
+
+        // Flatten grouped data into the desired format
+        $responseData = [];
+        foreach ($grouped as $year => $feeGroup) {
+            $responseData[] = [
+                'year' => $year,
+                'fees' => $feeGroup,
+            ];
+        }
 
         return response()->json([
             'code' => 200,
             'status' => true,
             'message' => 'Paid fees fetched successfully.',
-            'data' => $fees,
-            'total_paid' => (string) $fees->sum('total_amount'), // Total paid amount in current page
-            'count' => (string) $totalCount, // Total count of paid fees (without pagination)
+            'data' => $responseData,
+            'total_paid' => (string) $fees->sum('total_amount'),
+            'count' => (string) $totalCount,
             'offset' => (string) $offset,
             'limit' => (string) $limit
         ]);
-
     } catch (\Exception $e) {
         return response()->json([
             'code' => 500,
