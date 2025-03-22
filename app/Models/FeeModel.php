@@ -68,4 +68,8 @@ class FeeModel extends Model
             'id'        // Local key on t_student_class
         );
     }
+    public function academicYear()
+{
+    return $this->belongsTo(AcademicYearModel::class, 'ay_id', 'id');
+}
 }
