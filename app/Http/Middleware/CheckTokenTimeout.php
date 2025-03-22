@@ -25,7 +25,7 @@ class CheckTokenTimeout
 
         // Get token from DB to access custom column `my_last_updated_at`
         $dbToken = PersonalAccessToken::find($token->id);
-        $lastUsed = $dbToken->updated_at ? Carbon::parse($dbToken->updated_at) : Carbon::parse($dbToken->created_at);
+        $lastUsed = $dbToken->my_last_updated_at ? Carbon::parse($dbToken->my_last_updated_at) : Carbon::parse($dbToken->created_at);
         $now = now();
 
         $diffInSeconds = $lastUsed->diffInSeconds($now);
