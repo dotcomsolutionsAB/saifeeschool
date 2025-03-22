@@ -2062,6 +2062,7 @@ public function getPaidFees(Request $request)
     try {
         $validated = $request->validate([
             'st_id' => 'required|integer|exists:t_fees,st_id',
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
             'offset' => 'nullable|integer|min:0',
             'limit' => 'nullable|integer|min:1|max:100',
         ]);
@@ -2069,9 +2070,10 @@ public function getPaidFees(Request $request)
         $offset = $validated['offset'] ?? 0;
         $limit = $validated['limit'] ?? 10;
 
-        // Get all matching paid fees
-        $query = FeeModel::with('academicYear') // Ensure relationship is loaded
+        // Get matching paid fees filtered by academic year
+        $query = FeeModel::with('academicYear')
             ->where('st_id', $validated['st_id'])
+            ->where('ay_id', $validated['ay_id'])
             ->where('f_paid', '1')
             ->orderByDesc('f_paid_date');
 
@@ -2094,28 +2096,11 @@ public function getPaidFees(Request $request)
             ];
         });
 
-        // Group fees by academic year name
-        $grouped = $fees->groupBy('ay_name')->map(function ($items, $year) {
-            return $items->map(function ($item) {
-                unset($item['ay_name']); // remove ay_name from each item after grouping
-                return $item;
-            });
-        });
-
-        // Flatten grouped data into the desired format
-        $responseData = [];
-        foreach ($grouped as $year => $feeGroup) {
-            $responseData[] = [
-                'year' => $year,
-                'fees' => $feeGroup,
-            ];
-        }
-
         return response()->json([
             'code' => 200,
             'status' => true,
             'message' => 'Paid fees fetched successfully.',
-            'data' => $responseData,
+            'data' => $fees,
             'total_paid' => (string) $fees->sum('total_amount'),
             'count' => (string) $totalCount,
             'offset' => (string) $offset,
