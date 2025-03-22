@@ -1226,7 +1226,7 @@ private function fetchFeesData(Request $request)
     return $query->get();
 }
 
-public function getOneTimeFeePlansByAcademicYear(Request $request)
+public function getOneTimeFeePlans(Request $request)
 {
     try {
         $validated = $request->validate([
