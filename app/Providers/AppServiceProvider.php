@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\CheckApiPermission;
+use App\Http\Middleware\CheckTokenTimeout;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,5 +25,7 @@ class AppServiceProvider extends ServiceProvider
     {
         //
         Route::aliasMiddleware('check-api-permission', CheckApiPermission::class);
+        Route::aliasMiddleware('check-timeout', CheckTokenTimeout::class);
+
     }
 }

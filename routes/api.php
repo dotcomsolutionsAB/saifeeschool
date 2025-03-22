@@ -33,6 +33,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CSVUploadController;
 use App\Http\Controllers\PaymentController;
 
+
 Route::post('/upload', [CSVUploadController::class, 'uploadCSV']);
 Route::post('/upload/terms', [CSVUploadController::class, 'uploadTerms']);
 Route::post('/terms', [MarksController::class, 'getTermsByClass']);
@@ -45,7 +46,7 @@ Route::post('/register', [UserController::class, 'register']);
 
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', 'check-timeout'])->group(function () {
 
     Route::get('/logout', [AuthController::class, 'logout']);
 
@@ -565,3 +566,4 @@ Route::prefix('transactions')->group(function () {
     Route::post('/payment/confirmation', [PaymentController::class, 'paymentConfirmation']);
 
     });
+
