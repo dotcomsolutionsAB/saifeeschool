@@ -1226,11 +1226,17 @@ private function fetchFeesData(Request $request)
     return $query->get();
 }
 
-public function getOneTimeFeePlans()
+public function getOneTimeFeePlansByAcademicYear(Request $request)
 {
     try {
+        $validated = $request->validate([
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+        ]);
+
         $feePlans = DB::table('t_fee_plans')
             ->where('fp_recurring', '0')
+            ->where('ay_id', $validated['ay_id'])
+            ->select('id', 'fp_name')
             ->orderBy('id', 'desc')
             ->get();
 
@@ -1240,18 +1246,18 @@ public function getOneTimeFeePlans()
                 'status' => true,
                 'message' => 'One-time fee plans fetched successfully.',
                 'data' => $feePlans,
-                'count' => $feePlans->count(),
             ])
             : response()->json([
                 'code' => 404,
                 'status' => false,
-                'message' => 'No one-time fee plans found.',
+                'message' => 'No one-time fee plans found for the selected academic year.',
             ]);
+
     } catch (\Exception $e) {
         return response()->json([
             'code' => 500,
             'status' => false,
-            'message' => 'An error occurred while fetching one-time fee plans.',
+            'message' => 'An error occurred while fetching fee plans.',
             'error' => $e->getMessage(),
         ]);
     }
