@@ -46,6 +46,10 @@ Route::post('/register', [UserController::class, 'register']);
 
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::middleware(['auth:sanctum', 'check-timeout'])->get('/debug-timeout', function () {
+        return response()->json(['message' => 'You are still active!'], 200);
+    });
+
 Route::middleware(['auth:sanctum', 'check-timeout'])->group(function () {
 
     Route::get('/logout', [AuthController::class, 'logout']);

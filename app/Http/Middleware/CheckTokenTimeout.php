@@ -26,7 +26,7 @@ class CheckTokenTimeout
     $lastUsed = $token->last_used_at ?? $tokenCreated;
 
     if (now()->diffInSeconds($lastUsed) > $timeout) {
-        $token->delete(); // Optionally revoke token
+       // $token->delete(); // Optionally revoke token
         return response()->json([
             'code' => 401,
             'status' => false,
