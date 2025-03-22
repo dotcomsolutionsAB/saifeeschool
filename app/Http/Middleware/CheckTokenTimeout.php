@@ -29,7 +29,7 @@ class CheckTokenTimeout
         }
 
         $now = Carbon::now();
-        $diff = $now->diffInSeconds($lastUsedAt);
+        $diff = now()->diffInRealSeconds($lastUsedAt, false); // includes microseconds
 
         // ⏱️ Timeout response
         if ($diff > $timeout) {
