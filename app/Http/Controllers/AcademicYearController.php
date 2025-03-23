@@ -233,7 +233,7 @@ class AcademicYearController extends Controller
                 ], 200);
             } else {
                 // ✅ Fetch all academic years
-                $academicYears = AcademicYearModel::all();
+                $academicYears = AcademicYearModel::orderByDesc('id')->take(5)->get();
     
                 if ($academicYears->isEmpty()) {
                     return response()->json([
