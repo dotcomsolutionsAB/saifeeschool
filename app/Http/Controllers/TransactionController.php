@@ -508,7 +508,7 @@ public function export(Request $request)
         ]);
 
         // Debugging: Log input filters
-        \Log::info("Export Request Filters", $validated);
+        Log::info("Export Request Filters", $validated);
 
         // **Query for PG Transactions (`t_pg_responses`)**
         $query = DB::table('t_pg_responses as pg')
@@ -564,14 +564,14 @@ public function export(Request $request)
 
         // **Date Filters (Apply only if provided)**
         if (!empty($validated['date_from']) && !empty($validated['date_to'])) {
-            \Log::info("Filtering Transactions From: {$validated['date_from']} To: {$validated['date_to']}");
+            Log::info("Filtering Transactions From: {$validated['date_from']} To: {$validated['date_to']}");
             $query->whereBetween(DB::raw("DATE(pg.transaction_date)"), [$validated['date_from'], $validated['date_to']]);
         }
 
         // **Fetch Transactions**
         $transactions = $query->get();
 
-        \Log::info("Total Transactions Found: " . $transactions->count());
+        Log::info("Total Transactions Found: " . $transactions->count());
 
         if ($transactions->isEmpty()) {
             return response()->json(['code'=>500,'message' => 'No data available for export.'], 404);
