@@ -11,76 +11,101 @@ use App\Models\FeeModel;
 class DashboardController extends Controller
 {
     //
-    public function dashboard(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'ay_id' => 'required|integer|exists:t_academic_years,id',
-            ]);
-    
-            // ✅ Get the selected academic year ID
-            $currentAcademicYear = $validated['ay_id'];
-    
-            // ✅ Get current month and year
-            $currentMonth = now()->month;
-            $currentYear = now()->year;
-    
-            // ✅ Fetch Total Teachers
-            $getTeacherNumber = TeacherModel::count();
-    
-            // ✅ Fetch Student Count using `t_student_classes`
-            $getStudentNumber = DB::table('t_student_classes')
-                ->where('ay_id', $currentAcademicYear)
-                ->count();
-    
-            // ✅ Fetch Male Students using `t_student_classes`
-            $maleCount = DB::table('t_student_classes')
-                ->join('t_students', 't_students.id', '=', 't_student_classes.st_id')
-                ->where('t_student_classes.ay_id', $currentAcademicYear)
-                ->where('t_students.st_gender', 'M')
-                ->count();
-    
-            // ✅ Fetch Female Students using `t_student_classes`
-            $femaleCount = DB::table('t_student_classes')
-                ->join('t_students', 't_students.id', '=', 't_student_classes.st_id')
-                ->where('t_student_classes.ay_id', $currentAcademicYear)
-                ->where('t_students.st_gender', 'F')
-                ->count();
-    
-            // ✅ Calculate Fee Statistics
-            $totalAmount = FeeModel::where('f_paid', '0')->sum('fpp_amount');
-            $totalLateFeesPaid = FeeModel::where('f_late_fee_applicable', '1')->sum('f_total_paid');
-            $currentMonthAmount = FeeModel::where('f_paid', '0')
-                                          ->where('fpp_month_no', $currentMonth)
-                                          ->where('fpp_year_no', $currentYear)
-                                          ->sum('fpp_amount');
-    
-            // ✅ Return a successful response
-            return response()->json([
-                'code'=>200,
-                'status' => 'success',
-                'message' => 'Dashboard data retrieved successfully',
-                'data' => [
-                    'current_ay_id' => $currentAcademicYear,
-                    'teacher_count' => $getTeacherNumber,
-                    'student_count' => $getStudentNumber,
-                    'male_student_count' => $maleCount,
-                    'female_student_count' => $femaleCount,
-                    'total_unpaid_amount' => $totalAmount,
-                    'total_late_fees_paid' => $totalLateFeesPaid,
-                    'current_month_unpaid_amount' => $currentMonthAmount,
+   public function dashboard(Request $request)
+{
+    try {
+        $validated = $request->validate([
+            'ay_id' => 'required|integer|exists:t_academic_years,id',
+        ]);
+
+        // ✅ Get the selected academic year ID
+        $currentAcademicYear = $validated['ay_id'];
+
+        // ✅ Get current month and year
+        $currentMonth = now()->month;
+        $currentYear = now()->year;
+
+        // ✅ Fetch Total Teachers
+        $getTeacherNumber = TeacherModel::count();
+
+        // ✅ Fetch Student Count using `t_student_classes`
+        $getStudentNumber = DB::table('t_student_classes')
+            ->where('ay_id', $currentAcademicYear)
+            ->count();
+
+        // ✅ Fetch Male Students
+        $maleCount = DB::table('t_student_classes')
+            ->join('t_students', 't_students.id', '=', 't_student_classes.st_id')
+            ->where('t_student_classes.ay_id', $currentAcademicYear)
+            ->where('t_students.st_gender', 'M')
+            ->count();
+
+        // ✅ Fetch Female Students
+        $femaleCount = DB::table('t_student_classes')
+            ->join('t_students', 't_students.id', '=', 't_student_classes.st_id')
+            ->where('t_student_classes.ay_id', $currentAcademicYear)
+            ->where('t_students.st_gender', 'F')
+            ->count();
+
+            $currentMonthStart = now()->startOfMonth()->toDateString(); // e.g., 2025-03-01
+$currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
+        // ✅ Calculate Fee Stats
+        $totalUnpaidAmount = FeeModel::where('f_paid', '0')->sum('fpp_amount');
+        $totalLateFeesPaid = FeeModel::where('f_late_fee_applicable', '1')->sum('f_total_paid');
+        $currentMonthUnpaidAmount = FeeModel::where('f_paid', '0')
+            ->where('fpp_month_no', $currentMonth)
+            ->where('fpp_year_no', $currentYear)
+            ->sum('fpp_amount');
+
+        return response()->json([
+            'code' => 200,
+            'status' => 'success',
+            'message' => 'Dashboard data retrieved successfully',
+            'data' => [
+                'current_ay_id' => $currentAcademicYear,
+                'teacher_count' => $getTeacherNumber,
+                'student_count' => $getStudentNumber,
+                'male_student_count' => $maleCount,
+                'female_student_count' => $femaleCount,
+
+                'total_unpaid_fees' => [
+                    'amount' => $totalUnpaidAmount,
+                    'query_key' => [
+                        'year' => $currentAcademicYear,
+                        'status' => 'unpaid'
+                    ]
                 ],
-            ], 200);
+                'total_late_fees_paid' => [
+                    'amount' => $totalLateFeesPaid,
+                    'query_key' => [
+                        'year' => $currentAcademicYear,
+                        'status' => 'paid',
+                        'late_fee' => true
+                    ]
+                ],
+                'current_month_unpaid_fees' => [
+                    'amount' => $currentMonthUnpaidAmount,
+                    'query_key' => [
+                        'year' => $currentYear,
+                        'month_no' => $currentMonth,
+                        'status' => 'unpaid',
+                        'date_from' => $currentMonthStart,
+        'date_to' => $currentMonthEnd,
     
-        } catch (\Exception $e) {
-            // ❌ Return an error response in case of an exception
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to retrieve dashboard data',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
+                    ]
+                ],
+            ],
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code'=>500,
+            'status' => 'error',
+            'message' => 'Failed to retrieve dashboard data',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
     public function studentDashboard(Request $request)
     {
         try {
