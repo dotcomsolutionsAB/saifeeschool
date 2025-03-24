@@ -900,20 +900,21 @@ class FeeController extends Controller
 
         // **Start Query from `t_fees` Table**
         $query = DB::table('t_fees as fees')
-            ->join('t_students as stu', 'fees.st_id', '=', 'stu.id')
-            ->leftJoin('t_class_groups as cg', 'fees.cg_id', '=', 'cg.id')
-            ->selectRaw("
-                stu.st_roll_no,
-                CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS student_name,
-                fees.fpp_name AS fee_name,
-                fees.fpp_amount AS base_amount,
-                fees.fpp_due_date AS due_date,
-                IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, '0') AS late_fee,
-                fees.f_concession AS concession,
-                (fees.fpp_amount + IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, 0) - IFNULL(fees.f_concession, 0)) AS total_amount,
-                IF(fees.f_paid = '1', '1', '0') AS payment_status
-            ")
-            ->orderBy('fees.fpp_due_date', 'asc');
+    ->join('t_students as stu', 'fees.st_id', '=', 'stu.id')
+    ->leftJoin('t_class_groups as cg', 'fees.cg_id', '=', 'cg.id')
+    ->where('fees.f_active', '1') // ✅ Only active fees
+    ->selectRaw("
+        stu.st_roll_no,
+        CONCAT(stu.st_first_name, ' ', stu.st_last_name) AS student_name,
+        fees.fpp_name AS fee_name,
+        fees.fpp_amount AS base_amount,
+        fees.fpp_due_date AS due_date,
+        IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, '0') AS late_fee,
+        fees.f_concession AS concession,
+        (fees.fpp_amount + IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, 0) - IFNULL(fees.f_concession, 0)) AS total_amount,
+        IF(fees.f_paid = '1', '1', '0') AS payment_status
+    ")
+    ->orderBy('fees.fpp_due_date', 'asc');
 
         // **Search Filter (Roll No or Name)**
         if (!empty($validated['search'])) {

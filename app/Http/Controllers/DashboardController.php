@@ -143,100 +143,116 @@ class DashboardController extends Controller
     }
 
     public function getFeeBreakdown(Request $request)
-{
-    try {
-        $validated = $request->validate([
-            'ay_id' => 'required|integer|exists:t_academic_years,id',
-          
-        ]);
-        // ✅ Get Current Academic Year ID
-        $currentAcademicYear = $validated['ay_id'];
-
-        $month_no = [
-            'My',
-            'January',
-            'February',
-            'March',
-            'April',
-            'May',
-            'June',
-            'July',
-            'August',
-            'September',
-            'October',
-            'November',
-            'December'
-        ];
-
-        if (!$currentAcademicYear) {
+    {
+        try {
+            $validated = $request->validate([
+                'ay_id' => 'required|integer|exists:t_academic_years,id',
+            ]);
+    
+            $currentAcademicYear = $validated['ay_id'];
+    
+            // Fetch One-Time Fees
+            $oneTimeFees = FeeModel::where('ay_id', $currentAcademicYear)
+                ->where('fp_recurring', '0')
+                ->selectRaw('SUM(fpp_amount) as total_amount, SUM(f_total_paid) as fee_paid, SUM(fpp_amount - f_total_paid) as fee_due, SUM(f_late_fee_paid) as late_fee_collected')
+                ->first();
+    
+            // Fetch Admission Fees
+            $admissionFees = FeeModel::where('ay_id', $currentAcademicYear)
+                ->where('fp_main_admission_fee', '1')
+                ->where('f_active', '1')
+                ->selectRaw('SUM(fpp_amount) as total_amount, SUM(f_total_paid) as fee_paid, SUM(fpp_amount - f_total_paid) as fee_due, SUM(f_late_fee_paid) as late_fee_collected')
+                ->first();
+    
+            // Fetch Monthly Fees
+            $monthlyFees = FeeModel::where('ay_id', $currentAcademicYear)
+                ->where('fp_main_monthly_fee', '1')
+                ->where('fp_recurring', '1')
+                ->where('f_active', '1')
+                ->get();
+    
+            // Group monthly fees by Month-Year from due_date
+            $groupedMonthlyFees = $monthlyFees->groupBy(function ($item) {
+                return \Carbon\Carbon::parse($item->fpp_due_date)->format('F Y');
+            });
+    
+            $formattedMonthlyFees = $groupedMonthlyFees->map(function ($items, $monthYear) {
+                $totalAmount = $items->sum('fpp_amount');
+                $paidAmount = $items->sum('f_total_paid');
+                $dueAmount = $totalAmount - $paidAmount;
+                $lateFee = $items->sum('f_late_fee_paid');
+    
+                return [
+                    'month_name' => $monthYear,
+                    'total_amount' => $totalAmount,
+                    'fee_paid' => $paidAmount,
+                    'fee_due' => $dueAmount,
+                    'late_fee_collected' => $lateFee,
+                    'query_key_paid' => [
+                        'year' => $items->first()->fpp_year_no,
+                        'type' => 'monthly',
+                        'status' => 'paid',
+                        'date_from' => $items->min('fpp_due_date'),
+                        'date_to' => $items->max('fpp_due_date'),
+                    ],
+                    'query_key_unpaid' => [
+                        'year' => $items->first()->fpp_year_no,
+                        'type' => 'monthly',
+                        'status' => 'unpaid',
+                        'date_from' => $items->min('fpp_due_date'),
+                        'date_to' => $items->max('fpp_due_date'),
+                    ]
+                ];
+            })->values(); // Reset keys
+    
             return response()->json([
-                'code' => 400,
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Fee breakdown retrieved successfully',
+                'data' => [
+                    'one_time_fees' => [
+                        'total_amount' => $oneTimeFees->total_amount ?? 0,
+                        'fee_paid' => $oneTimeFees->fee_paid ?? 0,
+                        'fee_due' => $oneTimeFees->fee_due ?? 0,
+                        'late_fee_collected' => $oneTimeFees->late_fee_collected ?? 0,
+                        'query_key_paid' => [
+                            'year' => $currentAcademicYear,
+                            'type' => 'one_time',
+                            'status' => 'paid',
+                        ],
+                        'query_key_unpaid' => [
+                            'year' => $currentAcademicYear,
+                            'type' => 'one_time',
+                            'status' => 'unpaid',
+                        ],
+                    ],
+                    'admission_fees' => [
+                        'total_amount' => $admissionFees->total_amount ?? 0,
+                        'fee_paid' => $admissionFees->fee_paid ?? 0,
+                        'fee_due' => $admissionFees->fee_due ?? 0,
+                        'late_fee_collected' => $admissionFees->late_fee_collected ?? 0,
+                        'query_key_paid' => [
+                            'year' => $currentAcademicYear,
+                            'type' => 'admission',
+                            'status' => 'paid',
+                        ],
+                        'query_key_unpaid' => [
+                            'year' => $currentAcademicYear,
+                            'type' => 'admission',
+                            'status' => 'unpaid',
+                        ],
+                    ],
+                    'monthly_fees' => $formattedMonthlyFees,
+                ],
+            ], 200);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
                 'status' => 'error',
-                'message' => 'No active academic year found',
-            ], 400);
+                'message' => 'Failed to retrieve fee breakdown',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        // ✅ Fetch One-Time Fees (Non-Recurring)
-        $oneTimeFees = FeeModel::where('ay_id', $currentAcademicYear)
-            ->where('fp_recurring', '0')
-            ->selectRaw('SUM(fpp_amount) as total_amount, SUM(f_total_paid) as fee_paid, SUM(fpp_amount - f_total_paid) as fee_due, SUM(f_late_fee_paid) as late_fee_collected')
-            ->first();
-
-        // ✅ Fetch Admission Fees
-        $admissionFees = FeeModel::where('ay_id', $currentAcademicYear)
-            ->where('fp_main_admission_fee', '1')
-            ->where('f_active', '1')
-            ->selectRaw('SUM(fpp_amount) as total_amount, SUM(f_total_paid) as fee_paid, SUM(fpp_amount - f_total_paid) as fee_due, SUM(f_late_fee_paid) as late_fee_collected')
-            ->first();
-
-        // ✅ Fetch Monthly Fees (Grouped by Month)
-        $monthlyFees = FeeModel::where('ay_id', $currentAcademicYear)
-            ->where('fp_main_monthly_fee', '1')
-            ->where('fp_recurring', '1')
-            ->where('f_active', '1')
-            ->groupBy('fpp_month_no')
-            ->orderBy('fpp_month_no')
-            ->selectRaw('fpp_month_no, SUM(fpp_amount) as total_amount, SUM(f_total_paid) as fee_paid, SUM(fpp_amount - f_total_paid) as fee_due, SUM(f_late_fee_paid) as late_fee_collected')
-            ->get();
-
-        // ✅ Format Response
-        return response()->json([
-            'code'=>200,
-            'status' => 'success',
-            'message' => 'Fee breakdown retrieved successfully',
-            'data' => [
-                'one_time_fees' => [
-                    'total_amount' => $oneTimeFees->total_amount ?? 0,
-                    'fee_paid' => $oneTimeFees->fee_paid ?? 0,
-                    'fee_due' => $oneTimeFees->fee_due ?? 0,
-                    'late_fee_collected' => $oneTimeFees->late_fee_collected ?? 0,
-                ],
-                'admission_fees' => [
-                    'total_amount' => $admissionFees->total_amount ?? 0,
-                    'fee_paid' => $admissionFees->fee_paid ?? 0,
-                    'fee_due' => $admissionFees->fee_due ?? 0,
-                    'late_fee_collected' => $admissionFees->late_fee_collected ?? 0,
-                ],
-                'monthly_fees' => $monthlyFees->map(function ($month) use ($month_no) {
-                    return [
-                        'month_no' => $month->fpp_month_no,
-                        'month_name'=>$month_no[$month->fpp_month_no],
-                        'total_amount' => $month->total_amount,
-                        'fee_paid' => $month->fee_paid,
-                        'fee_due' => $month->fee_due,
-                        'late_fee_collected' => $month->late_fee_collected,
-                    ];
-                }),
-            ],
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'code'=>500,
-            'status' => 'error',
-            'message' => 'Failed to retrieve fee breakdown',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
 }
