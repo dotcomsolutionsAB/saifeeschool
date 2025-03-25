@@ -643,7 +643,7 @@ public function export(Request $request)
             $limit  = $validated['limit'] ?? 10;
     
             // ✅ Fetch Transactions for the Given Student (`st_id`)
-            $transactionsQuery = DB::table('t_txns as txn')
+            $base = DB::table('t_txns as txn')
                 ->join('t_students as stu', 'txn.st_id', '=', 'stu.id')
                 ->leftJoin('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
                 ->leftJoin('t_class_groups as cg', 'sc.cg_id', '=', 'cg.id')
@@ -670,8 +670,13 @@ public function export(Request $request)
                 ->limit($limit);
     
             // ✅ Fetch Data
-            $total_count = $transactionsQuery->count();
-            $transactions = $transactionsQuery->get();
+            $total_count = $base->count();
+            $transactions = $base
+            ->orderBy('txn.txn_date', 'desc')
+            ->offset($offset)
+            ->limit($limit)
+            ->get();
+
     
             // ✅ Return JSON Response
             return response()->json([
