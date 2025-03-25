@@ -75,6 +75,7 @@ class AuthController extends Controller
                     'name' => $user->name,
                     'role' => $user->role,
                     'ay_id' => $current_year_id,
+                    'ay_name'=>$year_name,
                 ],
             ], 200);
         }
