@@ -33,7 +33,7 @@ class AuthController extends Controller
                 ->first();
     
             $current_year_id = $get_current_year->id ?? 1;
-            $year_name=$get_current_year->ay_name??'NA';
+            $year_name=$get_current_year->ay_name;
     
             // ✅ If the user's role is "student", fetch `st_id` from `t_students`
             if ($user->role === 'student') {
