@@ -1599,11 +1599,7 @@ class StudentController extends Controller
         ]);
     }
 
-    private function writeToStatusFile($message)
-    {
-        $statusFile = storage_path("app/public/exports_status.txt");
-        file_put_contents($statusFile, $message . PHP_EOL, FILE_APPEND);
-    }
+    
     
     private function exportPdf(array $data)
     {
