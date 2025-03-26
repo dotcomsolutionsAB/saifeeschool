@@ -884,6 +884,7 @@ class FeeController extends Controller
         // Validate request input
         $validated = $request->validate([
             'search'    => 'nullable|string|max:255', // Search by Roll No or Name
+            'fpp_id'    => 'nullable|string',
             'cg_id'     => 'nullable|string', // Class ID (comma-separated)
             'status'    => 'nullable|in:paid,unpaid', // Payment Status filter
             'year'      => 'nullable|integer', // Academic Year filter
@@ -909,6 +910,7 @@ class FeeController extends Controller
         fees.fpp_name AS fee_name,
         fees.fpp_amount AS base_amount,
         fees.fpp_due_date AS due_date,
+        
         IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, '0') AS late_fee,
         fees.f_concession AS concession,
         (fees.fpp_amount + IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, 0) - IFNULL(fees.f_concession, 0)) AS total_amount,
@@ -931,6 +933,10 @@ class FeeController extends Controller
             $cgIds = explode(',', $validated['cg_id']);
             $query->whereIn('fees.cg_id', $cgIds);
         }
+        if (!empty($validated['cg_id'])) {
+            $fppIds = explode(',', $validated['fpp_id']);
+            $query->whereIn('fees.fpp_id', $fppIds);
+        }
 
         // **Filter by Payment Status**
         if (!empty($validated['status'])) {
@@ -941,6 +947,7 @@ class FeeController extends Controller
         if (!empty($validated['year'])) {
             $query->where('fees.fpp_year_no', $validated['year']);
         }
+       
 
         // **Filter by Date Range**
         if (!empty($validated['date_from'])) {
@@ -1237,7 +1244,7 @@ public function getOneTimeFeePlans(Request $request)
         $feePlans = DB::table('t_fee_plans')
             ->where('fp_recurring', '0')
             ->where('ay_id', $validated['ay_id'])
-            ->select('id', 'fp_name')
+            ->select('id as fpp_id', 'fp_name')
             ->orderBy('id', 'desc')
             ->get();
 
