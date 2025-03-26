@@ -911,6 +911,7 @@ class FeeController extends Controller
         fees.fpp_amount AS base_amount,
         fees.fpp_due_date AS due_date,
         fees.cg_id as cg_id,
+        
 
         IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, '0') AS late_fee,
         fees.f_concession AS concession,
@@ -993,6 +994,7 @@ class FeeController extends Controller
                 'Name' => $transaction->student_name,
                 'Roll No' => $transaction->st_roll_no,
                 'Fee Name' => $transaction->fee_name,
+                'Class Id'=> $transaction->cg_id,
                 'Base Amount' => (string) $transaction->base_amount,
                 'Due Date' => $transaction->due_date,
                 'Late Fee' => (string) $transaction->late_fee,
