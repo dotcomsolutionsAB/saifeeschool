@@ -945,7 +945,7 @@ class FeeController extends Controller
 
         // **Filter by Academic Year**
         if (!empty($validated['ay_id'])) {
-            $query->where('fees.ay_id', $validated['year']);
+            $query->where('fees.ay_id', $validated['ay_ids']);
         }
        
 
