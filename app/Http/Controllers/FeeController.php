@@ -887,7 +887,7 @@ class FeeController extends Controller
             'fpp_id'    => 'nullable|string',
             'cg_id'     => 'nullable|string', // Class ID (comma-separated)
             'status'    => 'nullable|in:paid,unpaid', // Payment Status filter
-            'year'      => 'nullable|integer', // Academic Year filter
+            'ay_id'      => 'nullable|integer', // Academic Year filter
             'date_from' => 'nullable|date', // Start date filter
             'date_to'   => 'nullable|date|after_or_equal:date_from', // End date filter
             'type'      => 'nullable|in:monthly,admission,one_time,recurring', // Fee Type filter
@@ -910,7 +910,7 @@ class FeeController extends Controller
         fees.fpp_name AS fee_name,
         fees.fpp_amount AS base_amount,
         fees.fpp_due_date AS due_date,
-        
+
         IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, '0') AS late_fee,
         fees.f_concession AS concession,
         (fees.fpp_amount + IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, 0) - IFNULL(fees.f_concession, 0)) AS total_amount,
@@ -933,7 +933,7 @@ class FeeController extends Controller
             $cgIds = explode(',', $validated['cg_id']);
             $query->whereIn('fees.cg_id', $cgIds);
         }
-        if (!empty($validated['cg_id'])) {
+        if (!empty($validated['fpp_ids'])) {
             $fppIds = explode(',', $validated['fpp_id']);
             $query->whereIn('fees.fpp_id', $fppIds);
         }
@@ -944,8 +944,8 @@ class FeeController extends Controller
         }
 
         // **Filter by Academic Year**
-        if (!empty($validated['year'])) {
-            $query->where('fees.fpp_year_no', $validated['year']);
+        if (!empty($validated['ay_id'])) {
+            $query->where('fees.ay_id', $validated['year']);
         }
        
 
