@@ -910,6 +910,7 @@ class FeeController extends Controller
         fees.fpp_name AS fee_name,
         fees.fpp_amount AS base_amount,
         fees.fpp_due_date AS due_date,
+        fee.cg_id as cg_id,
 
         IF(fees.f_late_fee_applicable = '1', fees.fpp_late_fee, '0') AS late_fee,
         fees.f_concession AS concession,
@@ -933,7 +934,7 @@ class FeeController extends Controller
             $cgIds = explode(',', $validated['cg_id']);
             $query->whereIn('fees.cg_id', $cgIds);
         }
-        if (!empty($validated['fpp_ids'])) {
+        if (!empty($validated['fpp_id'])) {
             $fppIds = explode(',', $validated['fpp_id']);
             $query->whereIn('fees.fpp_id', $fppIds);
         }
