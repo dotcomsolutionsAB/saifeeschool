@@ -665,9 +665,8 @@ public function export(Request $request)
                     COALESCE(f.fpp_name, 'Payment from student') AS narration
                 ")
                 ->where('txn.st_id', $validated['st_id'])
-                ->orderBy('txn.txn_date', 'desc') // ✅ Sort by latest first
-                ->offset($offset)
-                ->limit($limit);
+                ->orderBy('txn.txn_date', 'desc'); // ✅ Sort by latest first
+                
     
             // ✅ Fetch Data
             $total_count = $base->count();

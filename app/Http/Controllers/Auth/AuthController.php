@@ -28,12 +28,12 @@ class AuthController extends Controller
     
             // ✅ Get Current Academic Year
             $get_current_year = DB::table('t_academic_years')
-                ->select('id')
+                ->select('id','ay_name')
                 ->where('ay_current', 1)
                 ->first();
     
             $current_year_id = $get_current_year->id ?? 1;
-            $year_name=$get_current_year->ay_name;
+            $year_name=$get_current_year->ay_name??'NA';
     
             // ✅ If the user's role is "student", fetch `st_id` from `t_students`
             if ($user->role === 'student') {
