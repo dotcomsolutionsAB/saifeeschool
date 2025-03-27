@@ -176,7 +176,7 @@ class PaymentController extends Controller
     $aes_key = "1400012719005020";
 
     // Test Data
-    $ref_no = "1234";
+    $ref_no = random_int(100000, 999999);
     $sub_merchant_id = "11";
     $amount = "1000";
     $return_url = "https://saifeeschool.dotcombusiness.in/api/fee/confirmation";
@@ -221,63 +221,67 @@ class PaymentController extends Controller
 public function feeConfirmation(Request $request)
 {
     try {
-        // Save all fields in t_pg_responses table
-        $data = $request->only([
-            'response_code',
-            'unique_ref_number',
-            'transaction_date',
-            'transaction_time',
-            'total_amount',
-            'interchange_value',
-            'tdr',
-            'payment_mode',
-            'submerchant_id',
-            'reference_no',
-            'id', // ICID
-            'rs',
-            'tps',
-            'mandatory_fields',
-            'optional_fields',
-            'rsv'
-        ]);
+        // ✅ Extract all incoming data
+        $response = $request->all();
 
-        // Optional: Rename 'id' to 'icid' if needed
-        $data['icid'] = $data['id'] ?? null;
-        unset($data['id']);
+        // ✅ Required fields check
+        $requiredFields = ['ReferenceNo', 'SubMerchantId', 'ID', 'RS', 'mandatory fields', 'rsv', 'Total Amount', 'Transaction Date'];
+        foreach ($requiredFields as $field) {
+            if (!isset($response[$field])) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => false,
+                    'message' => "Missing required field: $field"
+                ]);
+            }
+        }
 
-        $data['created_at'] = now();
-        $data['updated_at'] = now();
+        // ✅ Parse transaction date and time safely
+        $transactionDateTime = \DateTime::createFromFormat('d-m-Y H:i:s', $response['Transaction Date']);
+        if (!$transactionDateTime) {
+            return response()->json([
+                'code' => 422,
+                'status' => false,
+                'message' => 'Invalid transaction date format. Expected: d-m-Y H:i:s'
+            ]);
+        }
 
-        DB::table('t_pg_responses')->insert([
-            'response_code' => $request->input('response_code'),
-            'unique_ref_number' => $request->input('unique_ref_number'),
-            'transaction_date' => Carbon::createFromFormat('d-m-Y H:i:s', $request->input('transaction_date'))->format('Y-m-d H:i:s'),
-            'total_amount' => $request->input('total_amount'),
-            'interchange_value' => $request->input('interchange_value'),
-            'tdr' => $request->input('tdr'),
-            'payment_mode' => $request->input('payment_mode'),
-            'submerchant_id' => $request->input('submerchant_id'),
-            'reference_no' => $request->input('reference_no'),
-            'rs' => $request->input('rs'),
-            'tps' => $request->input('tps'),
-            'mandatory_fields' => $request->input('mandatory_fields'),
-            'optional_fields' => $request->input('optional_fields'),
-            'rsv' => $request->input('rsv'),
-            'icid' => $request->input('icid'),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // ✅ Extract values
+        $data = [
+            'response_code'     => $response['Response Code'] ?? null,
+            'unique_ref_number' => $response['Unique Ref Number'] ?? null,
+            'transaction_date'  => $transactionDateTime->format('Y-m-d H:i:s'),
+            'transaction_time'  => $transactionDateTime->format('H:i:s'),
+            'total_amount'      => $response['Total Amount'] ?? null,
+            'interchange_value' => $response['Interchange Value'] ?? null,
+            'tdr'               => $response['TDR'] ?? null,
+            'payment_mode'      => $response['Payment Mode'] ?? '',
+            'submerchant_id'    => $response['SubMerchantId'],
+            'reference_no'      => $response['ReferenceNo'],
+            'icid'              => $response['ID'],
+            'rs'                => $response['RS'],
+            'tps'               => $response['TPS'] ?? null,
+            'mandatory_fields'  => $response['mandatory fields'],
+            'optional_fields'   => $response['optional fields'] ?? null,
+            'rsv'               => $response['RSV'],
+            'created_at'        => now(),
+            'updated_at'        => now(),
+        ];
+
+        // ✅ Save to t_pg_responses
+        DB::table('t_pg_responses')->insert($data);
+
         return response()->json([
             'code' => 200,
             'status' => true,
-            'message' => 'Payment response recorded successfully.',
+            'message' => 'Payment response saved successfully.'
         ]);
     } catch (\Exception $e) {
         return response()->json([
             'code' => 500,
             'status' => false,
             'message' => 'Failed to save payment response.',
-            'error' => $e->getMessage(),
+            'error' => $e->getMessage()
         ]);
     }
 }
