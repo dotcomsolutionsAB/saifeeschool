@@ -217,4 +217,50 @@ class PaymentController extends Controller
         'encrypted_values' => $encrypted
     ]);
 }
+public function feeConfirmation(Request $request)
+{
+    try {
+        // Save all fields in t_pg_responses table
+        $data = $request->only([
+            'response_code',
+            'unique_ref_number',
+            'transaction_date',
+            'transaction_time',
+            'total_amount',
+            'interchange_value',
+            'tdr',
+            'payment_mode',
+            'submerchant_id',
+            'reference_no',
+            'id', // ICID
+            'rs',
+            'tps',
+            'mandatory_fields',
+            'optional_fields',
+            'rsv'
+        ]);
+
+        // Optional: Rename 'id' to 'icid' if needed
+        $data['icid'] = $data['id'] ?? null;
+        unset($data['id']);
+
+        $data['created_at'] = now();
+        $data['updated_at'] = now();
+
+        DB::table('t_pg_responses')->insert($data);
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Payment response recorded successfully.',
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'Failed to save payment response.',
+            'error' => $e->getMessage(),
+        ]);
+    }
+}
 }
