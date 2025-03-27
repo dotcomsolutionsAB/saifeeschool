@@ -169,4 +169,52 @@ class PaymentController extends Controller
             'transaction' => $transaction,
         ]);
     }
+    public function testEazypayEncryption()
+{
+    $merchant_id = "141909";
+    $aes_key = "1400012719005020";
+
+    // Test Data
+    $ref_no = "123456";
+    $sub_merchant_id = "11";
+    $amount = "100";
+    $return_url = "https://new.saifeeschool.in/api/payment_confirmation";
+    $paymode = "9";
+    $mandatory_fields = "{$ref_no}|{$sub_merchant_id}|{$amount}";
+    $optional_fields = "";
+
+    // Encrypt Each Parameter
+    $encrypt = function ($value) use ($aes_key) {
+        return base64_encode(openssl_encrypt($value, "aes-128-ecb", $aes_key, OPENSSL_RAW_DATA));
+    };
+
+    $encrypted = [
+        'mandatory_fields' => $encrypt($mandatory_fields),
+        'optional_fields'  => $encrypt($optional_fields),
+        'return_url'       => $encrypt($return_url),
+        'reference_no'     => $encrypt($ref_no),
+        'sub_merchant_id'  => $encrypt($sub_merchant_id),
+        'transaction_amount' => $encrypt($amount),
+        'paymode'          => $encrypt($paymode),
+    ];
+
+    // Assemble URL
+    $payment_url = "https://eazypayuat.icicibank.com/EazyPG?merchantid={$merchant_id}"
+        . "&mandatory fields={$encrypted['mandatory_fields']}"
+        . "&optional fields={$encrypted['optional_fields']}"
+        . "&returnurl={$encrypted['return_url']}"
+        . "&Reference No={$encrypted['reference_no']}"
+        . "&submerchantid={$encrypted['sub_merchant_id']}"
+        . "&transaction amount={$encrypted['transaction_amount']}"
+        . "&paymode={$encrypted['paymode']}";
+
+    // Return for Debugging
+    return response()->json([
+        'code' => 200,
+        'status' => true,
+        'message' => 'Test EazyPay Encrypted URL Generated',
+        'url' => $payment_url,
+        'encrypted_values' => $encrypted
+    ]);
+}
 }
