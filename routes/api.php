@@ -573,4 +573,7 @@ Route::prefix('transactions')->group(function () {
     Route::post('/fee/confirmation', [PaymentController::class, 'feeConfirmation']);
 
     });
+    Route::post('/test-fees', [PaymentController::class, 'testEazypayEncryption']);
+    //testEazypayEncryption
+    Route::post('/fee/confirmation', [PaymentController::class, 'feeConfirmation']);
 
