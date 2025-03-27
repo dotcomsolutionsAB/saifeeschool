@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
@@ -178,7 +179,7 @@ class PaymentController extends Controller
     $ref_no = "123456";
     $sub_merchant_id = "11";
     $amount = "100";
-    $return_url = "https://new.saifeeschool.in/api/payment_confirmation";
+    $return_url = "https://saifeeschool.dotcombusiness.in/api/fee/confirmation";
     $paymode = "9";
     $mandatory_fields = "{$ref_no}|{$sub_merchant_id}|{$amount}";
     $optional_fields = "";
@@ -247,8 +248,25 @@ public function feeConfirmation(Request $request)
         $data['created_at'] = now();
         $data['updated_at'] = now();
 
-        DB::table('t_pg_responses')->insert($data);
-
+        DB::table('t_pg_responses')->insert([
+            'response_code' => $request->input('response_code'),
+            'unique_ref_number' => $request->input('unique_ref_number'),
+            'transaction_date' => Carbon::createFromFormat('d-m-Y H:i:s', $request->input('transaction_date'))->format('Y-m-d H:i:s'),
+            'total_amount' => $request->input('total_amount'),
+            'interchange_value' => $request->input('interchange_value'),
+            'tdr' => $request->input('tdr'),
+            'payment_mode' => $request->input('payment_mode'),
+            'submerchant_id' => $request->input('submerchant_id'),
+            'reference_no' => $request->input('reference_no'),
+            'rs' => $request->input('rs'),
+            'tps' => $request->input('tps'),
+            'mandatory_fields' => $request->input('mandatory_fields'),
+            'optional_fields' => $request->input('optional_fields'),
+            'rsv' => $request->input('rsv'),
+            'icid' => $request->input('icid'),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
         return response()->json([
             'code' => 200,
             'status' => true,
