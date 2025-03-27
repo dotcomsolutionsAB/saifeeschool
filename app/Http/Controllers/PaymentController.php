@@ -176,9 +176,9 @@ class PaymentController extends Controller
     $aes_key = "1400012719005020";
 
     // Test Data
-    $ref_no = "1234567";
+    $ref_no = "1234567891";
     $sub_merchant_id = "11";
-    $amount = "100";
+    $amount = "1000";
     $return_url = "https://saifeeschool.dotcombusiness.in/api/fee/confirmation";
     $paymode = "9";
     $mandatory_fields = "{$ref_no}|{$sub_merchant_id}|{$amount}";
