@@ -221,61 +221,76 @@ class PaymentController extends Controller
 public function feeConfirmation(Request $request)
 {
     try {
-        // ✅ Extract all incoming data
-        $response = $request->all();
+        // Manually extract and sanitize form-urlencoded keys
+        $response = [
+            'response_code'       => $request->input('Response Code'),
+            'unique_ref_number'   => $request->input('Unique Ref Number'),
+            'transaction_datetime'=> $request->input('Transaction Date'), // needs parsing
+            'total_amount'        => $request->input('Total Amount'),
+            'interchange_value'   => $request->input('Interchange Value'),
+            'tdr'                 => $request->input('TDR'),
+            'payment_mode'        => $request->input('Payment Mode'),
+            'submerchant_id'      => $request->input('SubMerchantId'),
+            'reference_no'        => $request->input('ReferenceNo'),
+            'icid'                => $request->input('ID'),
+            'rs'                  => $request->input('RS'),
+            'tps'                 => $request->input('TPS'),
+            'mandatory_fields'    => $request->input('mandatory fields'),
+            'optional_fields'     => $request->input('optional fields'),
+            'rsv'                 => $request->input('RSV'),
+        ];
 
-        // ✅ Required fields check
-        $requiredFields = ['ReferenceNo', 'SubMerchantId', 'ID', 'RS', 'mandatory fields', 'rsv', 'Total Amount', 'Transaction Date'];
-        foreach ($requiredFields as $field) {
-            if (!isset($response[$field])) {
-                return response()->json([
-                    'code' => 400,
-                    'status' => false,
-                    'message' => "Missing required field: $field"
-                ]);
-            }
-        }
-
-        // ✅ Parse transaction date and time safely
-        $transactionDateTime = \DateTime::createFromFormat('d-m-Y H:i:s', $response['Transaction Date']);
-        if (!$transactionDateTime) {
+        // Validate required fields
+        if (empty($response['mandatory_fields'])) {
             return response()->json([
-                'code' => 422,
+                'code' => 400,
                 'status' => false,
-                'message' => 'Invalid transaction date format. Expected: d-m-Y H:i:s'
+                'message' => 'Missing required field: mandatory fields'
             ]);
         }
 
-        // ✅ Extract values
-        $data = [
-            'response_code'     => $response['Response Code'] ?? null,
-            'unique_ref_number' => $response['Unique Ref Number'] ?? null,
-            'transaction_date'  => $transactionDateTime->format('Y-m-d H:i:s'),
-            'transaction_time'  => $transactionDateTime->format('H:i:s'),
-            'total_amount'      => $response['Total Amount'] ?? null,
-            'interchange_value' => $response['Interchange Value'] ?? null,
-            'tdr'               => $response['TDR'] ?? null,
-            'payment_mode'      => $response['Payment Mode'] ?? '',
-            'submerchant_id'    => $response['SubMerchantId'],
-            'reference_no'      => $response['ReferenceNo'],
-            'icid'              => $response['ID'],
-            'rs'                => $response['RS'],
-            'tps'               => $response['TPS'] ?? null,
-            'mandatory_fields'  => $response['mandatory fields'],
-            'optional_fields'   => $response['optional fields'] ?? null,
-            'rsv'               => $response['RSV'],
+        // Parse the transaction date (dd-mm-yyyy hh:ii:ss to Y-m-d H:i:s)
+        $response['transaction_date'] = null;
+        $response['transaction_time'] = null;
+        if (!empty($response['transaction_datetime'])) {
+            $dt = \DateTime::createFromFormat('d-m-Y H:i:s', $response['transaction_datetime']);
+            if ($dt) {
+                $response['transaction_date'] = $dt->format('Y-m-d');
+                $response['transaction_time'] = $dt->format('H:i:s');
+            }
+        }
+
+        // Remove unneeded key before insert
+        unset($response['transaction_datetime']);
+
+        // Save to `t_pg_responses` table
+        DB::table('t_pg_responses')->insert([
+            'response_code'     => $response['response_code'],
+            'unique_ref_number' => $response['unique_ref_number'],
+            'transaction_date'  => $response['transaction_date'],
+            'transaction_time'  => $response['transaction_time'],
+            'total_amount'      => $response['total_amount'],
+            'interchange_value' => $response['interchange_value'],
+            'tdr'               => $response['tdr'],
+            'payment_mode'      => $response['payment_mode'],
+            'submerchant_id'    => $response['submerchant_id'],
+            'reference_no'      => $response['reference_no'],
+            'icid'              => $response['icid'],
+            'rs'                => $response['rs'],
+            'tps'               => $response['tps'],
+            'mandatory_fields'  => $response['mandatory_fields'],
+            'optional_fields'   => $response['optional_fields'],
+            'rsv'               => $response['rsv'],
             'created_at'        => now(),
             'updated_at'        => now(),
-        ];
-
-        // ✅ Save to t_pg_responses
-        DB::table('t_pg_responses')->insert($data);
+        ]);
 
         return response()->json([
             'code' => 200,
             'status' => true,
-            'message' => 'Payment response saved successfully.'
+            'message' => 'Payment response saved successfully',
         ]);
+
     } catch (\Exception $e) {
         return response()->json([
             'code' => 500,
