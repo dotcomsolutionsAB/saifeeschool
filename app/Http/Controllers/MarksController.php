@@ -10,6 +10,7 @@ use League\Csv\Statement;
 use App\Models\MarksModel;
 use App\Models\AcademicYearModel;
 use App\Models\ClassGroupModel;
+use Mpdf\Mpdf;
 
 class MarksController extends Controller
 {
