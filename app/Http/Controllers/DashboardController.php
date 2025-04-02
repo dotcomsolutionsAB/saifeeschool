@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\TeacherModel;
 use App\Models\StudentModel;
 use App\Models\FeeModel;
+use App\Models\AcademicYearModel;
 
 class DashboardController extends Controller
 {
@@ -20,6 +21,7 @@ class DashboardController extends Controller
 
         // ✅ Get the selected academic year ID
         $currentAcademicYear = $validated['ay_id'];
+        $academicYear = AcademicYearModel::find($currentAcademicYear);
 
         // ✅ Get current month and year
         $currentMonth = now()->month;
@@ -72,17 +74,11 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
                     'amount' => $totalUnpaidAmount,
                     'query_key' => [
                         'year' => $currentAcademicYear,
+                        'ay_name' => $academicYear->ay_name,
                         'status' => 'unpaid'
                     ]
                 ],
-                'total_late_fees_paid' => [
-                    'amount' => $totalLateFeesPaid,
-                    'query_key' => [
-                        'year' => $currentAcademicYear,
-                        'status' => 'paid',
-                        'late_fee' => true
-                    ]
-                ],
+               
                 'current_month_unpaid_fees' => [
                     'amount' => $currentMonthUnpaidAmount,
                     'query_key' => [
@@ -90,7 +86,7 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
                         'month_no' => $currentMonth,
                         'status' => 'unpaid',
                         'date_from' => $currentMonthStart,
-        'date_to' => $currentMonthEnd,
+                        'date_to' => $currentMonthEnd,
     
                     ]
                 ],

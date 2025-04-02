@@ -985,8 +985,8 @@ class FeeController extends Controller
             $transactions = $query->offset($offset)->limit($limit)->get();
 
             // **Calculate Total Due & Total Paid Amount for the Current Page**
-            $totalDueAmount = $transactions->where('payment_status', '0')->sum('total_amount');  // Unpaid fees
-            $totalPaidAmount = $transactions->where('payment_status', '1')->sum('total_amount'); // Paid fees
+            $totalDueAmount = (clone $query)->where('payment_status', '0')->sum('total_amount');  // Unpaid fees
+            $totalPaidAmount = (clone $query)->where('payment_status', '1')->sum('total_amount'); // Paid fees
 
             // **Format Response**
             $formattedTransactions = $transactions->map(function ($transaction, $index) use ($offset) {
