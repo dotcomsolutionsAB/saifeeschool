@@ -477,4 +477,136 @@ class MarksController extends Controller
             ], 500);
         }
     }
+    public function exportTabulation(Request $request)
+{
+    $validated = $request->validate([
+        'type' => 'required|in:pdf,excel',
+        'ay_id' => 'required|integer|exists:t_academic_years,id',
+        'cg_id' => 'required|integer|exists:t_class_groups,id',
+        'term' => 'required|integer',
+    ]);
+
+    try {
+        $ay_id = $validated['ay_id'];
+        $cg_id = $validated['cg_id'];
+        $term = $validated['term'];
+
+        // ✅ Fetch class and year info
+        $class = DB::table('t_class_groups')->where('id', $cg_id)->first();
+        $year = DB::table('t_academic_years')->where('id', $ay_id)->first();
+
+        // ✅ Fetch subjects
+        $subjectsRaw = DB::table('t_subjectFM as sfm')
+            ->join('t_subjects as subj', 'sfm.subj_id', '=', 'subj.id')
+            ->where('sfm.cg_id', $cg_id)
+            ->where('sfm.term', $term)
+            ->select('subj.id as subject_id', 'subj.subj_name', 'sfm.type', 'sfm.prac', 'sfm.marks')
+            ->orderBy('subj.serial')
+            ->get();
+
+        $subjects = [];
+        foreach ($subjectsRaw as $subj) {
+            $subjects[] = [
+                'subject_id' => $subj->subject_id,
+                'subject_name' => $subj->subj_name,
+                'type' => $subj->type,
+                'marks' => $subj->marks,
+                'category' => 'Theory'
+            ];
+            if ($subj->prac) {
+                $subjects[] = [
+                    'subject_id' => $subj->subject_id,
+                    'subject_name' => $subj->subj_name,
+                    'type' => $subj->type,
+                    'marks' => $subj->prac,
+                    'category' => 'Practical'
+                ];
+            }
+        }
+
+        // ✅ Fetch students and marks
+        $students = DB::table('t_students as stu')
+            ->join('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
+            ->where('sc.cg_id', $cg_id)
+            ->select('stu.id as st_id', 'stu.st_roll_no', 'stu.st_first_name', 'stu.st_last_name')
+            ->orderBy('stu.st_first_name')
+            ->get();
+
+        $marksRaw = DB::table('t_marks')
+            ->where('cg_id', $cg_id)
+            ->where('term', $term)
+            ->get();
+
+        $marks = [];
+        foreach ($marksRaw as $mark) {
+            $marks[$mark->st_id][$mark->subj_id] = [
+                'marks' => $mark->marks,
+                'prac' => $mark->prac
+            ];
+        }
+
+        $data = [
+            'year' => $year->year,
+            'class' => $class->cg_name,
+            'subjects' => $subjects,
+            'students' => $students,
+            'marks' => $marks,
+        ];
+
+        return $validated['type'] === 'pdf' ?
+            $this->exportTabulationPdf($data) :
+            $this->exportTabulationExcel($data);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'Failed to export tabulation.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+private function exportTabulationPdf(array $data)
+{
+    $mpdf = new \Mpdf\Mpdf([
+        'mode' => 'utf-8',
+        'format' => 'A4-L',
+        'margin_top' => 15,
+        'margin_bottom' => 15,
+        'margin_left' => 10,
+        'margin_right' => 10,
+    ]);
+
+    $html = view('exports.tabulation_pdf', $data)->render();
+    $mpdf->WriteHTML($html);
+
+    $filename = 'Tabulation_' . now()->format('Ymd_His') . '.pdf';
+    $filePath = storage_path("app/public/exports/$filename");
+    $mpdf->Output($filePath, \Mpdf\Output\Destination::FILE);
+
+    return response()->json([
+        'code' => 200,
+        'status' => true,
+        'file_url' => url("storage/exports/$filename"),
+        'file_name' => $filename,
+        'type' => 'pdf',
+    ]);
+}
+private function exportTabulationExcel(array $data)
+{
+    $filename = 'Tabulation_' . now()->format('Ymd_His') . '.xlsx';
+    \Maatwebsite\Excel\Facades\Excel::store(
+        new \App\Exports\TabulationExport($data),
+        "exports/{$filename}",
+        'public'
+    );
+
+    return response()->json([
+        'code' => 200,
+        'status' => true,
+        'file_url' => url("storage/exports/$filename"),
+        'file_name' => $filename,
+        'type' => 'excel',
+    ]);
+}
 }

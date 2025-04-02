@@ -364,6 +364,9 @@ Route::middleware(['auth:sanctum', 'check-timeout'])->group(function () {
     
         Route::get('/import', [MarksController::class, 'importCsv'])
                 ->middleware(['check-api-permission:report.full']); 
+                
+                Route::post('/export', [MarksController::class, 'exportTabulation'])
+                ->middleware(['check-api-permission:report.full']);         // Add a new Marks (Admin only)
     });
 
     Route::prefix('counter')->group(function () {
