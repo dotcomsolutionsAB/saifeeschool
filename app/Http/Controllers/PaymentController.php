@@ -222,23 +222,25 @@ public function feeConfirmation(Request $request)
 {
     try {
         // Manually extract and sanitize form-urlencoded keys
+        $rawInput = $request->all();
         $response = [
-            'response_code'       => $request->input('Response Code'),
-            'unique_ref_number'   => $request->input('Unique Ref Number'),
-            'transaction_datetime'=> $request->input('Transaction Date'), // needs parsing
-            'total_amount'        => $request->input('Total Amount'),
-            'interchange_value'   => $request->input('Interchange Value'),
-            'tdr'                 => $request->input('TDR'),
-            'payment_mode'        => $request->input('Payment Mode'),
-            'submerchant_id'      => $request->input('SubMerchantId'),
-            'reference_no'        => $request->input('ReferenceNo'),
-            'icid'                => $request->input('ID'),
-            'rs'                  => $request->input('RS'),
-            'tps'                 => $request->input('TPS'),
-            'mandatory_fields'    => $request->input('mandatory fields'),
-            'optional_fields'     => $request->input('optional fields'),
-            'rsv'                 => $request->input('RSV'),
+            'response_code'       => $rawInput['Response Code'] ?? null,
+            'unique_ref_number'   => $rawInput['Unique Ref Number'] ?? null,
+            'transaction_datetime'=> $rawInput['Transaction Date'] ?? null,
+            'total_amount'        => $rawInput['Total Amount'] ?? null,
+            'interchange_value'   => $rawInput['Interchange Value'] ?? null,
+            'tdr'                 => $rawInput['TDR'] ?? null,
+            'payment_mode'        => $rawInput['Payment Mode'] ?? null,
+            'submerchant_id'      => $rawInput['SubMerchantId'] ?? null,
+            'reference_no'        => $rawInput['ReferenceNo'] ?? null,
+            'icid'                => $rawInput['ID'] ?? null,
+            'rs'                  => $rawInput['RS'] ?? null,
+            'tps'                 => $rawInput['TPS'] ?? null,
+            'mandatory_fields'    => $rawInput['mandatory fields'] ?? null,
+            'optional_fields'     => $rawInput['optional fields'] ?? null,
+            'rsv'                 => $rawInput['RSV'] ?? null,
         ];
+        
 
         // Validate required fields
         if (empty($response['mandatory_fields'])) {
