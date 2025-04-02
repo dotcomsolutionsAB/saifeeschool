@@ -546,7 +546,7 @@ class MarksController extends Controller
         }
 
         $data = [
-            'year' => $year->year,
+            'year' => $year->ay_name,
             'class' => $class->cg_name,
             'subjects' => $subjects,
             'students' => $students,
