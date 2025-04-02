@@ -221,29 +221,25 @@ class PaymentController extends Controller
 public function feeConfirmation(Request $request)
 {
     try {
-        // Manually extract and sanitize form-urlencoded keys
-        $raw = file_get_contents('php://input');
-
-        // Parse it manually
-        parse_str($raw, $rawInput); // turns query string into array
-
-        $response = [
-            'response_code'       => $request->get('Response Code'),
-            'unique_ref_number'   => $request->get('Unique Ref Number'),
-            'transaction_datetime'=> $request->get('Transaction Date'),
-            'total_amount'        => $request->get('Total Amount'),
-            'interchange_value'   => $request->get('Interchange Value'),
-            'tdr'                 => $request->get('TDR'),
-            'payment_mode'        => $request->get('Payment Mode'),
-            'submerchant_id'      => $request->get('SubMerchantId'),
-            'reference_no'        => $request->get('ReferenceNo'),
-            'icid'                => $request->get('ID'),
-            'rs'                  => $request->get('RS'),
-            'tps'                 => $request->get('TPS'),
-            'mandatory_fields'    => $request->get('mandatory fields'),
-            'optional_fields'     => $request->get('optional fields'),
-            'rsv'                 => $request->get('RSV'),
-        ];
+        try {
+            $response = [
+                'response_code'       => $request->get('Response Code'),
+                'unique_ref_number'   => $request->get('Unique Ref Number'),
+                'transaction_datetime'=> $request->get('Transaction Date'),
+                'total_amount'        => $request->get('Total Amount'),
+                'interchange_value'   => $request->get('Interchange Value'),
+                'tdr'                 => $request->get('TDR'),
+                'payment_mode'        => $request->get('Payment Mode'),
+                'submerchant_id'      => $request->get('SubMerchantId'),
+                'reference_no'        => $request->get('ReferenceNo'),
+                'icid'                => $request->get('ID'),
+                'rs'                  => $request->get('RS'),
+                'tps'                 => $request->get('TPS'),
+                'mandatory_fields'    => $request->get('mandatory fields'),
+                'optional_fields'     => $request->get('optional fields'),
+                'rsv'                 => $request->get('RSV'),
+            ];
+    
 
 
         // Validate required fields
