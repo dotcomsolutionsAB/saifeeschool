@@ -607,10 +607,9 @@ private function exportTabulationPdf(array $data)
         'code' => 200,
         'status' => true,
         'message' => 'PDF Exported',
-        'data' => [
-            'file_url' => url("storage/{$directory}/{$filename}"),
-            'file_name' => $filename,
-        ]
+        'file_url' => url("storage/{$directory}/{$filename}"),
+        'file_name' => $filename,
+        
     ]);
 }
 private function exportTabulationExcel(array $data)

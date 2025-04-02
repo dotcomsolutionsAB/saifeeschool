@@ -222,7 +222,11 @@ public function feeConfirmation(Request $request)
 {
     try {
         // Manually extract and sanitize form-urlencoded keys
-        $rawInput = $request->all();
+        $raw = file_get_contents('php://input');
+
+        // Parse it manually
+        parse_str($raw, $rawInput); // turns query string into array
+
         $response = [
             'response_code'       => $rawInput['Response Code'] ?? null,
             'unique_ref_number'   => $rawInput['Unique Ref Number'] ?? null,
@@ -240,14 +244,15 @@ public function feeConfirmation(Request $request)
             'optional_fields'     => $rawInput['optional fields'] ?? null,
             'rsv'                 => $rawInput['RSV'] ?? null,
         ];
-        
+
 
         // Validate required fields
         if (empty($response['mandatory_fields'])) {
             return response()->json([
                 'code' => 400,
                 'status' => false,
-                'message' => 'Missing required field: mandatory fields'
+                'message' => 'Missing required field: mandatory fields',
+                'data ' => $response
             ]);
         }
 
