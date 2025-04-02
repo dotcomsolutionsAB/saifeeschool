@@ -22,20 +22,21 @@ class TabulationExport implements FromArray, WithHeadings, WithTitle
         $marksData = $this->data['marks'];
 
         $rows = [];
+
         foreach ($students as $index => $student) {
             $row = [
-                'SN' => $index + 1,
-                'Roll No' => $student['roll_no'] ?? '',
-                'Name' => $student['name'] ?? '',
+                'SN'      => $index + 1,
+                'Roll No' => $student->roll_no ?? '',
+                'Name'    => $student->name ?? '',
             ];
 
             foreach ($subjects as $subject) {
-                $subjId = $subject['subject_id'];
-                $cat = $subject['category'] === 'Practical' ? 'prac' : 'marks';
+                $subjId = $subject->subject_id;
+                $cat = $subject->category === 'Practical' ? 'prac' : 'marks';
 
-                $value = $marksData[$student['st_id']][$subjId][$cat] ?? '';
+                $value = $marksData[$student->st_id][$subjId][$cat] ?? '';
 
-                $row[$subject['subject_name'] . ' (' . $subject['category'] . ')'] = $value;
+                $row[$subject->subject_name . ' (' . $subject->category . ')'] = $value;
             }
 
             $rows[] = $row;
@@ -48,13 +49,13 @@ class TabulationExport implements FromArray, WithHeadings, WithTitle
     {
         $headers = ['SN', 'Roll No', 'Name'];
         foreach ($this->data['subjects'] as $subject) {
-            $headers[] = $subject['subject_name'] . ' (' . $subject['category'] . ')';
+            $headers[] = $subject->subject_name . ' (' . $subject->category . ')';
         }
         return $headers;
     }
 
     public function title(): string
     {
-        return $this->data['class'] . ' - ' . $this->data['year'];
+        return ($this->data['class'] ?? 'Class') . ' - ' . ($this->data['year'] ?? 'Year');
     }
 }
