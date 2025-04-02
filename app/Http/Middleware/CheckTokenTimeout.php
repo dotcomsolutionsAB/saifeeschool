@@ -21,7 +21,7 @@ class CheckTokenTimeout
         $token = $request->user()->currentAccessToken();
 
         // Get the timeout duration (10 seconds for testing, change to 14400 for 4hrs)
-        $timeout = 10;
+        $timeout = 14400;
 
         // Get token from DB to access custom column `my_last_updated_at`
         $dbToken = PersonalAccessToken::find($token->id);
