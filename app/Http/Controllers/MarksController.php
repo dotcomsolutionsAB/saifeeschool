@@ -573,29 +573,64 @@ class MarksController extends Controller
 }
 private function exportTabulationPdf(array $data)
 {
-    $mpdf = new \Mpdf\Mpdf([
-        'mode' => 'utf-8',
-        'format' => 'A4-L',
-        'margin_top' => 15,
-        'margin_bottom' => 15,
-        'margin_left' => 10,
-        'margin_right' => 10,
-    ]);
+    ini_set('memory_limit', '1024M');
+    set_time_limit(600);
 
-    $html = view('exports.tabulation_pdf', $data)->render();
-    $mpdf->WriteHTML($html);
+    try {
+        $directory = "exports";
+        $storagePath = storage_path("app/public/{$directory}");
 
-    $filename = 'Tabulation_' . now()->format('Ymd_His') . '.pdf';
-    $filePath = storage_path("app/public/exports/$filename");
-    $mpdf->Output($filePath, \Mpdf\Output\Destination::FILE);
+        if (!is_dir($storagePath)) {
+            mkdir($storagePath, 0755, true);
+        }
 
-    return response()->json([
-        'code' => 200,
-        'status' => true,
-        'file_url' => url("storage/exports/$filename"),
-        'file_name' => $filename,
-        'type' => 'pdf',
-    ]);
+        $fileName = "Tabulation_" . now()->format('Y_m_d_H_i_s') . ".pdf";
+        $fullFilePath = "{$storagePath}/{$fileName}";
+
+        $mpdf = new \Mpdf\Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'L',
+            'margin_top' => 10,
+            'margin_bottom' => 10,
+            'margin_left' => 10,
+            'margin_right' => 10,
+            'tempDir' => storage_path('app/mpdf_temp'),
+        ]);
+
+        // ✅ Pass $data properly to view
+        $html = view('exports.tabulation_pdf', compact('data'))->render();
+        $mpdf->WriteHTML($html);
+        $mpdf->Output($fullFilePath, \Mpdf\Output\Destination::FILE);
+
+        if (!file_exists($fullFilePath)) {
+            return response()->json([
+                'code' => 500,
+                'status' => false,
+                'message' => 'PDF generation failed.',
+            ]);
+        }
+
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'PDF export successful.',
+            'data' => [
+                'file_url' => url("storage/exports/{$fileName}"),
+                'file_name' => $fileName,
+                'file_size' => filesize($fullFilePath),
+                'content_type' => 'application/pdf',
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'Failed to export tabulation.',
+            'error' => $e->getMessage(),
+        ]);
+    }
 }
 private function exportTabulationExcel(array $data)
 {
