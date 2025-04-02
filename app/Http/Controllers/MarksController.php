@@ -526,11 +526,15 @@ class MarksController extends Controller
 
         // ✅ Fetch students and marks
         $students = DB::table('t_students as stu')
-            ->join('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
-            ->where('sc.cg_id', $cg_id)
-            ->select('stu.id as st_id', 'stu.st_roll_no', 'stu.st_first_name', 'stu.st_last_name')
-            ->orderBy('stu.st_first_name')
-            ->get();
+        ->join('t_student_classes as sc', 'stu.id', '=', 'sc.st_id')
+        ->where('sc.cg_id', $cg_id)
+        ->select(
+            'stu.id as st_id',
+            'stu.st_roll_no as roll_no',
+            DB::raw("CONCAT(stu.st_first_name, ' ', stu.st_last_name) as name")
+        )
+        ->orderBy('stu.st_first_name')
+        ->get();
 
         $marksRaw = DB::table('t_marks')
             ->where('cg_id', $cg_id)

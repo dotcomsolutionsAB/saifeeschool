@@ -3,10 +3,11 @@
 namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithTitle;
 
-class TabulationExport implements FromArray, WithHeadings, WithTitle
+class TabulationExport implements FromArray, WithHeadings, WithTitle, WithEvents
 {
     protected $data;
 
@@ -59,5 +60,20 @@ class TabulationExport implements FromArray, WithHeadings, WithTitle
     public function title(): string
     {
         return ($this->data['class'] ?? 'Class') . ' - ' . ($this->data['year'] ?? 'Year');
+    }
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event) {
+                $subjectCount = count($this->data['subjects']);
+                $startColumn = 4; // A=1, B=2, C=3 => D=4 for subject headings
+
+                for ($i = 0; $i < $subjectCount; $i++) {
+                    $cell = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($startColumn + $i) . '1';
+                    $event->sheet->getDelegate()->getStyle($cell)->getAlignment()->setTextRotation(90);
+                    $event->sheet->getDelegate()->getColumnDimensionByColumn($startColumn + $i)->setWidth(5); // reduce width for vertical
+                }
+            }
+        ];
     }
 }
