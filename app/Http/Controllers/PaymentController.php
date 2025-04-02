@@ -221,7 +221,7 @@ class PaymentController extends Controller
 public function feeConfirmation(Request $request)
 {
     try {
-        try {
+        
             $response = [
                 'response_code'       => $request->get('Response Code'),
                 'unique_ref_number'   => $request->get('Unique Ref Number'),
