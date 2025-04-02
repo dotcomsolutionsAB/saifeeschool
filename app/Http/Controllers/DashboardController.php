@@ -83,6 +83,7 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
                     'amount' => $currentMonthUnpaidAmount,
                     'query_key' => [
                         'year' => $currentYear,
+                        'ay_name' => $academicYear->ay_name,
                         'month_no' => $currentMonth,
                         'status' => 'unpaid',
                         'date_from' => $currentMonthStart,
@@ -171,6 +172,7 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
             ]);
     
             $currentAcademicYear = $validated['ay_id'];
+            $academicYear = AcademicYearModel::find($currentAcademicYear);
     
             // Fetch One-Time Fees
             $oneTimeFees = FeeModel::where('ay_id', $currentAcademicYear)
@@ -197,7 +199,7 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
                 return \Carbon\Carbon::parse($item->fpp_due_date)->format('F Y');
             });
     
-            $formattedMonthlyFees = $groupedMonthlyFees->map(function ($items, $monthYear) {
+            $formattedMonthlyFees = $groupedMonthlyFees->map(function ($items, $monthYear)use ($academicYear) {
                 $totalAmount = $items->sum('fpp_amount');
                 $paidAmount = $items->sum('f_total_paid');
                 $dueAmount = $totalAmount - $paidAmount;
@@ -209,15 +211,10 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
                     'fee_paid' => $paidAmount,
                     'fee_due' => $dueAmount,
                     'late_fee_collected' => $lateFee,
-                    'query_key_paid' => [
-                        'year' => $items->first()->fpp_year_no,
-                        'type' => 'monthly',
-                        'status' => 'paid',
-                        'date_from' => $items->min('fpp_due_date'),
-                        'date_to' => $items->max('fpp_due_date'),
-                    ],
+                    
                     'query_key_unpaid' => [
                         'year' => $items->first()->fpp_year_no,
+                        'ay_name' => $academicYear->ay_name,
                         'type' => 'monthly',
                         'status' => 'unpaid',
                         'date_from' => $items->min('fpp_due_date'),
@@ -236,13 +233,10 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
                         'fee_paid' => $oneTimeFees->fee_paid ?? 0,
                         'fee_due' => $oneTimeFees->fee_due ?? 0,
                         'late_fee_collected' => $oneTimeFees->late_fee_collected ?? 0,
-                        'query_key_paid' => [
-                            'year' => $currentAcademicYear,
-                            'type' => 'one_time',
-                            'status' => 'paid',
-                        ],
+                        
                         'query_key_unpaid' => [
                             'year' => $currentAcademicYear,
+                            'ay_name' => $academicYear->ay_name,
                             'type' => 'one_time',
                             'status' => 'unpaid',
                         ],
@@ -252,13 +246,10 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
                         'fee_paid' => $admissionFees->fee_paid ?? 0,
                         'fee_due' => $admissionFees->fee_due ?? 0,
                         'late_fee_collected' => $admissionFees->late_fee_collected ?? 0,
-                        'query_key_paid' => [
-                            'year' => $currentAcademicYear,
-                            'type' => 'admission',
-                            'status' => 'paid',
-                        ],
+                        
                         'query_key_unpaid' => [
                             'year' => $currentAcademicYear,
+                            'ay_name' => $academicYear->ay_name,
                             'type' => 'admission',
                             'status' => 'unpaid',
                         ],
