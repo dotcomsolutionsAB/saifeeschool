@@ -12,7 +12,8 @@ class TabulationExport implements FromArray, WithHeadings, WithTitle
 
     public function __construct(array $data)
     {
-        $this->data = $data;
+        // Convert stdClass to array recursively (if needed)
+        $this->data = json_decode(json_encode($data), true);
     }
 
     public function array(): array
@@ -32,11 +33,10 @@ class TabulationExport implements FromArray, WithHeadings, WithTitle
 
             foreach ($subjects as $subject) {
                 $subjId = $subject['subject_id'];
-                $cat = $subject['category'] === 'Practical' ? 'prac' : 'marks';
-
+                $cat = ($subject['category'] ?? '') === 'Practical' ? 'prac' : 'marks';
                 $value = $marksData[$student['st_id']][$subjId][$cat] ?? '';
-
-                $row[$subject['subject_name'] . ' (' . $subject['category'] . ')'] = $value;
+                $colName = ($subject['subject_name'] ?? 'Subject') . ' (' . ($subject['category'] ?? '-') . ')';
+                $row[$colName] = $value;
             }
 
             $rows[] = $row;
@@ -48,9 +48,11 @@ class TabulationExport implements FromArray, WithHeadings, WithTitle
     public function headings(): array
     {
         $headers = ['SN', 'Roll No', 'Name'];
+
         foreach ($this->data['subjects'] as $subject) {
-            $headers[] = $subject['subject_name'] . ' (' . $subject['category'] . ')';
+            $headers[] = ($subject['subject_name'] ?? 'Subject') . ' (' . ($subject['category'] ?? '-') . ')';
         }
+
         return $headers;
     }
 
