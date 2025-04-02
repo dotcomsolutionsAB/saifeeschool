@@ -222,23 +222,31 @@ public function feeConfirmation(Request $request)
 {
     try {
         
-            $response = [
-                'response_code'       => $request->get('Response Code'),
-                'unique_ref_number'   => $request->get('Unique Ref Number'),
-                'transaction_datetime'=> $request->get('Transaction Date'),
-                'total_amount'        => $request->get('Total Amount'),
-                'interchange_value'   => $request->get('Interchange Value'),
-                'tdr'                 => $request->get('TDR'),
-                'payment_mode'        => $request->get('Payment Mode'),
-                'submerchant_id'      => $request->get('SubMerchantId'),
-                'reference_no'        => $request->get('ReferenceNo'),
-                'icid'                => $request->get('ID'),
-                'rs'                  => $request->get('RS'),
-                'tps'                 => $request->get('TPS'),
-                'mandatory_fields'    => $request->get('mandatory fields'),
-                'optional_fields'     => $request->get('optional fields'),
-                'rsv'                 => $request->get('RSV'),
-            ];
+        $rawInput = file_get_contents('php://input');
+
+        // 2. Manually parse the string
+        $parsed = [];
+        parse_str($rawInput, $parsed);
+
+        // 3. Map values using raw field names with spaces
+        $response = [
+            'response_code'       => $parsed['Response Code'] ?? null,
+            'unique_ref_number'   => $parsed['Unique Ref Number'] ?? null,
+            'transaction_datetime'=> $parsed['Transaction Date'] ?? null,
+            'total_amount'        => $parsed['Total Amount'] ?? null,
+            'interchange_value'   => $parsed['Interchange Value'] ?? null,
+            'tdr'                 => $parsed['TDR'] ?? null,
+            'payment_mode'        => $parsed['Payment Mode'] ?? null,
+            'submerchant_id'      => $parsed['SubMerchantId'] ?? null,
+            'reference_no'        => $parsed['ReferenceNo'] ?? null,
+            'icid'                => $parsed['ID'] ?? null,
+            'rs'                  => $parsed['RS'] ?? null,
+            'tps'                 => $parsed['TPS'] ?? null,
+            'mandatory_fields'    => $parsed['mandatory fields'] ?? null,
+            'optional_fields'     => $parsed['optional fields'] ?? null,
+            'rsv'                 => $parsed['RSV'] ?? null,
+        ];
+
     
 
 
