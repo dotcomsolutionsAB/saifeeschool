@@ -980,27 +980,33 @@ class FeeController extends Controller
             // **Get Total Count for Pagination**
             $totalCount = (clone $query)->count(); // 👈 Fix here
 
+            $totalDueAmount = $query->where('payment_status', '0')->sum(function ($item) {
+                return $item->base_amount + ($item->late_fee ?? 0) - ($item->concession ?? 0);
+            });
+            
+            $totalPaidAmount = $query->where('payment_status', '1')->sum(function ($item) {
+                return $item->base_amount + ($item->late_fee ?? 0) - ($item->concession ?? 0);
+            });// Paid fees
+
 
             // **Fetch Paginated Results**
             $transactions = $query->offset($offset)->limit($limit)->get();
 
             // **Calculate Total Due & Total Paid Amount for the Current Page**
-            $totalDueAmount = $transactions->where('payment_status', '0')->sum(function ($item) {
-                return $item->base_amount + ($item->late_fee ?? 0) - ($item->concession ?? 0);
-            });
-            
-            $totalPaidAmount = $transactions->where('payment_status', '1')->sum(function ($item) {
-                return $item->base_amount + ($item->late_fee ?? 0) - ($item->concession ?? 0);
-            });// Paid fees
+           
 
             // **Format Response**
             $formattedTransactions = $transactions->map(function ($transaction, $index) use ($offset) {
+                // Fetch the class name using the cg_id
+                $class = DB::table('t_class_groups')->where('id', $transaction->cg_id)->first();
+            
                 return [
                     'SN' => (string)($offset + $index + 1),
                     'Name' => $transaction->student_name,
                     'Roll No' => $transaction->st_roll_no,
                     'Fee Name' => $transaction->fee_name,
-                    'Class Id'=> $transaction->cg_id,
+                    'Class Id' => $transaction->cg_id,
+                    'Class Name' => $class ? $class->cg_name : 'Unknown', // Handle the case where class is not found
                     'Base Amount' => (string) $transaction->base_amount,
                     'Due Date' => $transaction->due_date,
                     'Late Fee' => (string) $transaction->late_fee,

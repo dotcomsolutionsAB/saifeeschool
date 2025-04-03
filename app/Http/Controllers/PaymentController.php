@@ -220,6 +220,8 @@ class PaymentController extends Controller
 }
 public function feeConfirmation(Request $request)
 {
+    try
+    {
     $raw = file_get_contents('php://input');
         $parsed = [];
         
