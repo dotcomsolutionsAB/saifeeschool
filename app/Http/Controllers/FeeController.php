@@ -985,16 +985,11 @@ class FeeController extends Controller
     
             // Calculate Total Due Amount (Unpaid Fees)
             $totalDueAmount = $totalDueAmountQuery->where('fees.f_paid', '0') // Unpaid
-                ->sum(function ($item) {
-                    return $item->fpp_amount + ($item->fpp_late_fee ?? 0) - ($item->f_concession ?? 0);
-                });
-    
-            // Calculate Total Paid Amount (Paid Fees)
-            $totalPaidAmount = $totalPaidAmountQuery->where('fees.f_paid', '1') // Paid
-                ->sum(function ($item) {
-                    return $item->fpp_amount + ($item->fpp_late_fee ?? 0) - ($item->f_concession ?? 0);
-                });
-    
+            ->sum(DB::raw('fpp_amount + IF(f_late_fee_applicable = 1, fpp_late_fee, 0) - IFNULL(f_concession, 0)'));
+        
+        $totalPaidAmount = $totalPaidAmountQuery->where('fees.f_paid', '1') // Paid
+            ->sum(DB::raw('fpp_amount + IF(f_late_fee_applicable = 1, fpp_late_fee, 0) - IFNULL(f_concession, 0)'));
+        
 
             // **Fetch Paginated Results**
             $transactions = $query->offset($offset)->limit($limit)->get();
