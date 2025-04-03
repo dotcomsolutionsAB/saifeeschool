@@ -998,7 +998,7 @@ class FeeController extends Controller
             // **Format Response**
             $formattedTransactions = $transactions->map(function ($transaction, $index) use ($offset) {
                 // Fetch the class name using the cg_id
-                $class = DB::table('t_class_groups')->where('id', $transaction->cg_id)->first();
+                $class = ClassGroupModel::find($transaction->cg_id);
             
                 return [
                     'SN' => (string)($offset + $index + 1),
