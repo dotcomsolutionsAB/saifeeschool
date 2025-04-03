@@ -3,890 +3,198 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\NewAdmissionModel;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use League\Csv\Reader;
-use League\Csv\Statement;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use App\Models\NewAdmissionModel; // New admission model for the table
+use App\Models\StudentModel; // Student model for verification
+use App\Models\UploadModel; // Upload model for saving files
+use Str; // For generating random strings
 
 class NewAdmissionController extends Controller
 {
-    //
     public function register(Request $request)
     {
-        $validated = $request->validate([
-            'application_no' => 'required|string|max:100|unique:t_new_admission,application_no',
-            'ay_id' => 'required|integer|exists:t_academic_years,id',
-            'class' => 'required|string|max:100',
-            'date' => 'required|date',
-            'first_name' => 'required|string|max:256',
-            'last_name' => 'required|string|max:100',
+        // Base validation for general fields
+        $validated = Validator::make($request->all(), [
+            // Personal details
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'gender' => 'required|in:m,f',
-            'date_of_birth' => 'required|date',
-            'last_school' => 'nullable|string|max:1000',
-            'last_school_address' => 'nullable|string|max:1000',
-            'aadhaar_no' => 'nullable|digits:12',
-
-            // Father's details
-            'father_first_name' => 'required|string|max:256',
-            'father_last_name' => 'required|string|max:256',
-            'father_name' => 'required|string|max:512',
-            'father_occupation' => 'required|in:employed,business,none',
-            'father_employer' => 'nullable|required_if:father_occupation,employed|string|max:256',
-            'father_designation' => 'nullable|required_if:father_occupation,employed|string|max:256',
-            'father_business' => 'nullable|required_if:father_occupation,business|string|max:1000',
-            'father_business_nature' => 'nullable|required_if:father_occupation,business|string|max:1000',
-            'father_work_business_address' => 'nullable|required_if:father_occupation,employed,business|string|max:1000',
-            'father_monthly_income' => 'nullable|required_if:father_occupation,employed,business|string|max:100',
-            'father_mobile' => 'nullable|digits:10',
-            'father_email' => 'nullable|email|max:256',
-
-            // Mother's details
-            'mother_first_name' => 'required|string|max:256',
-            'mother_last_name' => 'required|string|max:256',
-            'mother_name' => 'required|string|max:512',
-            'mother_occupation' => 'required|in:employed,business,none',
-            'mother_employer' => 'nullable|required_if:mother_occupation,employed|string|max:256',
-            'mother_designation' => 'nullable|required_if:mother_occupation,employed|string|max:256',
-            'mother_business' => 'nullable|required_if:mother_occupation,business|string|max:1000',
-            'mother_business_nature' => 'nullable|required_if:mother_occupation,business|string|max:1000',
-            'mother_work_business_address' => 'nullable|required_if:mother_occupation,employed,business|string|max:1000',
-            'mother_monthly_income' => 'nullable|required_if:mother_occupation,employed,business|string|max:100',
-            'mother_mobile' => 'nullable|digits:10',
-            'mother_email' => 'nullable|email|max:256',
-
-            // Address details
-            'address_1' => 'required|string|max:1000',
-            'address_2' => 'nullable|string|max:1000',
-            'city' => 'required|string|max:256',
-            'state' => 'required|string|max:256',
-            'country' => 'required|string|max:256',
+            'dob' => 'required|date',
+            'aadhaar' => 'required|digits:12|unique:new_admissions,aadhaar_no',
+            'residential_address1' => 'required|string|max:1000',
+            'residential_address2' => 'nullable|string|max:1000',
+            'city' => 'required|string|max:255',
+            'state' => 'required|string|max:255',
             'pincode' => 'required|digits:6',
+            'country' => 'required|string|max:255',
+            'last_school' => 'required|string|max:1000',
+            'last_school_address' => 'required|string|max:1000',
+            'father_name' => 'required|string|max:255',
+            'father_surname' => 'required|string|max:255',
+            'father_education' => 'nullable|string|max:255',
+            'father_occupation' => 'required|in:business,employed,no-occupation',
+            'father_mobile' => 'required|string|max:20',
+            'father_email' => 'required|email|max:255',
+            'father_monthly_income' => 'nullable|string|max:255',
+            'mother_first_name' => 'required|string|max:255',
+            'mother_last_name' => 'required|string|max:255',
+            'mother_education' => 'nullable|string|max:255',
+            'mother_occupation' => 'required|in:business,employed,housewife,not-applicable',
+            'mother_mobile' => 'required|string|max:20',
+            'mother_email' => 'required|email|max:255',
+            'mother_monthly_income' => 'nullable|string|max:255',
+            'siblings' => 'nullable|array|max:3',
+            'siblings.*.cg_id' => 'required|exists:t_class_groups,id',
+            'siblings.*.roll_no' => 'required|string|max:255|exists:t_students,st_roll_no',
+            'attracted' => 'nullable|string',
+            'strengths' => 'nullable|string',
+            'weaknesses' => 'nullable|string',
+            'remarks' => 'nullable|string',
+            // File uploads
+            'child_photo' => 'required|image|max:2048',
+            'father_photo' => 'required|image|max:2048',
+            'mother_photo' => 'required|image|max:2048',
+            'birth_certificate' => 'required|file|max:2048',
+        ])->validate();
 
-            // Other information
-            'ad_paid' => 'required|in:0,1',
-            'transaction_id' => 'nullable|string|max:100',
-            'transaction_date' => 'nullable|date',
-            'interview_date' => 'required|date',
-            'interview_status' => 'required|in:0,1',
-            'added_to_school' => 'required|in:0,1',
-            'comments' => 'nullable|string',
-            'printed' => 'required|in:0,1',
-        ]);
+        // Father's occupation related validation
+        if ($validated['father_occupation'] == 'business') {
+            $validated = array_merge($validated, Validator::make($request->all(), [
+                'father_business_name' => 'required|string|max:255',
+                'father_business_nature' => 'required|string|max:255',
+                'father_business_address' => 'required|string|max:255',
+                'father_business_city' => 'required|string|max:255',
+                'father_business_state' => 'required|string|max:255',
+                'father_business_country' => 'required|string|max:255',
+                'father_business_pincode' => 'required|string|max:10',
+            ])->validate());
+        } elseif ($validated['father_occupation'] == 'employed') {
+            $validated = array_merge($validated, Validator::make($request->all(), [
+                'father_employer_name' => 'required|string|max:255',
+                'father_designation' => 'required|string|max:255',
+                'father_work_address' => 'required|string|max:255',
+                'father_work_city' => 'required|string|max:255',
+                'father_work_state' => 'required|string|max:255',
+                'father_work_country' => 'required|string|max:255',
+                'father_work_pincode' => 'required|string|max:10',
+            ])->validate());
+        }
+
+        // Mother's occupation related validation
+        if ($validated['mother_occupation'] == 'business') {
+            $validated = array_merge($validated, Validator::make($request->all(), [
+                'mother_business_name' => 'required|string|max:255',
+                'mother_business_nature' => 'required|string|max:255',
+                'mother_business_address' => 'required|string|max:255',
+                'mother_business_city' => 'required|string|max:255',
+                'mother_business_state' => 'required|string|max:255',
+                'mother_business_country' => 'required|string|max:255',
+                'mother_business_pincode' => 'required|string|max:10',
+            ])->validate());
+        } elseif ($validated['mother_occupation'] == 'employed') {
+            $validated = array_merge($validated, Validator::make($request->all(), [
+                'mother_employer_name' => 'required|string|max:255',
+                'mother_designation' => 'required|string|max:255',
+                'mother_work_address' => 'required|string|max:255',
+                'mother_work_city' => 'required|string|max:255',
+                'mother_work_state' => 'required|string|max:255',
+                'mother_work_country' => 'required|string|max:255',
+                'mother_work_pincode' => 'required|string|max:10',
+            ])->validate());
+        }
 
         try {
-            $admission = NewAdmissionModel::create($validated);
+            // Check if the Aadhaar number already exists in the student database
+            $existingStudent = StudentModel::where('aadhaar_no', $validated['aadhaar'])->first();
+            if ($existingStudent) {
+                return response()->json([
+                    'message' => 'A student with this Aadhaar number already exists.',
+                ], 400);
+            }
+
+            // Generate a unique application number
+            $applicationNo = strtoupper(Str::random(10));
+
+            // Create a new admission record
+            $newAdmission = NewAdmissionModel::create([
+                'application_no' => $applicationNo,
+                'ay_id' => 1, // Assuming the current academic year ID is 1
+                'class' => $validated['class'], // Class should be passed in the request
+                'date' => now(),
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'gender' => $validated['gender'],
+                'date_of_birth' => $validated['dob'],
+                'last_school' => $validated['last_school'],
+                'last_school_address' => $validated['last_school_address'],
+                'aadhaar_no' => $validated['aadhaar'],
+                'father_name' => $validated['father_name'],
+                'father_surname' => $validated['father_surname'],
+                'father_education' => $validated['father_education'] ?? null,
+                'father_occupation' => $validated['father_occupation'],
+                'father_employer' => $validated['father_employer_name'] ?? null,
+                'father_designation' => $validated['father_designation'] ?? null,
+                'father_business' => $validated['father_business_name'] ?? null,
+                'father_business_nature' => $validated['father_business_nature'] ?? null,
+                'father_business_address' => $validated['father_business_address'] ?? null,
+                'father_mobile' => $validated['father_mobile'],
+                'father_email' => $validated['father_email'],
+                'father_monthly_income' => $validated['father_monthly_income'] ?? null,
+                'mother_first_name' => $validated['mother_first_name'],
+                'mother_last_name' => $validated['mother_last_name'],
+                'mother_name' => $validated['mother_first_name'] . ' ' . $validated['mother_last_name'],
+                'mother_education' => $validated['mother_education'] ?? null,
+                'mother_occupation' => $validated['mother_occupation'],
+                'mother_employer' => $validated['mother_employer_name'] ?? null,
+                'mother_designation' => $validated['mother_designation'] ?? null,
+                'mother_business' => $validated['mother_business_name'] ?? null,
+                'mother_business_nature' => $validated['mother_business_nature'] ?? null,
+                'mother_business_address' => $validated['mother_business_address'] ?? null,
+                'mother_mobile' => $validated['mother_mobile'],
+                'mother_email' => $validated['mother_email'],
+                'mother_monthly_income' => $validated['mother_monthly_income'] ?? null,
+                'siblings' => json_encode($validated['siblings'] ?? []),
+                'attracted' => $validated['attracted'] ?? null,
+                'strengths' => $validated['strengths'] ?? null,
+                'weaknesses' => $validated['weaknesses'] ?? null,
+                'remarks' => $validated['remarks'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // Save uploaded files
+            $files = [
+                'child_photo' => $validated['child_photo'],
+                'father_photo' => $validated['father_photo'],
+                'mother_photo' => $validated['mother_photo'],
+                'birth_certificate' => $validated['birth_certificate']
+            ];
+
+            $filePaths = [];
+            foreach ($files as $key => $file) {
+                $fileName = $key . "_" . time() . "." . $file->getClientOriginalExtension();
+                $filePath = $file->storeAs('uploads/admissions/' . $applicationNo, $fileName, 'public');
+                $filePaths[$key] = Storage::url($filePath);
+            }
+
+            // Save file details into the upload model
+            UploadModel::create([
+                'st_id' => $newAdmission->id,
+                'file_name' => json_encode($filePaths), // Save all file paths as JSON
+                'file_url' => json_encode($filePaths),
+                'file_size' => json_encode(array_map(fn($file) => $file->getSize(), $files)),
+            ]);
 
             return response()->json([
-                'status' => true,
-                'message' => 'Admission record created successfully.',
-                'data' => $admission->makeHidden(['id', 'created_at', 'updated_at']),
+                'message' => 'New admission registered successfully.',
+                'data' => $newAdmission,
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
-                'status' => false,
-                'message' => 'Failed to create admission record.',
+                'message' => 'Registration failed',
                 'error' => $e->getMessage(),
             ], 500);
         }
     }
-
-    /**
-     * View admission records (all or by ID).
-     */
-    public function view(Request $request, $id = null)
-    {
-        if ($id) {
-            $admission = NewAdmissionModel::find($id);
-
-            if (!$admission) {
-                return response()->json(['message' => 'Admission record not found.'], 404);
-            }
-
-            return response()->json(['message' => 'Admission record fetched successfully!', 'count' => count($admission), 'data' => $admission->makeHidden(['id', 'created_at', 'updated_at'])], 200);
-        }
-
-        $admissions = NewAdmissionModel::paginate($request->get('per_page', 10));
-
-        return response()->json(['message' => 'Admission records fetched successfully!', 'count' => count($admissions), 'data' => $admissions->makeHidden(['id', 'created_at', 'updated_at'])], 200);
-    }
-
-     /**
-     * Delete an admission record.
-     */
-    public function delete($id)
-    {
-        $admission = NewAdmissionModel::find($id);
-
-        if (!$admission) {
-            return response()->json(['message' => 'Admission record not found.'], 404);
-        }
-
-        $admission->delete();
-
-        return response()->json(['message' => 'Admission record deleted successfully!'], 200);
-    }
-
-    
-    // public function importCsv(Request $request)
-    // {
-    //     try {
-    //         // Define the path to the CSV file
-    //         $csvFilePath = storage_path('app/public/new_admission.csv');
-    
-    //         // Check if the file exists
-    //         if (!file_exists($csvFilePath)) {
-    //             return response()->json([
-    //                 'message' => 'CSV file not found at the specified path.',
-    //             ], 404);
-    //         }
-    
-    //         // Truncate the table before import
-    //         NewAdmissionModel::truncate();
-    
-    //         // Read CSV file
-    //         $csv = \League\Csv\Reader::createFromPath($csvFilePath, 'r');
-    //         $csv->setHeaderOffset(0); // First row as header
-    
-    //         $records = (new \League\Csv\Statement())->process($csv);
-    
-    //         DB::beginTransaction();
-    
-    //         $batchSize = 1000; // Process 1000 records at a time
-    //         $dataBatch = [];
-    
-    //         foreach ($records as $row) {
-    //             try {
-    //                 // Convert gender
-    //                 $gender = strtolower($row['gender']) === 'male' ? 'm' : (strtolower($row['gender']) === 'female' ? 'f' : null);
-    
-    //                 if (!$gender) {
-    //                     Log::error('Invalid gender value: ' . $row['gender']);
-    //                     continue; // Skip rows with invalid gender
-    //                 }
-    
-    //                 // Decode and process father_details
-    //                 $fatherDetails = $this->decodeJsonField($row['father_details']);
-    //                 $fatherOccupation = strtolower($fatherDetails['occupation'] ?? 'none');
-    
-    //                 // Handle father occupation
-    //                 $fatherBusiness = $fatherOccupation === 'business' ? ($fatherDetails['business'] ?? null) : null;
-    //                 $fatherBusinessNature = $fatherOccupation === 'business' ? ($fatherDetails['nature'] ?? null) : null;
-    //                 $fatherEmployer = $fatherOccupation === 'employed' ? ($fatherDetails['employer'] ?? null) : null;
-    //                 $fatherDesignation = $fatherOccupation === 'employed' ? ($fatherDetails['designation'] ?? null) : null;
-    //                 $fatherMonthlyIncome = $fatherDetails['monthly_income'] ?? null;
-    
-    //                 // Decode and process mother_details
-    //                 $motherDetails = $this->decodeJsonField($row['mother_details']);
-    //                 $motherOccupation = strtolower($motherDetails['occupation'] ?? 'home-maker');
-    
-    //                 // Adjust mother occupation if needed
-    //                 if ($motherOccupation === 'housewife') {
-    //                     $motherOccupation = 'home-maker';
-    //                 }
-    
-    //                 $motherBusiness = $motherOccupation === 'business' ? ($motherDetails['business'] ?? null) : null;
-    //                 $motherBusinessNature = $motherOccupation === 'business' ? ($motherDetails['nature'] ?? null) : null;
-    //                 $motherEmployer = $motherOccupation === 'employed' ? ($motherDetails['employer'] ?? null) : null;
-    //                 $motherDesignation = $motherOccupation === 'employed' ? ($motherDetails['designation'] ?? null) : null;
-    //                 $motherMonthlyIncome = $motherDetails['monthly_income'] ?? null;
-    
-    //                 // Decode and process address
-    //                 $address = $this->decodeJsonField($row['address']);
-    //                 $address1 = $address['address_1'] ?? null;
-    //                 $address2 = $address['address_2'] ?? null;
-    //                 $city = $address['city'] ?? null;
-    //                 $state = $address['state'] ?? null;
-    //                 $country = $address['country'] ?? null;
-    //                 $pincode = $address['pincode'] ?? null;
-    
-    //                 // Process interview_date
-    //                 $interviewDate = $row['interview_date'] ?? null;
-    //                 if ($interviewDate === '0000-00-00' || !$interviewDate || !\Carbon\Carbon::hasFormat($interviewDate, 'Y-m-d')) {
-    //                     $interviewDate = null; // Set to NULL if invalid or default value
-    //                 }
-    
-    //                 $dataBatch[] = [
-    //                     'application_no' => $row['application_no'],
-    //                     'ay_id' => $row['ay_id'],
-    //                     'class' => $row['class'],
-    //                     'date' => $row['date'],
-    //                     'first_name' => $row['name'],
-    //                     'last_name' => $row['last_name'],
-    //                     'gender' => $gender, // Store 'm' or 'f'
-    //                     'date_of_birth' => $row['date_of_birth'],
-    //                     'last_school' => $row['last_school'],
-    //                     'last_school_address' => $row['last_school_address'],
-    //                     'aadhaar_no' => $row['aadhaar_no'],
-    //                     'father_first_name' => $fatherDetails['first_name'] ?? null,
-    //                     'father_last_name' => $fatherDetails['last_name'] ?? null,
-    //                     'father_name' => $fatherDetails['name'] ?? null,
-    //                     'father_occupation' => $fatherOccupation,
-    //                     'father_employer' => $fatherEmployer,
-    //                     'father_designation' => $fatherDesignation,
-    //                     'father_business' => $fatherBusiness,
-    //                     'father_business_nature' => $fatherBusinessNature,
-    //                     'father_monthly_income' => $fatherMonthlyIncome,
-    //                     'father_mobile' => $fatherDetails['mobile'] ?? null,
-    //                     'father_email' => $fatherDetails['email'] ?? null,
-    //                     'father_work_business_address' => $fatherDetails['address'] ?? null,
-    //                     'mother_first_name' => $motherDetails['first_name'] ?? null,
-    //                     'mother_last_name' => $motherDetails['last_name'] ?? null,
-    //                     'mother_name' => $motherDetails['name'] ?? null,
-    //                     'mother_occupation' => $motherOccupation,
-    //                     'mother_employer' => $motherEmployer,
-    //                     'mother_designation' => $motherDesignation,
-    //                     'mother_business' => $motherBusiness,
-    //                     'mother_business_nature' => $motherBusinessNature,
-    //                     'mother_monthly_income' => $motherMonthlyIncome,
-    //                     'mother_mobile' => $motherDetails['mobile'] ?? null,
-    //                     'mother_email' => $motherDetails['email'] ?? null,
-    //                     'mother_work_business_address' => $motherDetails['address'] ?? null,
-    //                     'siblings' => $row['siblings'],
-    //                     'address_1' => $address1,
-    //                     'address_2' => $address2,
-    //                     'city' => $city,
-    //                     'state' => $state,
-    //                     'country' => $country,
-    //                     'pincode' => $pincode,
-    //                     'other_info' => $row['other_info'],
-    //                     'ad_paid' => $row['ad_paid'],
-    //                     'transaction_id' => $row['transaction_id'],
-    //                     'transaction_date' => $row['transaction_date'],
-    //                     'interview_date' => $interviewDate, // Use validated date
-    //                     'interview_status' => $row['interview_status'],
-    //                     'added_to_school' => $row['added_to_school'],
-    //                     'comments' => $row['comments'],
-    //                     'printed' => $row['printed'],
-    //                 ];
-    
-    //                 if (count($dataBatch) >= $batchSize) {
-    //                     NewAdmissionModel::insert($dataBatch); // Insert batch into the database
-    //                     $dataBatch = [];
-    //                 }
-    //             } catch (\Exception $e) {
-    //                 Log::error('Error processing row: ' . json_encode($row) . ' | Error: ' . $e->getMessage());
-    //             }
-    //         }
-    
-    //         // Insert remaining records
-    //         if (!empty($dataBatch)) {
-    //             NewAdmissionModel::insert($dataBatch);
-    //         }
-    
-    //         DB::commit();
-    
-    //         return response()->json(['message' => 'Data imported successfully!'], 200);
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         Log::error('Failed to import data: ' . $e->getMessage());
-    //         return response()->json(['message' => 'Failed to import data.', 'error' => $e->getMessage()], 500);
-    //     }
-    // }
-    
-//     public function importCsv(Request $request)
-//     {
-//         try {
-//             // Define the path to the CSV file
-//             $csvFilePath = storage_path('app/public/new_admission.csv');
-
-//             // Check if the file exists
-//             if (!file_exists($csvFilePath)) {
-//                 return response()->json([
-//                     'message' => 'CSV file not found at the specified path.',
-//                 ], 404);
-//             }
-
-//             // Truncate the table before import
-//             NewAdmissionModel::truncate();
-
-//             // Read CSV file
-//             $csv = \League\Csv\Reader::createFromPath($csvFilePath, 'r');
-//             $csv->setHeaderOffset(0); // First row as header
-
-//             $records = (new \League\Csv\Statement())->process($csv);
-
-//             DB::beginTransaction();
-
-//             $batchSize = 1000; // Process 1000 records at a time
-//             $dataBatch = [];
-//             $rowCount = 0;
-
-//             foreach ($records as $row) {
-//                 $rowCount++;
-//                 try {
-//                     // Convert gender
-//                     $gender = strtolower($row['gender']) === 'male' ? 'm' : (strtolower($row['gender']) === 'female' ? 'f' : null);
-
-//                     if (!$gender) {
-//                         Log::error("Row $rowCount: Invalid gender value - " . $row['gender']);
-//                         continue; // Skip rows with invalid gender
-//                     }
-
-//                     // Decode and process father_details
-//                     $fatherDetails = $this->decodeJsondetails($row['father_details']);
-//                     $fatherOccupation = isset($fatherDetails['occupation']) ? strtolower($fatherDetails['occupation']) : null;
-//                     $fatherMobile = $fatherDetails['mobile'] ?? null;
-
-//                     if ($fatherOccupation === 'no occupation') {
-//                         $fatherOccupation = 'no-occupation';
-//                     }
-
-//                     if ($fatherOccupation === '') {
-//                         $fatherOccupation = null;
-//                     }
-
-//                     $fatherMobile = $this->sanitizeMobile($fatherMobile, $rowCount, 'father_mobile');
-
-//                     // Decode and process mother_details
-//                     $motherDetails = $this->decodeJsonField($row['mother_details']);
-//                     $motherOccupation = isset($motherDetails['occupation']) ? strtolower($motherDetails['occupation']) : null;
-
-//                     if ($motherOccupation === 'housewife') {
-//                         $motherOccupation = 'home-maker';
-//                     }
-
-//                     if ($motherOccupation === 'not applicable') {
-//                         $motherOccupation = 'not-applicable';
-//                     }
-
-//                     if ($motherOccupation === '') {
-//                         $motherOccupation = null;
-//                     }
-
-
-//                     $motherMobile = $this->sanitizeMobile($motherDetails['mobile'] ?? null, $rowCount, 'mother_mobile');
-
-//                     // Decode and process address
-//                     $address = $this->decodeJsonField($row['address']);
-
-//                     // Process siblings
-//                     $siblings = $this->decodeJsonField($row['siblings']);
-//                     $siblingsData = $this->processSiblings($siblings);
-
-//                     // Decode and process other_info
-//                     $otherInfo = $this->decodeJsonFieldothers($row['other_info']);
-//                     $attracted = $otherInfo['attracted'] ?? null;
-//                     $strengths = $otherInfo['strengths'] ?? null;
-
-//                     // Process interview_date
-//                     $interviewDate = $row['interview_date'] ?? null;
-
-//                     // Check for invalid dates like '0000-00-00' or other invalid formats
-//                     if ($interviewDate === '0000-00-00' || !$interviewDate || !\Carbon\Carbon::hasFormat($interviewDate, 'Y-m-d')) {
-//                         // Log::warning("Row {$row['application_no']}: Invalid interview_date - {$interviewDate}");
-//                         $interviewDate = null; // Set to NULL if invalid or default value
-//                     }
-
-//                     // Prepare the data
-//                     $dataBatch[] = array_merge([
-//                         'id' => $row['id'],
-//                         'application_no' => $row['application_no'],
-//                         'ay_id' => $row['ay_id'],
-//                         'class' => $row['class'],
-//                         'date' => $row['date'],
-//                         'first_name' => $row['name'],
-//                         'last_name' => $row['last_name'],
-//                         'gender' => $gender,
-//                         'date_of_birth' => $row['date_of_birth'],
-//                         'last_school' => $row['last_school'],
-//                         'last_school_address' => $row['last_school_address'],
-//                         'aadhaar_no' => $row['aadhaar_no'],
-//                         'father_name' => $fatherDetails['name'] ?? null,
-//                         'father_mobile' => $fatherMobile,
-//                         'mother_mobile' => $motherMobile,
-//                         'mother_occupation' => $motherOccupation,
-//                         'address_1' => $address['address_1'] ?? null,
-//                         'address_2' => $address['address_2'] ?? null,
-//                         'city' => $address['city'] ?? null,
-//                         'state' => $address['state'] ?? null,
-//                         'country' => $address['country'] ?? null,
-//                         'pincode' => $address['pincode'] ?? null,
-//                         'attracted' => $attracted,
-//                         'strengths' => $strengths,
-//                         'interview_date' => $interviewDate,
-//                     ], $siblingsData);
-
-//                     // Insert data in batches
-//                     if (count($dataBatch) >= $batchSize) {
-//                         NewAdmissionModel::insert($dataBatch);
-//                         $dataBatch = [];
-//                     }
-
-//                     // print_r($interviewDate);
-//                     // echo "<pre>";
-//                 } catch (\Exception $e) {
-//                     Log::error("Row $rowCount: Error processing row - " . $e->getMessage());
-//                 }
-//             }
-
-//             // Insert remaining records
-//             if (!empty($dataBatch)) {
-//                 NewAdmissionModel::insert($dataBatch);
-//             }
-
-//             DB::commit();
-
-//             return response()->json(['message' => 'Data imported successfully!'], 200);
-//         } catch (\Exception $e) {
-//             DB::rollBack();
-//             Log::error('Failed to import data: ' . $e->getMessage());
-//             return response()->json(['message' => 'Failed to import data.', 'error' => $e->getMessage()], 500);
-//         }
-//     }
-
-// /**
-//  * Decode JSON Field Safely
-//  */
-// // private function decodeJsonField($field)
-// // {
-// //     if (empty($field)) {
-// //         return [];
-// //     }
-
-// //     $decoded = json_decode($field, true);
-
-// //     // Check if the field contains concatenated JSON strings
-// //     if (json_last_error() !== JSON_ERROR_NONE) {
-// //         Log::error('Invalid JSON: ' . $field);
-
-// //         // Attempt to split and process each potential JSON string
-// //         $jsonParts = preg_split('/(?<=})\s*(?={)/', $field);
-// //         foreach ($jsonParts as $jsonPart) {
-// //             $decodedPart = json_decode($jsonPart, true);
-// //             if (json_last_error() === JSON_ERROR_NONE) {
-// //                 Log::warning('Multiple JSON detected, using first valid part: ' . $jsonPart);
-// //                 return $decodedPart; // Return the first valid JSON part
-// //             }
-// //         }
-
-// //         // If no valid part is found, return empty array
-// //         return [];
-// //     }
-
-// //     return $decoded;
-// // }
-
-// private function decodeJsonField($field)
-// {
-//     if (empty($field)) {
-//         return [];
-//     }
-
-//     // Remove newline characters
-//     $cleanedField = preg_replace('/\r|\n/', '', $field);
-
-//     // Try decoding the JSON directly
-//     $decoded = json_decode($cleanedField, true);
-
-//     if (json_last_error() === JSON_ERROR_NONE) {
-//         return $decoded; // Return decoded JSON if valid
-//     }
-
-//     // If JSON is invalid, split concatenated objects
-//     Log::error('Invalid JSON: ' . $cleanedField . ' | Error: ' . json_last_error_msg());
-//     $jsonParts = preg_split('/(?<=})\s*(?={)/', $cleanedField);
-
-//     $decodedParts = [];
-//     foreach ($jsonParts as $index => $jsonPart) {
-//         $decodedPart = json_decode($jsonPart, true);
-//         if (json_last_error() === JSON_ERROR_NONE) {
-//             $decodedParts[] = $decodedPart;
-//         } else {
-//             Log::error("Part $index: Invalid JSON segment - " . $jsonPart . ' | Error: ' . json_last_error_msg());
-//         }
-//     }
-
-//     return $decodedParts; // Return an array of decoded parts
-// }
-
-
-// private function decodeJsondetails($field)
-// {
-//     if (empty($field)) {
-//         return [];
-//     }
-
-//     // Attempt to decode the JSON string
-//     $decoded = json_decode($field, true);
-
-//     if (json_last_error() === JSON_ERROR_NONE) {
-//         return $decoded; // Return decoded JSON if valid
-//     }
-
-//     // Log the invalid JSON and error
-//     Log::error('Invalid JSON: ' . $field . ' | Error: ' . json_last_error_msg());
-
-//     // Attempt to split and process concatenated JSON strings
-//     $jsonParts = preg_split('/(?<=})\s*(?={)/', $field);
-//     foreach ($jsonParts as $index => $jsonPart) {
-//         $decodedPart = json_decode($jsonPart, true);
-//         if (json_last_error() === JSON_ERROR_NONE) {
-//             // Log::warning('Multiple JSON detected. Using part ' . ($index + 1) . ': ' . $jsonPart);
-//             // print_r($decodedPart);
-//             // echo "<pre>";
-//             return $decodedPart; // Return the first valid JSON part
-//         }
-//     }
-
-//     // If no valid part is found, log a detailed message
-//     // Log::error('No valid JSON parts found in field: ' . $field);
-
-//     return []; // Return empty array if decoding fails
-// }
-
-// private function decodeJsonFieldothers($field)
-// {
-//     if (empty($field)) {
-//         return [];
-//     }
-
-//     // Remove all new line characters
-//     $cleanedJson = preg_replace('/\r|\n/', '', $field);
-
-//     // Decode the cleaned JSON
-//     $otherInfo = json_decode($cleanedJson, true);
-
-//     if (json_last_error() === JSON_ERROR_NONE) {
-//         return $otherInfo; // Successfully decoded
-//     }
-
-//     // Log the error with details
-//     Log::error('Error decoding JSON: ' . json_last_error_msg() . ' | Original field: ' . $field);
-//     return []; // Return an empty array if decoding fails
-// }
-
-
-// /**
-//  * Sanitize Mobile Number
-//  */
-// private function sanitizeMobile($mobile, $rowCount, $field)
-// {
-//     if ($mobile && strlen($mobile) > 25) {
-//         Log::error("Row $rowCount: $field exceeds allowed length - $mobile");
-//         return null;
-//     }
-//     return $mobile;
-// }
-
-// /**
-//  * Process Siblings Data
-//  */
-// private function processSiblings($siblings)
-// {
-//     $siblingsData = [
-//         'siblings_name1' => null,
-//         'siblings_class1' => null,
-//         'siblings_roll_no1' => null,
-//         'siblings_name2' => null,
-//         'siblings_class2' => null,
-//         'siblings_roll_no2' => null,
-//         'siblings_name3' => null,
-//         'siblings_class3' => null,
-//         'siblings_roll_no3' => null,
-//     ];
-
-//     if (isset($siblings[0]['name'])) {
-//         foreach ($siblings as $index => $sibling) {
-//             if ($index >= 3) break; // Limit to 3 siblings
-//             $siblingsData["siblings_name" . ($index + 1)] = $sibling['name'] ?? null;
-//             $siblingsData["siblings_class" . ($index + 1)] = $sibling['class'] ?? null;
-//             $siblingsData["siblings_roll_no" . ($index + 1)] = $sibling['roll_no'] ?? null;
-//         }
-//     }
-
-//     return $siblingsData;
-// }
-
-// ...
-public function importCsv(Request $request)
-{
-    try {
-        // Define the path to the CSV file
-        $csvFilePath = storage_path('app/public/new_admission.csv');
-
-        // Check if the file exists
-        if (!file_exists($csvFilePath)) {
-            return response()->json([
-                'message' => 'CSV file not found at the specified path.',
-            ], 404);
-        }
-
-        // Truncate the table before import
-        NewAdmissionModel::truncate();
-
-        // Read CSV file
-        $csv = \League\Csv\Reader::createFromPath($csvFilePath, 'r');
-        $csv->setHeaderOffset(0); // First row as header
-
-        $records = (new \League\Csv\Statement())->process($csv);
-
-        DB::beginTransaction();
-
-        $dataBatch = [];
-        $rowCount = 0;
-        $batchSize = 1000;
-
-        foreach ($records as $row) {
-            $rowCount++;
-            try {
-                // Convert gender
-                $gender = strtolower($row['gender']) === 'male' ? 'm' : (strtolower($row['gender']) === 'female' ? 'f' : null);
-                if (!$gender) {
-                    Log::error("Row $rowCount: Invalid gender value - " . $row['gender']);
-                    continue;
-                }
-
-                // Decode and process father_details
-                $fatherDetails = $this->decodeJsonFieldWithFallback($row['father_details'], $rowCount);
-                // $fatherMobile = $this->sanitizeField($fatherDetails['mobile'] ?? null, $rowCount, 'father_mobile');
-                // $fatherDetails = $this->sanitizeJsonField($row['father_details'] ?? '', $rowCount);
-
-                $fatherMobile = $fatherDetails['mobile'] ?? null;
-
-                $fatherOccupation = strtolower($fatherDetails['occupation'] ?? '');
-                if ($fatherOccupation === 'no occupation') {
-                    $fatherOccupation = 'no-occupation';
-                }
-
-                if ($fatherOccupation === '') {
-                    $fatherOccupation = null;
-                }
-
-                // Decode and process mother_details
-                $motherDetails = $this->decodeJsonFieldWithFallback($row['mother_details'], $rowCount);
-                // $motherMobile = $this->sanitizeField($motherDetails['mobile'] ?? null, $rowCount, 'mother_mobile');
-
-                // $motherDetails = $this->sanitizeJsonField($row['mother_details'] ?? '', $rowCount);
-
-                $motherMobile = $motherDetails['mobile'] ?? null;
-
-                $motherOccupation = strtolower($motherDetails['occupation'] ?? '');
-                if ($motherOccupation === 'housewife') {
-                    $motherOccupation = 'home-maker';
-                }
-
-                if ($motherOccupation === 'not applicable') {
-                    $motherOccupation = 'not-applicable';
-                }
-
-                if ($motherOccupation === '') {
-                    $motherOccupation = null;
-                }
-
-                // Decode and process address
-                $address = $this->decodeJsonFieldWithFallback($row['address'], $rowCount);
-
-                // Decode and process siblings
-                // $siblings = $this->decodeJsonFieldWithFallback($row['siblings'], $rowCount);
-
-                $siblings = $this->sanitizeJsonField($row['siblings'] ?? '', $rowCount);
-
-                $siblingsData = $this->processSiblings($siblings);
-
-                // Decode and process other_info
-                // $otherInfo = $this->decodeJsonFieldWithFallback($row['other_info'], $rowCount);
-                $otherInfo = $this->sanitizeJsonField($row['other_info'] ?? '', $rowCount);
-                $attracted = $otherInfo['attracted'] ?? null;
-                $strengths = $otherInfo['strengths'] ?? null;
-
-                  // Additional processing logic (e.g., handling specific fields)
-                  $fatherMobile = $this->sanitizeMobile($fatherMobile, $rowCount, 'father_mobile');
-                  $motherMobile = $this->sanitizeMobile($motherMobile, $rowCount, 'mother_mobile');
-
-                // Validate and process interview_date
-                $interviewDate = $row['interview_date'] ?? null;
-                if ($interviewDate === '0000-00-00' || !$interviewDate || !\Carbon\Carbon::hasFormat($interviewDate, 'Y-m-d')) {
-                    $interviewDate = null;
-                }
-
-                print_r($fatherMobile);
-                echo "<pre>";
-
-                // Prepare the data
-                $dataBatch[] = array_merge([
-                    'id' => $row['id'],
-                    'application_no' => $row['application_no'],
-                    'ay_id' => $row['ay_id'],
-                    'class' => $row['class'],
-                    'date' => $row['date'],
-                    'first_name' => $row['name'],
-                    'last_name' => $row['last_name'],
-                    'gender' => $gender,
-                    'date_of_birth' => $row['date_of_birth'],
-                    'last_school' => $row['last_school'],
-                    'last_school_address' => $row['last_school_address'],
-                    'aadhaar_no' => $row['aadhaar_no'],
-                    'father_name' => $fatherDetails['name'] ?? null,
-                    'father_mobile' => $fatherMobile,
-                    'mother_mobile' => $motherMobile,
-                    'mother_occupation' => $motherOccupation,
-                    'address_1' => $address['address_1'] ?? null,
-                    'address_2' => $address['address_2'] ?? null,
-                    'city' => $address['city'] ?? null,
-                    'state' => $address['state'] ?? null,
-                    'country' => $address['country'] ?? null,
-                    'pincode' => $address['pincode'] ?? null,
-                    'attracted' => $attracted,
-                    'strengths' => $strengths,
-                    'interview_date' => $interviewDate,
-                ], $siblingsData);
-
-                // Insert data in batches
-                if (count($dataBatch) >= $batchSize) {
-                    NewAdmissionModel::insert($dataBatch);
-                    $dataBatch = [];
-                }
-            } catch (\Exception $e) {
-                Log::error("Row $rowCount: Error processing row - " . $e->getMessage());
-            }
-        }
-
-        // Insert remaining records
-        if (!empty($dataBatch)) {
-            NewAdmissionModel::insert($dataBatch);
-        }
-
-        DB::commit();
-
-        return response()->json(['message' => 'Data imported successfully!'], 200);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Failed to import data: ' . $e->getMessage());
-        return response()->json(['message' => 'Failed to import data.', 'error' => $e->getMessage()], 500);
-    }
-}
-
-/**
- * Decode JSON Field with Fallback
- */
-private function decodeJsonFieldWithFallback($field, $rowCount)
-{
-    if (empty($field)) {
-        return [];
-    }
-
-    // Remove newlines and any unwanted spaces
-    $cleanedField = preg_replace('/\r|\n/', '', $field);
-
-    // Try decoding the JSON directly
-    $decoded = json_decode($cleanedField, true);
-    if (json_last_error() === JSON_ERROR_NONE) {
-        return $decoded;
-    }
-
-    // Handle concatenated JSON objects
-    $jsonParts = preg_split('/(?<=})\s*(?={)/', $cleanedField);
-    foreach ($jsonParts as $index => $jsonPart) {
-        $decodedPart = json_decode($jsonPart, true);
-        if (json_last_error() === JSON_ERROR_NONE) {
-            return $decodedPart;
-        }
-    }
-
-    Log::error("Row $rowCount: Error decoding JSON: " . json_last_error_msg() . " | Original field: $field");
-    return [];
-}
-
-/**
- * Sanitize Field
- */
-private function sanitizeField($value, $rowCount, $fieldName)
-{
-    if (!is_string($value)) {
-        return $value;
-    }
-
-    // Remove invalid Unicode characters
-    $sanitized = preg_replace('/[^\x20-\x7E]/u', '', $value);
-
-    // Log a warning if sanitization altered the original value
-    if ($sanitized !== $value) {
-        Log::warning("Row $rowCount: Sanitized $fieldName. Original: $value | Sanitized: $sanitized");
-    }
-
-    return $sanitized;
-}
-
-/**
- * Process Siblings Data
- */
-private function processSiblings($siblings)
-{
-    $siblingsData = [
-        'siblings_name1' => null,
-        'siblings_class1' => null,
-        'siblings_roll_no1' => null,
-        'siblings_name2' => null,
-        'siblings_class2' => null,
-        'siblings_roll_no2' => null,
-        'siblings_name3' => null,
-        'siblings_class3' => null,
-        'siblings_roll_no3' => null,
-    ];
-
-    if (!empty($siblings)) {
-        foreach ($siblings as $index => $sibling) {
-            if ($index >= 3) break; // Limit to 3 siblings
-            $siblingsData["siblings_name" . ($index + 1)] = $sibling['name'] ?? null;
-            $siblingsData["siblings_class" . ($index + 1)] = $sibling['class'] ?? null;
-            $siblingsData["siblings_roll_no" . ($index + 1)] = $sibling['roll_no'] ?? null;
-        }
-    }
-
-    return $siblingsData;
-}
-
-private function sanitizeJsonField($jsonField, $rowNumber)
-{
-    if (empty($jsonField)) {
-        return [];
-    }
-
-    // Remove line breaks and excess whitespace
-    $cleanedJson = preg_replace('/\r|\n/', ' ', $jsonField);
-
-    // Attempt to decode the cleaned JSON
-    $decoded = json_decode($cleanedJson, true);
-
-    if (json_last_error() === JSON_ERROR_NONE) {
-        return $decoded; // Return valid JSON
-    }
-
-    // Log error if decoding fails
-    Log::error("Row $rowNumber: Error decoding JSON: " . json_last_error_msg() . " | Original field: $jsonField");
-
-    // Attempt to manually fix common issues
-    $cleanedJson = str_replace(['\\"', '\='], ['"', '='], $cleanedJson);
-
-    // Retry decoding
-    $decoded = json_decode($cleanedJson, true);
-
-    if (json_last_error() === JSON_ERROR_NONE) {
-        return $decoded;
-    }
-
-    // If still invalid, return empty array and log
-    Log::error("Row $rowNumber: JSON field remains invalid after cleaning. Field: $jsonField");
-    return [];
-}
-
-/**
- * Sanitize Mobile Number
- */
-private function sanitizeMobile($mobile, $rowCount, $field)
-{
-    // Check if the mobile number exists and its length
-    if ($mobile && strlen($mobile) > 25) {
-        Log::error("Row $rowCount: $field exceeds allowed length - $mobile");
-        return null; // Return null if the length exceeds the limit
-    }
-
-    // Additional sanitization (e.g., remove invalid characters)
-    $mobile = preg_replace('/[^\d]/', '', $mobile); // Keep only digits
-
-    return $mobile; // Return sanitized mobile number
-}
-
-
 }
