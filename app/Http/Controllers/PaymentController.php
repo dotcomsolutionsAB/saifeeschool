@@ -221,41 +221,29 @@ class PaymentController extends Controller
 public function feeConfirmation(Request $request)
 {
     $raw = file_get_contents('php://input');
-parse_str($raw, $parsed);
-return response()->json([
-    'raw' => $raw,
-    'parsed' => $parsed,
-    'request_all' => $request->all(),
-    'request_input' => $request->input(),
-]);
-    try {
-        
-        $rawInput = file_get_contents('php://input');
-
-        // 2. Manually parse the string
         $parsed = [];
-        parse_str($rawInput, $parsed);
+        
+        // Manually parse the data
+        parse_str($raw, $parsed);
 
-        // 3. Map values using raw field names with spaces
+        // Use parsed data
         $response = [
-            'response_code'       => $parsed['Response Code'] ?? null,
-            'unique_ref_number'   => $parsed['Unique Ref Number'] ?? null,
-            'transaction_datetime'=> $parsed['Transaction Date'] ?? null,
-            'total_amount'        => $parsed['Total Amount'] ?? null,
-            'interchange_value'   => $parsed['Interchange Value'] ?? null,
+            'response_code'       => $parsed['Response_Code'] ?? null,
+            'unique_ref_number'   => $parsed['Unique_Ref_Number'] ?? null,
+            'transaction_datetime'=> $parsed['Transaction_Date'] ?? null,
+            'total_amount'        => $parsed['Total_Amount'] ?? null,
+            'interchange_value'   => $parsed['Interchange_Value'] ?? null,
             'tdr'                 => $parsed['TDR'] ?? null,
-            'payment_mode'        => $parsed['Payment Mode'] ?? null,
+            'payment_mode'        => $parsed['Payment_Mode'] ?? null,
             'submerchant_id'      => $parsed['SubMerchantId'] ?? null,
             'reference_no'        => $parsed['ReferenceNo'] ?? null,
             'icid'                => $parsed['ID'] ?? null,
             'rs'                  => $parsed['RS'] ?? null,
             'tps'                 => $parsed['TPS'] ?? null,
-            'mandatory_fields'    => $parsed['mandatory fields'] ?? null,
-            'optional_fields'     => $parsed['optional fields'] ?? null,
+            'mandatory_fields'    => $parsed['mandatory_fields'] ?? null,
+            'optional_fields'     => $parsed['optional_fields'] ?? null,
             'rsv'                 => $parsed['RSV'] ?? null,
         ];
-
-    
 
 
         // Validate required fields
