@@ -980,14 +980,21 @@ class FeeController extends Controller
             // **Get Total Count for Pagination**
             $totalCount = (clone $query)->count(); // 👈 Fix here
 
-            $totalDueAmount = $query->where('payment_status', '0')->sum(function ($item) {
-                return $item->base_amount + ($item->late_fee ?? 0) - ($item->concession ?? 0);
-            });
-            
-            $totalPaidAmount = $query->where('payment_status', '1')->sum(function ($item) {
-                return $item->base_amount + ($item->late_fee ?? 0) - ($item->concession ?? 0);
-            });// Paid fees
-
+            $totalDueAmountQuery = clone $query;
+            $totalPaidAmountQuery = clone $query;
+    
+            // Calculate Total Due Amount (Unpaid Fees)
+            $totalDueAmount = $totalDueAmountQuery->where('fees.f_paid', '0') // Unpaid
+                ->sum(function ($item) {
+                    return $item->fpp_amount + ($item->fpp_late_fee ?? 0) - ($item->f_concession ?? 0);
+                });
+    
+            // Calculate Total Paid Amount (Paid Fees)
+            $totalPaidAmount = $totalPaidAmountQuery->where('fees.f_paid', '1') // Paid
+                ->sum(function ($item) {
+                    return $item->fpp_amount + ($item->fpp_late_fee ?? 0) - ($item->f_concession ?? 0);
+                });
+    
 
             // **Fetch Paginated Results**
             $transactions = $query->offset($offset)->limit($limit)->get();
