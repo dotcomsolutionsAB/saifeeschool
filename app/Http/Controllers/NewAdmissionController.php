@@ -23,6 +23,7 @@ class NewAdmissionController extends Controller
             // Personal details
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
+            'class' => 'reqiured|string|max:10',
             'gender' => 'required|in:m,f',
             'dob' => 'required|date',
             'aadhaar' => 'required|digits:12|unique:t_new_admission,aadhaar_no',
@@ -253,7 +254,7 @@ class NewAdmissionController extends Controller
         // Create new admission record and save the occupation-related details
         $newAdmission = NewAdmissionModel::create([
             'application_no' => $applicationNo,
-            'ay_id' => 1, // Assuming academic year ID is 1
+            'ay_id' => 8, // Assuming academic year ID is 1
             'class' => $validated['class'],
             'date' => now(),
             'first_name' => $validated['first_name'],
