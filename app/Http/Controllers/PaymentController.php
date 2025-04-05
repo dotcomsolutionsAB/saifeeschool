@@ -345,12 +345,13 @@ public function feeConfirmation(Request $request)
             'updated_at'        => now(),
         ]);
 
-        // Return the response with status and description based on response_code
+        // Return the response with status and description based on response_code..
         return response()->json([
             'code' => 200,
             'status' => true,
+            'Payment Sucess'=>$response['response_code']=='E0000'?true:false,
             'message' => $response['desc'],  // This gives the description of the response code
-            'data' => $response
+            
         ]);
         
     } catch (\Exception $e) {
@@ -358,7 +359,8 @@ public function feeConfirmation(Request $request)
             'code' => 500,
             'status' => false,
             'message' => 'Failed to save payment response.',
-            'error' => $e->getMessage()
+            'error' => $e->getMessage(),
+            'data' => $response
         ]);
     }
 }
