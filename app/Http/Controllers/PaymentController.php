@@ -170,15 +170,50 @@ class PaymentController extends Controller
             'transaction' => $transaction,
         ]);
     }
-    public function testEazypayEncryption()
+    public function testEazypayEncryption(Request $request)
 {
     $merchant_id = "141909";
     $aes_key = "1400012719005020";
+    $validated = $request->validate([
+        'st_id'   => 'required|integer|exists:t_students,id', // Student ID
+        'fpp_ids' => 'required|string', // Comma-separated Fee Plan Period IDs
+    ]);
+
+    $st_id = $validated['st_id'];
+    $fpp_ids = explode(',', $validated['fpp_ids']); // Convert to array
+
+    // ✅ Fetch Student Wallet Balance
+    $student = DB::table('t_students')->where('id', $st_id)->select('st_wallet')->first();
+    $wallet_balance = $student->st_wallet ?? 0;
+
+    // ✅ Fetch Fee Details
+    $fees = DB::table('t_fees')
+        ->whereIn('fpp_id', $fpp_ids)
+        ->where('st_id', $st_id)
+        ->get();
+
+    if ($fees->isEmpty()) {
+        return response()->json([
+            'code'    => 404,
+            'status'  => false,
+            'message' => 'No valid fees found for this student.',
+        ], 404);
+    }
+
+    // ✅ Calculate Total Payable Amount
+    $totalAmount = $fees->sum(function ($fee) {
+        $late_fee = (strtotime('today') > strtotime($fee->fpp_due_date)) ? $fee->fpp_late_fee : 0;
+        return ($fee->fpp_amount + $late_fee) - ($fee->f_concession ?? 0);
+    });
+
+    // ✅ Calculate Amount to Pay After Wallet Deduction
+    $balance = max(0, $totalAmount - $wallet_balance);
+
 
     // Test Data
-    $ref_no = random_int(100000, 999999);
+    $ref_no = time() . mt_rand(10000, 99999);
     $sub_merchant_id = "11";
-    $amount = "1000";
+    $amount = $balance;
     $return_url = "https://saifeeschool.dotcombusiness.in/api/fee/confirmation";
     $paymode = "9";
     $mandatory_fields = "{$ref_no}|{$sub_merchant_id}|{$amount}";
@@ -198,6 +233,15 @@ class PaymentController extends Controller
         'transaction_amount' => $encrypt($amount),
         'paymode'          => $encrypt($paymode),
     ];
+    DB::table('t_pg_logs')->insert([
+        'pg_reference_no' => $ref_no,
+        'st_id'           => $st_id,
+        'remarks'         => "Fee Payment: " . implode(',', $fpp_ids),
+        'f_id'            => implode(',', $fpp_ids),
+        'amount'          => $balance,
+        'status'          => 'pending',
+        'created_at'      => now(),
+    ]);
 
     // Assemble URL
     $payment_url = "https://eazypayuat.icicibank.com/EazyPG?merchantid={$merchant_id}"
