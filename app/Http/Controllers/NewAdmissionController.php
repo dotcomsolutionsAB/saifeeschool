@@ -195,144 +195,133 @@ class NewAdmissionController extends Controller
         }
     }
     public function registerAdmission(Request $request)
-{
-    try {
-        // Base validation for general fields
-        $jsonData = json_decode($request->input('json_data'), true);
-
-        // Validate the decoded JSON data
-        $validated = Validator::make($jsonData, [
-            // General fields
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'ay_id' => 9,
-            'class' => 'reqiured|string|max:10',
-            'gender' => 'required|in:m,f',
-            'dob' => 'required|date',
-            'aadhaar' => 'required|digits:12|unique:t_new_admission,aadhaar_no',
-            'residential_address1' => 'required|string|max:1000',
-            'residential_address2' => 'nullable|string|max:1000',
-            'city' => 'required|string|max:255',
-            'state' => 'required|string|max:255',
-            'pincode' => 'required|digits:6',
-            'country' => 'required|string|max:255',
-            'last_school' => 'required|string|max:1000',
-            'last_school_address' => 'required|string|max:1000',
-            'father_name' => 'required|string|max:255',
-            'father_surname' => 'required|string|max:255',
-            'father_occupation' => 'required|in:business,employed,no-occupation',
-            'father_mobile' => 'required|string|max:20',
-            'father_email' => 'required|email|max:255',
-            'father_monthly_income' => 'nullable|string|max:255',
-            'mother_first_name' => 'required|string|max:255',
-            'mother_last_name' => 'required|string|max:255',
-            'mother_occupation' => 'required|in:business,employed,housewife,not-applicable',
-            'mother_mobile' => 'required|string|max:20',
-            'mother_email' => 'required|email|max:255',
-            'mother_monthly_income' => 'nullable|string|max:255',
-            'siblings' => 'nullable|array|max:3',
-            'siblings.*.cg_id' => 'required|exists:t_class_groups,id',
-            'siblings.*.roll_no' => 'required|string|max:255|exists:t_students,st_roll_no',
-            'address_1' => 'required|string|max:1000',
-            'address_2' => 'nullable|string|max:1000',
-            'attracted' => 'nullable|string',
-            'strengths' => 'nullable|string',
-            'remarks' => 'nullable|string',
-            'interview_status' => 'required|in:0,1',
-            'added_to_school' => 'required|in:0,1',
-            'comments' => 'nullable|string',
-            'printed' => 'required|in:0,1',
-        ])->validate();
-
-        // Handle occupation-based validation (father and mother)
-        $validated = $this->handleOccupationValidation($validated, $jsonData);
-
-        // Check if Aadhaar number already exists in the database
-        
-
-        // Generate unique application number
-        $applicationNo = strtoupper(Str::random(10));
-
-        // Create new admission record and save the occupation-related details
-        $newAdmission = NewAdmissionModel::create([
-            'application_no' => $applicationNo,
-            'ay_id' => 8, // Assuming academic year ID is 1
-            'class' => $validated['class'],
-            'date' => now(),
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
-            'gender' => $validated['gender'],
-            'date_of_birth' => $validated['dob'],
-            'last_school' => $validated['last_school'],
-            'last_school_address' => $validated['last_school_address'],
-            'aadhaar_no' => $validated['aadhaar'],
-            'father_name' => $validated['father_name'],
-            'father_surname' => $validated['father_surname'],
-            'father_occupation' => $validated['father_occupation'],
-            'father_employer' => $validated['father_employer_name'] ?? null,
-            'father_designation' => $validated['father_designation'] ?? null,
-            'father_business' => $validated['father_business_name'] ?? null,
-            'father_business_nature' => $validated['father_business_nature'] ?? null,
-            'father_monthly_income' => $validated['father_monthly_income'] ?? null,
-            'father_mobile' => $validated['father_mobile'],
-            'father_email' => $validated['father_email'],
-            'father_work_business_address' => $validated['father_work_business_address'] ?? null,
-            'mother_first_name' => $validated['mother_first_name'],
-            'mother_last_name' => $validated['mother_last_name'],
-            'mother_name' => $validated['mother_first_name'] . ' ' . $validated['mother_last_name'],
-            'mother_education' => $validated['mother_education'] ?? null,
-            'mother_occupation' => $validated['mother_occupation'],
-            'mother_employer' => $validated['mother_employer_name'] ?? null,
-            'mother_designation' => $validated['mother_designation'] ?? null,
-            'mother_business' => $validated['mother_business_name'] ?? null,
-            'mother_business_nature' => $validated['mother_business_nature'] ?? null,
-            'mother_monthly_income' => $validated['mother_monthly_income'] ?? null,
-            'mother_mobile' => $validated['mother_mobile'],
-            'mother_email' => $validated['mother_email'],
-            'mother_work_business_address' => $validated['mother_work_business_address'] ?? null,
-            'siblings_name1' => $validated['siblings'][0]['name'] ?? null,
-            'siblings_class1' => $validated['siblings'][0]['class'] ?? null,
-            'siblings_roll_no1' => $validated['siblings'][0]['roll_no'] ?? null,
-            'siblings_name2' => $validated['siblings'][1]['name'] ?? null,
-            'siblings_class2' => $validated['siblings'][1]['class'] ?? null,
-            'siblings_roll_no2' => $validated['siblings'][1]['roll_no'] ?? null,
-            'siblings_name3' => $validated['siblings'][2]['name'] ?? null,
-            'siblings_class3' => $validated['siblings'][2]['class'] ?? null,
-            'siblings_roll_no3' => $validated['siblings'][2]['roll_no'] ?? null,
-            'address_1' => $validated['address_1'],
-            'address_2' => $validated['address_2'] ?? null,
-            'city' => $validated['city'],
-            'state' => $validated['state'],
-            'country' => $validated['country'],
-            'pincode' => $validated['pincode'],
-            'attracted' => $validated['attracted'] ?? null,
-            'strengths' => $validated['strengths'] ?? null,
-            'remarks' => $validated['remarks'] ?? null,
-            'ad_paid' => '0', // Assuming the ad fee is not paid initially
-            'transaction_id' => null, // No transaction yet
-            'transaction_date' => null, // No transaction yet
-            'interview_date' => null, // No interview scheduled yet
-            'interview_status' => '0', // Default to "Not cleared"
-            'added_to_school' => '0', // Not added to school yet
-            'comments' => $validated['comments'] ?? null,
-            'printed' => '0', // Default to "Not printed"
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $st_id = $newAdmission->id;
-
-        // Proceed with file uploads
-        return $this->uploadFiles($request, $st_id, $newAdmission);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'Registration failed',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-}
-private function handleOccupationValidation($validated, $jsonData)
+    {
+        try {
+            // Use the incoming JSON request directly
+            $jsonData = $request->all();
+    
+            // Validate the decoded JSON data
+            $validated = Validator::make($jsonData, [
+                // General fields
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'ay_id' => 'required|integer',
+                'class' => 'required|string|max:10',
+                'gender' => 'required|in:m,f',
+                'dob' => 'required|date',
+                'aadhaar' => 'required|digits:12|unique:t_new_admission,aadhaar_no',
+                'residential_address1' => 'required|string|max:1000',
+                'residential_address2' => 'nullable|string|max:1000',
+                'city' => 'required|string|max:255',
+                'state' => 'required|string|max:255',
+                'pincode' => 'required|digits:6',
+                'country' => 'required|string|max:255',
+                'last_school' => 'required|string|max:1000',
+                'last_school_address' => 'required|string|max:1000',
+                'father_name' => 'required|string|max:255',
+                'father_surname' => 'required|string|max:255',
+                'father_occupation' => 'required|in:business,employed,no-occupation',
+                'father_mobile' => 'required|string|max:20',
+                'father_email' => 'required|email|max:255',
+                'father_monthly_income' => 'nullable|string|max:255',
+                'mother_first_name' => 'required|string|max:255',
+                'mother_last_name' => 'required|string|max:255',
+                'mother_occupation' => 'required|in:business,employed,housewife,not-applicable',
+                'mother_mobile' => 'required|string|max:20',
+                'mother_email' => 'required|email|max:255',
+                'mother_monthly_income' => 'nullable|string|max:255',
+                'siblings' => 'nullable|array|max:3',
+                'siblings.*.cg_id' => 'required|exists:t_class_groups,id',
+                'siblings.*.roll_no' => 'required|string|max:255|exists:t_students,st_roll_no',
+                'address_1' => 'required|string|max:1000',
+                'address_2' => 'nullable|string|max:1000',
+                'attracted' => 'nullable|string',
+                'strengths' => 'nullable|string',
+                'remarks' => 'nullable|string',
+                'interview_status' => 'required|in:0,1',
+                'added_to_school' => 'required|in:0,1',
+                'comments' => 'nullable|string',
+                'printed' => 'required|in:0,1',
+            ])->validate();
+    
+            // Handle occupation-based validation (father and mother)
+            $validated = $this->handleOccupationValidation($validated, $jsonData);
+    
+            // Generate unique application number
+            $applicationNo = strtoupper(Str::random(10));
+    
+            // Create new admission record and save the occupation-related details
+            $newAdmission = NewAdmissionModel::create([
+                'application_no' => $applicationNo,
+                'ay_id' => $validated['ay_id'],
+                'class' => $validated['class'],
+                'date' => now(),
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'gender' => $validated['gender'],
+                'date_of_birth' => $validated['dob'],
+                'last_school' => $validated['last_school'],
+                'last_school_address' => $validated['last_school_address'],
+                'aadhaar_no' => $validated['aadhaar'],
+                'father_name' => $validated['father_name'],
+                'father_surname' => $validated['father_surname'],
+                'father_occupation' => $validated['father_occupation'],
+                'father_employer' => $validated['father_employer_name'] ?? null,
+                'father_designation' => $validated['father_designation'] ?? null,
+                'father_business' => $validated['father_business_name'] ?? null,
+                'father_business_nature' => $validated['father_business_nature'] ?? null,
+                'father_monthly_income' => $validated['father_monthly_income'] ?? null,
+                'father_mobile' => $validated['father_mobile'],
+                'father_email' => $validated['father_email'],
+                'father_work_business_address' => $validated['father_work_business_address'] ?? null,
+                'mother_first_name' => $validated['mother_first_name'],
+                'mother_last_name' => $validated['mother_last_name'],
+                'mother_name' => $validated['mother_first_name'] . ' ' . $validated['mother_last_name'],
+                'mother_education' => $validated['mother_education'] ?? null,
+                'mother_occupation' => $validated['mother_occupation'],
+                'mother_employer' => $validated['mother_employer_name'] ?? null,
+                'mother_designation' => $validated['mother_designation'] ?? null,
+                'mother_business' => $validated['mother_business_name'] ?? null,
+                'mother_business_nature' => $validated['mother_business_nature'] ?? null,
+                'mother_monthly_income' => $validated['mother_monthly_income'] ?? null,
+                'mother_mobile' => $validated['mother_mobile'],
+                'mother_email' => $validated['mother_email'],
+                'mother_work_business_address' => $validated['mother_work_business_address'] ?? null,
+                'siblings_name1' => $validated['siblings'][0]['name'] ?? null,
+                'siblings_class1' => $validated['siblings'][0]['class'] ?? null,
+                'siblings_roll_no1' => $validated['siblings'][0]['roll_no'] ?? null,
+                'address_1' => $validated['address_1'],
+                'address_2' => $validated['address_2'] ?? null,
+                'city' => $validated['city'],
+                'state' => $validated['state'],
+                'country' => $validated['country'],
+                'pincode' => $validated['pincode'],
+                'attracted' => $validated['attracted'] ?? null,
+                'strengths' => $validated['strengths'] ?? null,
+                'remarks' => $validated['remarks'] ?? null,
+                'ad_paid' => '0', // Assuming the ad fee is not paid initially
+                'transaction_id' => null, // No transaction yet
+                'transaction_date' => null, // No transaction yet
+                'interview_date' => null, // No interview scheduled yet
+                'interview_status' => '0', // Default to "Not cleared"
+                'added_to_school' => '0', // Not added to school yet
+                'comments' => $validated['comments'] ?? null,
+                'printed' => '0', // Default to "Not printed"
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+    
+            // Proceed with file uploads after admission is saved
+            $st_id = $newAdmission->id;
+            return $this->uploadFiles($request, $st_id, $newAdmission);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Registration failed',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }private function handleOccupationValidation($validated, $jsonData)
 {
     // Father's occupation validation
     if ($validated['father_occupation'] == 'business') {
