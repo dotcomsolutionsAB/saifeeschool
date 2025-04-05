@@ -18,10 +18,10 @@ return new class extends Migration
             $table->unsignedBigInteger('birth_certificate_id')->nullable();
     
             // Foreign key relationships if needed (for example, if you want to reference the UploadModel)
-            $table->foreign('child_photo_id')->references('id')->on('uploads')->onDelete('set null');
-            $table->foreign('father_photo_id')->references('id')->on('uploads')->onDelete('set null');
-            $table->foreign('mother_photo_id')->references('id')->on('uploads')->onDelete('set null');
-            $table->foreign('birth_certificate_id')->references('id')->on('uploads')->onDelete('set null');
+            $table->foreign('child_photo_id')->references('id')->on('t_uploads')->onDelete('set null');
+            $table->foreign('father_photo_id')->references('id')->on('t_uploads')->onDelete('set null');
+            $table->foreign('mother_photo_id')->references('id')->on('t_uploads')->onDelete('set null');
+            $table->foreign('birth_certificate_id')->references('id')->on('t_uploads')->onDelete('set null');
         });
     }
     
