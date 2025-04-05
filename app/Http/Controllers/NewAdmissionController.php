@@ -198,7 +198,7 @@ class NewAdmissionController extends Controller
     {
         try {
             // Use the incoming JSON request directly
-            $jsonData = $request->all();
+            $jsonData = json_decode($request->input('json_data'), true);
     
             // Validate the decoded JSON data
             $validated = Validator::make($jsonData, [
