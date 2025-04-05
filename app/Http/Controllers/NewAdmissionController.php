@@ -205,6 +205,8 @@ class NewAdmissionController extends Controller
             // General fields
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
+            'ay_id' => 9,
+            'class' => 'reqiured|string|max:10',
             'gender' => 'required|in:m,f',
             'dob' => 'required|date',
             'aadhaar' => 'required|digits:12|unique:t_new_admission,aadhaar_no',
