@@ -171,7 +171,7 @@ class NewAdmissionController extends Controller
             $filePaths = [];
             foreach ($files as $key => $file) {
                 $fileName = $key . "_" . time() . "." . $file->getClientOriginalExtension();
-                $filePath = $file->storeAs('/uploads/admissions/' . $applicationNo, $fileName, 'public');
+                $filePath = $file->storeAs('uploads/admissions/' . $applicationNo, $fileName, 'public');
                 $filePaths[$key] = Storage::url($filePath);
             }
 
@@ -384,7 +384,7 @@ public function uploadFiles(Request $request, $st_id, $newAdmission)
         ]);
 
         // Directory for storing the uploaded files
-        $directory = "uploads/admissions/{$st_id}";
+        $directory = "/uploads/admissions/{$st_id}";
 
         if (!Storage::disk('public')->exists($directory)) {
             Storage::disk('public')->makeDirectory($directory);
@@ -408,7 +408,7 @@ public function uploadFiles(Request $request, $st_id, $newAdmission)
                 'st_id' => $st_id,
                 'file_name' => $fileName,
                 'file_ext' => $file->getClientOriginalExtension(),
-                'file_url' => "https://saifeeschool.dotcombusiness.in.$filePath",
+                'file_url' => "https://saifeeschool.dotcombusiness.in$filePath",
                 'file_size' => $file->getSize(),
                 'created_at' => now(),
                 'updated_at' => now(),
