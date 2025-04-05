@@ -264,15 +264,14 @@ class PaymentController extends Controller
 }
 public function feeConfirmation(Request $request)
 {
-    try
-    {
-    $raw = file_get_contents('php://input');
+    try {
+        $raw = file_get_contents('php://input');
         $parsed = [];
         
         // Manually parse the data
         parse_str($raw, $parsed);
 
-        // Use parsed data
+        // Use parsed data to create response array
         $response = [
             'response_code'       => $parsed['Response_Code'] ?? null,
             'unique_ref_number'   => $parsed['Unique_Ref_Number'] ?? null,
@@ -291,14 +290,13 @@ public function feeConfirmation(Request $request)
             'rsv'                 => $parsed['RSV'] ?? null,
         ];
 
-
         // Validate required fields
         if (empty($response['mandatory_fields'])) {
             return response()->json([
                 'code' => 400,
                 'status' => false,
                 'message' => 'Missing required field: mandatory fields',
-                'data ' => $response
+                'data' => $response
             ]);
         }
 
@@ -316,7 +314,14 @@ public function feeConfirmation(Request $request)
         // Remove unneeded key before insert
         unset($response['transaction_datetime']);
 
-        // Save to `t_pg_responses` table
+        // Use the mapResponseCode function to get status and description based on response_code
+        $responseCodeDetails = $this->mapResponseCode($response['response_code']);
+        
+        // Add response status and description to the response
+        $response['status'] = $responseCodeDetails['status'];
+        $response['desc'] = $responseCodeDetails['desc'];
+
+        // Save the response to `t_pg_responses` table
         DB::table('t_pg_responses')->insert([
             'response_code'     => $response['response_code'],
             'unique_ref_number' => $response['unique_ref_number'],
@@ -334,16 +339,20 @@ public function feeConfirmation(Request $request)
             'mandatory_fields'  => $response['mandatory_fields'],
             'optional_fields'   => $response['optional_fields'],
             'rsv'               => $response['rsv'],
+            'status'            => $response['status'],
+            'desc'              => $response['desc'],
             'created_at'        => now(),
             'updated_at'        => now(),
         ]);
 
+        // Return the response with status and description based on response_code
         return response()->json([
             'code' => 200,
             'status' => true,
-            'message' => 'Payment response saved successfully',
+            'message' => $response['desc'],  // This gives the description of the response code
+            'data' => $response
         ]);
-
+        
     } catch (\Exception $e) {
         return response()->json([
             'code' => 500,
@@ -351,6 +360,51 @@ public function feeConfirmation(Request $request)
             'message' => 'Failed to save payment response.',
             'error' => $e->getMessage()
         ]);
+    }
+}
+private function mapResponseCode($code)
+{
+    switch ($code) {
+        case 'E000':
+            return ['status' => 'Success', 'desc' => 'Received successfully.'];
+        case 'E008':
+            return ['status' => 'Failure', 'desc' => 'Failure from Third Party due to Technical Error.'];
+        case 'E0803':
+            return ['status' => 'Failure', 'desc' => 'Canceled by user.'];
+        case 'E0823':
+            return ['status' => 'Failure', 'desc' => 'Invalid 3D Secure values.'];
+        case 'E0812':
+            return ['status' => 'Failure', 'desc' => 'Do not honor.'];
+        case 'E0830':
+            return ['status' => 'Failure', 'desc' => 'Issuer or switch is inoperative.'];
+        case 'E0801':
+            return ['status' => 'Failure', 'desc' => 'FAIL.'];
+        case 'E0805':
+            return ['status' => 'Failure', 'desc' => 'Checkout page rendered Card function not supported.'];
+        case 'E0832':
+            return ['status' => 'Failure', 'desc' => 'Restricted card.'];
+        case 'E0035':
+            return ['status' => 'Failure', 'desc' => 'Sub merchant id coming from merchant is empty.'];
+        case 'E0820':
+            return ['status' => 'Failure', 'desc' => 'ECI 1 and ECI6 Error for Debit Cards and Credit Cards.'];
+        case 'E006':
+            return ['status' => 'Failure', 'desc' => 'Transaction is already paid.'];
+        case 'E0807':
+            return ['status' => 'Failure', 'desc' => 'PG Fwd Fail / Issuer Authentication Server failure.'];
+        case 'E00335':
+            return ['status' => 'Failure', 'desc' => 'Transaction Cancelled By User.'];
+        case 'E0821':
+            return ['status' => 'Failure', 'desc' => 'ECI 7 for Debit Cards and Credit Cards.'];
+        case 'E0816':
+            return ['status' => 'Failure', 'desc' => 'No Match with the card number.'];
+        case 'E0842':
+            return ['status' => 'Failure', 'desc' => 'Invalid expiration date.'];
+        case 'E0841':
+            return ['status' => 'Failure', 'desc' => 'SYSTEM ERROR.'];
+        case 'E0824':
+            return ['status' => 'Failure', 'desc' => 'Bad Track Data.'];
+        default:
+            return ['status' => 'Failure', 'desc' => '---'];
     }
 }
 }
