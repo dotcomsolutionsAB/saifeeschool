@@ -339,8 +339,8 @@ public function feeConfirmation(Request $request)
             'mandatory_fields'  => $response['mandatory_fields'],
             'optional_fields'   => $response['optional_fields'],
             'rsv'               => $response['rsv'],
-            'status'            => $response['status'],
-            'desc'              => $response['desc'],
+            //'status'            => $response['status'],
+            //'desc'              => $response['desc'],
             'created_at'        => now(),
             'updated_at'        => now(),
         ]);
