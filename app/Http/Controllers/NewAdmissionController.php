@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Storage;
 use App\Models\NewAdmissionModel; // New admission model for the table
 use App\Models\StudentModel; // Student model for verification
 use App\Models\UploadModel; // Upload model for saving files
-use Str; // For generating random strings
+ // For generating random strings
+use Illuminate\Support\Str;
 
 class NewAdmissionController extends Controller
 {
