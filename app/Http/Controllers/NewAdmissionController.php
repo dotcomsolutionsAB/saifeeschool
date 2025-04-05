@@ -508,7 +508,7 @@ public function index(Request $request)
                             ->get();
 
         // Prepare the data by adding the photo URLs
-        $admissionsData = $admissions->map(function ($admission) {
+        $admissionsData = $admissions->map(function ($admission,$index) {
             // Get the URLs of the photos from the UploadModel using file IDs
             $childPhotoUrl = $admission->child_photo_id 
                 ? UploadModel::find($admission->child_photo_id)->file_url
@@ -521,7 +521,8 @@ public function index(Request $request)
                 : null;
 
             return [
-                'sn' => $admission->id,
+                'sn'=>$index+1,
+                'id' => $admission->id,
                 'application_no' => $admission->application_no,
                 'name' => $admission->first_name . ' ' . $admission->last_name,
                 'gender' => $admission->gender,
