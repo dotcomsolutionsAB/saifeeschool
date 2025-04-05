@@ -106,12 +106,7 @@ class NewAdmissionController extends Controller
 
         try {
             // Check if the Aadhaar number already exists in the student database
-            $existingStudent = StudentModel::where('aadhaar_no', $validated['aadhaar'])->first();
-            if ($existingStudent) {
-                return response()->json([
-                    'message' => 'A student with this Aadhaar number already exists.',
-                ], 400);
-            }
+            
 
             // Generate a unique application number
             $applicationNo = strtoupper(Str::random(10));
@@ -249,12 +244,7 @@ class NewAdmissionController extends Controller
         $validated = $this->handleOccupationValidation($validated, $jsonData);
 
         // Check if Aadhaar number already exists in the database
-        $existingStudent = StudentModel::where('aadhaar_no', $validated['aadhaar'])->first();
-        if ($existingStudent) {
-            return response()->json([
-                'message' => 'A student with this Aadhaar number already exists.',
-            ], 400);
-        }
+        
 
         // Generate unique application number
         $applicationNo = strtoupper(Str::random(10));
