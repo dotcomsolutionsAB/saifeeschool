@@ -509,7 +509,7 @@ public function index(Request $request)
         // Format the data
         $formattedAdmissions = $admissions->map(function ($admission) {
             // Get the child photo URL from the uploads table
-            $childPhotoUrl = $admission->child_photo_id ? Storage::url(UploadModel::find($admission->child_photo_id)->file_url) : null;
+            $childPhotoUrl = $admission->child_photo_id ? UploadModel::find($admission->child_photo_id)->file_url : null;
 
             return [
                 'sn' => $admission->id,
@@ -530,6 +530,8 @@ public function index(Request $request)
             'message' => 'New admissions retrieved successfully.',
             'data' => $formattedAdmissions,
             'total_entries' => $totalEntries,
+            'offset'=>$offset,
+            'limit'=>$limit
         ], 200);
     } catch (\Exception $e) {
         return response()->json([
@@ -547,10 +549,10 @@ public function getStudentData($id)
         $admission = NewAdmissionModel::findOrFail($id);
 
         // Fetch the file URLs based on the file IDs from the uploads table
-        $childPhotoUrl = $admission->child_photo_id ? Storage::url(UploadModel::find($admission->child_photo_id)->file_url) : null;
-        $fatherPhotoUrl = $admission->father_photo_id ? Storage::url(UploadModel::find($admission->father_photo_id)->file_url) : null;
-        $motherPhotoUrl = $admission->mother_photo_id ? Storage::url(UploadModel::find($admission->mother_photo_id)->file_url) : null;
-        $birthCertificateUrl = $admission->birth_certificate_id ? Storage::url(UploadModel::find($admission->birth_certificate_id)->file_url) : null;
+        $childPhotoUrl = $admission->child_photo_id ? UploadModel::find($admission->child_photo_id)->file_url : null;
+        $fatherPhotoUrl = $admission->father_photo_id ? UploadModel::find($admission->father_photo_id)->file_url : null;
+        $motherPhotoUrl = $admission->mother_photo_id ? UploadModel::find($admission->mother_photo_id)->file_url : null;
+        $birthCertificateUrl = $admission->birth_certificate_id ? UploadModel::find($admission->birth_certificate_id)->file_url : null;
 
         // Prepare response data
         $data = [
