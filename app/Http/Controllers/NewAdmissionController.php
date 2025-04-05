@@ -317,6 +317,7 @@ class NewAdmissionController extends Controller
     
         } catch (\Exception $e) {
             return response()->json([
+                'code'=>'500',
                 'message' => 'Registration failed',
                 'error' => $e->getMessage(),
             ], 500);
@@ -443,6 +444,185 @@ public function uploadFiles(Request $request, $st_id, $newAdmission)
             'code' => 500,
             'success' => false,
             'message' => 'File upload failed.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+public function index(Request $request)
+{
+    try {
+        // Default values for pagination
+        $limit = $request->input('limit', 10);  // Default to 10 if not provided
+        $offset = $request->input('offset', 0); // Default to 0 if not provided
+
+        // Filters (if provided)
+        $search = $request->input('search', ''); // Search for name
+        $class = $request->input('class', ''); // Filter by class
+        $year = $request->input('year', ''); // Filter by academic year (ay_id)
+        $adPaid = $request->input('ad_paid', ''); // Filter by ad_paid (payment status)
+        $interviewStatus = $request->input('interview_status', ''); // Filter by interview status
+        $addedToSchool = $request->input('added_to_school', ''); // Filter by added_to_school status
+
+        // Query to get the new admissions
+        $query = NewAdmissionModel::query();
+
+        // Apply search filter for name
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply class filter
+        if ($class) {
+            $query->where('class', 'like', "%{$class}%");
+        }
+
+        // Apply academic year filter
+        if ($year) {
+            $query->where('ay_id', '=', $year);
+        }
+
+        // Apply ad_paid filter (0 for unpaid, 1 for paid)
+        if ($adPaid !== '') {
+            $query->where('ad_paid', '=', $adPaid);
+        }
+
+        // Apply interview status filter (0 for not cleared, 1 for cleared)
+        if ($interviewStatus !== '') {
+            $query->where('interview_status', '=', $interviewStatus);
+        }
+
+        // Apply added_to_school filter (0 for not added, 1 for added)
+        if ($addedToSchool !== '') {
+            $query->where('added_to_school', '=', $addedToSchool);
+        }
+
+        // Get the total number of entries
+        $totalEntries = $query->count();
+
+        // Get the paginated records
+        $admissions = $query->offset($offset)
+                            ->limit($limit)
+                            ->get();
+
+        // Prepare the data by adding the photo URLs
+        $admissionsData = $admissions->map(function ($admission) {
+            // Get the URLs of the photos from the UploadModel using file IDs
+            $childPhotoUrl = $admission->child_photo_id 
+                ? UploadModel::find($admission->child_photo_id)->file_url
+                : null;
+            $fatherPhotoUrl = $admission->father_photo_id
+                ? UploadModel::find($admission->father_photo_id)->file_url
+                : null;
+            $motherPhotoUrl = $admission->mother_photo_id
+                ? UploadModel::find($admission->mother_photo_id)->file_url
+                : null;
+
+            return [
+                'sn' => $admission->id,
+                'application_no' => $admission->application_no,
+                'name' => $admission->first_name . ' ' . $admission->last_name,
+                'gender' => $admission->gender,
+                'dob' => $admission->date_of_birth,
+                'class' => $admission->class,
+                'ad_paid' => $admission->ad_paid,
+                'interview_status' => $admission->interview_status,
+                'added_to_school' => $admission->added_to_school,
+                'child_photo_url' => $childPhotoUrl,
+                'father_photo_url' => $fatherPhotoUrl,
+                'mother_photo_url' => $motherPhotoUrl,
+            ];
+        });
+
+        // Return the response
+        return response()->json([
+            'code' => 200,
+            'success' => true,
+            'message' => 'New admissions retrieved successfully.',
+            'data' => $admissionsData,
+            'total_entries' => $totalEntries,
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'success' => false,
+            'message' => 'Failed to retrieve data.',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+public function getStudentData($id)
+{
+    try {
+        // Fetch the student data from the 't_new_admission' table
+        $student = NewAdmissionModel::find($id);
+
+        if (!$student) {
+            return response()->json([
+                'code' => 404,
+                'message' => 'Student not found',
+            ], 404);
+        }
+
+        // Retrieve the uploaded files based on the file IDs from the 'uploads' table
+        $fileUrls = [
+            'child_photo_url' => $student->child_photo_id ? Storage::url(UploadModel::find($student->child_photo_id)->file_url) : null,
+            'father_photo_url' => $student->father_photo_id ? Storage::url(UploadModel::find($student->father_photo_id)->file_url) : null,
+            'mother_photo_url' => $student->mother_photo_id ? Storage::url(UploadModel::find($student->mother_photo_id)->file_url) : null,
+            'birth_certificate_url' => $student->birth_certificate_id ? Storage::url(UploadModel::find($student->birth_certificate_id)->file_url) : null,
+        ];
+
+        // Prepare the data to return
+        $studentData = [
+            'sn' => $id,  // Serial number is the ID of the student
+            'application_no' => $student->application_no,
+            'first_name' => $student->first_name,
+            'last_name' => $student->last_name,
+            'gender' => $student->gender,
+            'dob' => $student->date_of_birth,
+            'class' => $student->class,
+            'aadhaar_no' => $student->aadhaar_no,
+            'father_name' => $student->father_name,
+            'father_surname' => $student->father_surname,
+            'father_occupation' => $student->father_occupation,
+            'father_mobile' => $student->father_mobile,
+            'father_email' => $student->father_email,
+            'mother_first_name' => $student->mother_first_name,
+            'mother_last_name' => $student->mother_last_name,
+            'mother_name' => $student->mother_name,
+            'mother_occupation' => $student->mother_occupation,
+            'mother_mobile' => $student->mother_mobile,
+            'mother_email' => $student->mother_email,
+            'siblings' => json_decode($student->siblings),
+            'address_1' => $student->address_1,
+            'address_2' => $student->address_2,
+            'city' => $student->city,
+            'state' => $student->state,
+            'country' => $student->country,
+            'pincode' => $student->pincode,
+            'attracted' => $student->attracted,
+            'strengths' => $student->strengths,
+            'remarks' => $student->remarks,
+            'interview_status' => $student->interview_status,
+            'added_to_school' => $student->added_to_school,
+            'comments' => $student->comments,
+            'printed' => $student->printed,
+            'file_links' => $fileUrls,  // Include file URLs
+        ];
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Student data fetched successfully',
+            'data' => $studentData,
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'message' => 'Failed to fetch student data',
             'error' => $e->getMessage(),
         ], 500);
     }

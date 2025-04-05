@@ -438,10 +438,10 @@ Route::middleware(['auth:sanctum', 'check-timeout'])->group(function () {
 
     // New Admission Routes
     Route::prefix('new_admission')->group(function () {
-        Route::get('/view', [NewAdmissionController::class, 'view'])
+        Route::get('/view', [NewAdmissionController::class, 'index'])
                 ->middleware(['check-api-permission:new_admissions.full, new_admissions.view']);          // List all Admissions
 
-        Route::post('/register', [NewAdmissionController::class, 'register'])
+        Route::post('/view/{id}', [NewAdmissionController::class, 'getStudentData'])
                 ->middleware(['check-api-permission:new_admissions.full']); // Register a specific child
 
         Route::post('/update/{id}', [NewAdmissionController::class, 'update'])
