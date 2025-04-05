@@ -580,3 +580,6 @@ Route::prefix('transactions')->group(function () {
     //testEazypayEncryption
     Route::post('/fee/confirmation', [PaymentController::class, 'feeConfirmation']);
 
+    Route::post('/admission', [NewAdmissionController::class, 'registerAdmission']);
+    Route::post('/admission-file', [NewAdmissionController::class, 'uploadFiles']);
+
