@@ -499,12 +499,36 @@ public function index(Request $request)
         $offset = $validated['offset'] ?? 0; // Default to 0 if not provided
 
         $totalEntries = $query->count(); // Get the total entries before applying limit and offset
-        $admissions = $query->offset($offset)->limit($limit)->get();
+
+        // Select specific fields from the database
+        $admissions = $query->select('id', 'application_no', 'first_name', 'last_name', 'gender', 'date_of_birth', 'class', 'ad_paid', 'interview_status', 'added_to_school', 'child_photo_id')
+                            ->offset($offset)
+                            ->limit($limit)
+                            ->get();
+
+        // Format the data
+        $formattedAdmissions = $admissions->map(function ($admission) {
+            // Get the child photo URL from the uploads table
+            $childPhotoUrl = $admission->child_photo_id ? Storage::url(UploadModel::find($admission->child_photo_id)->file_url) : null;
+
+            return [
+                'sn' => $admission->id,
+                'application_no' => $admission->application_no,
+                'name' => $admission->first_name . ' ' . $admission->last_name,
+                'gender' => $admission->gender,
+                'dob' => $admission->date_of_birth,
+                'class' => $admission->class,
+                'ad_paid' => $admission->ad_paid,
+                'interview_status' => $admission->interview_status,
+                'added_to_school' => $admission->added_to_school,
+                'child_photo_url' => $childPhotoUrl,
+            ];
+        });
 
         return response()->json([
             'code' => 200,
             'message' => 'New admissions retrieved successfully.',
-            'data' => $admissions,
+            'data' => $formattedAdmissions,
             'total_entries' => $totalEntries,
         ], 200);
     } catch (\Exception $e) {
@@ -528,40 +552,55 @@ public function getStudentData($id)
         $motherPhotoUrl = $admission->mother_photo_id ? Storage::url(UploadModel::find($admission->mother_photo_id)->file_url) : null;
         $birthCertificateUrl = $admission->birth_certificate_id ? Storage::url(UploadModel::find($admission->birth_certificate_id)->file_url) : null;
 
-        // Format and return the student's data with the file URLs
+        // Prepare response data
+        $data = [
+            'id' => $admission->id,
+            'application_no' => $admission->application_no,
+            'first_name' => $admission->first_name,
+            'last_name' => $admission->last_name,
+            'gender' => $admission->gender,
+            'dob' => $admission->date_of_birth,
+            'class' => $admission->class,
+            'ad_paid' => $admission->ad_paid,
+            'interview_status' => $admission->interview_status,
+            'added_to_school' => $admission->added_to_school,
+            'child_photo_url' => $childPhotoUrl ? str_replace('/storage/storage', '/storage', $childPhotoUrl) : null,
+            'father_photo_url' => $fatherPhotoUrl ? str_replace('/storage/storage', '/storage', $fatherPhotoUrl) : null,
+            'mother_photo_url' => $motherPhotoUrl ? str_replace('/storage/storage', '/storage', $motherPhotoUrl) : null,
+            'birth_certificate_url' => $birthCertificateUrl ? str_replace('/storage/storage', '/storage', $birthCertificateUrl) : null,
+            'father_name' => $admission->father_name,
+            'father_surname' => $admission->father_surname,
+            'father_occupation' => $admission->father_occupation,
+            'father_mobile' => $admission->father_mobile,
+            'father_email' => $admission->father_email,
+            'father_monthly_income' => $admission->father_monthly_income,
+            'mother_first_name' => $admission->mother_first_name,
+            'mother_last_name' => $admission->mother_last_name,
+            'mother_name' => $admission->mother_name,
+            'mother_education' => $admission->mother_education,
+            'mother_occupation' => $admission->mother_occupation,
+            'mother_mobile' => $admission->mother_mobile,
+            'mother_email' => $admission->mother_email,
+            'mother_monthly_income' => $admission->mother_monthly_income,
+            'siblings' => json_decode($admission->siblings),
+            'address' => $admission->address_1 . ' ' . $admission->address_2,
+            'city' => $admission->city,
+            'state' => $admission->state,
+            'country' => $admission->country,
+            'pincode' => $admission->pincode,
+            'attracted' => $admission->attracted,
+            'strengths' => $admission->strengths,
+            'remarks' => $admission->remarks,
+            'comments' => $admission->comments,
+            'printed' => $admission->printed,
+            'created_at' => $admission->created_at,
+            'updated_at' => $admission->updated_at,
+        ];
+
         return response()->json([
             'code' => 200,
             'message' => 'Student data fetched successfully.',
-            'data' => [
-                'id' => $admission->id,
-                'application_no' => $admission->application_no,
-                'first_name' => $admission->first_name,
-                'last_name' => $admission->last_name,
-                'gender' => $admission->gender,
-                'dob' => $admission->date_of_birth,
-                'class' => $admission->class,
-                'ad_paid' => $admission->ad_paid,
-                'interview_status' => $admission->interview_status,
-                'added_to_school' => $admission->added_to_school,
-                'child_photo_url' => $childPhotoUrl ? str_replace('/storage/storage', '/storage', $childPhotoUrl) : null,
-                'father_photo_url' => $fatherPhotoUrl ? str_replace('/storage/storage', '/storage', $fatherPhotoUrl) : null,
-                'mother_photo_url' => $motherPhotoUrl ? str_replace('/storage/storage', '/storage', $motherPhotoUrl) : null,
-                'birth_certificate_url' => $birthCertificateUrl ? str_replace('/storage/storage', '/storage', $birthCertificateUrl) : null,
-                'father_name' => $admission->father_name,
-                'mother_name' => $admission->mother_name,
-                'address' => $admission->address_1 . ' ' . $admission->address_2,
-                'city' => $admission->city,
-                'state' => $admission->state,
-                'country' => $admission->country,
-                'pincode' => $admission->pincode,
-                'attracted' => $admission->attracted,
-                'strengths' => $admission->strengths,
-                'remarks' => $admission->remarks,
-                'comments' => $admission->comments,
-                'printed' => $admission->printed,
-                'created_at' => $admission->created_at,
-                'updated_at' => $admission->updated_at,
-            ]
+            'data' => $data
         ], 200);
     } catch (\Exception $e) {
         return response()->json([
