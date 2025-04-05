@@ -171,7 +171,7 @@ class NewAdmissionController extends Controller
             $filePaths = [];
             foreach ($files as $key => $file) {
                 $fileName = $key . "_" . time() . "." . $file->getClientOriginalExtension();
-                $filePath = $file->storeAs('uploads/admissions/' . $applicationNo, $fileName, 'public');
+                $filePath = $file->storeAs('/uploads/admissions/' . $applicationNo, $fileName, 'public');
                 $filePaths[$key] = Storage::url($filePath);
             }
 
