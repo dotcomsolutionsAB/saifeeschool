@@ -451,91 +451,6 @@ public function uploadFiles(Request $request, $st_id, $newAdmission)
 public function index(Request $request)
 {
     try {
-        // Get the filters and pagination parameters from the request
-        $search = $request->input('search', '');         // Default to empty string if not provided
-        $class = $request->input('class', '');           // Default to empty string if not provided
-        $year = $request->input('year', '');             // Default to empty string if not provided
-        $adPaid = $request->input('ad_paid', '');        // Default to empty string if not provided
-        $interviewStatus = $request->input('interview_status', '');  // Default to empty string if not provided
-        $addedToSchool = $request->input('added_to_school', '');     // Default to empty string if not provided
-        $limit = $request->input('limit', 10);           // Default to 10 records per page
-        $offset = $request->input('offset', 0);          // Default to 0 if not provided
-
-        // Build the query with filters
-        $query = NewAdmissionModel::query();
-
-        // Search filter: search by first name, last name
-        if (!empty($search)) {
-            $query->where(function ($query) use ($search) {
-                $query->where('first_name', 'like', '%' . $search . '%')
-                    ->orWhere('last_name', 'like', '%' . $search . '%');
-            });
-        }
-
-        // Class filter
-        if (!empty($class)) {
-            $query->where('class', 'like', '%' . $class . '%');
-        }
-
-        // Year filter (academic year)
-        if (!empty($year)) {
-            $query->where('ay_id', $year);
-        }
-
-        // ad_paid filter
-        if ($adPaid !== '') {
-            $query->where('ad_paid', $adPaid);
-        }
-
-        // Interview status filter
-        if ($interviewStatus !== '') {
-            $query->where('interview_status', $interviewStatus);
-        }
-
-        // Added to school status filter
-        if ($addedToSchool !== '') {
-            $query->where('added_to_school', $addedToSchool);
-        }
-
-        // Pagination and fetching the data
-        $totalEntries = $query->count();  // Get the total number of records matching the filters
-        $admissions = $query->skip($offset)->take($limit)->get();
-
-        // Prepare the data for response
-        $data = $admissions->map(function ($admission, $index) {
-            return [
-                'sn' => $index + 1, // Serial number
-                'application_no' => $admission->application_no,
-                'name' => $admission->first_name . ' ' . $admission->last_name,
-                'gender' => $admission->gender,
-                'dob' => $admission->date_of_birth,
-                'class' => $admission->class,
-                'ad_paid' => $admission->ad_paid,
-                'interview_status' => $admission->interview_status,
-                'added_to_school' => $admission->added_to_school,
-                'child_photo_url' => $admission->child_photo_id ? Storage::url(UploadModel::find($admission->child_photo_id)->file_url) : null,
-            ];
-        });
-
-        return response()->json([
-            'code' => 200,
-            'success' => true,
-            'message' => 'New admissions retrieved successfully.',
-            'data' => $data,
-            'total_entries' => $totalEntries
-        ], 200);
-    } catch (\Exception $e) {
-        return response()->json([
-            'code' => 500,
-            'message' => 'Failed to retrieve new admissions.',
-            'error' => $e->getMessage(),
-        ], 500);
-    }
-}
-
-public function getAdmissions(Request $request)
-{
-    try {
         // Validate incoming request
         $validated = $request->validate([
             'search' => 'nullable|string|max:255',
@@ -596,6 +511,62 @@ public function getAdmissions(Request $request)
         return response()->json([
             'code' => 500,
             'message' => 'Error retrieving admissions',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+public function getStudentData($id)
+{
+    try {
+        // Retrieve the admission record by student ID
+        $admission = NewAdmissionModel::findOrFail($id);
+
+        // Fetch the file URLs based on the file IDs from the uploads table
+        $childPhotoUrl = $admission->child_photo_id ? Storage::url(UploadModel::find($admission->child_photo_id)->file_url) : null;
+        $fatherPhotoUrl = $admission->father_photo_id ? Storage::url(UploadModel::find($admission->father_photo_id)->file_url) : null;
+        $motherPhotoUrl = $admission->mother_photo_id ? Storage::url(UploadModel::find($admission->mother_photo_id)->file_url) : null;
+        $birthCertificateUrl = $admission->birth_certificate_id ? Storage::url(UploadModel::find($admission->birth_certificate_id)->file_url) : null;
+
+        // Format and return the student's data with the file URLs
+        return response()->json([
+            'code' => 200,
+            'message' => 'Student data fetched successfully.',
+            'data' => [
+                'id' => $admission->id,
+                'application_no' => $admission->application_no,
+                'first_name' => $admission->first_name,
+                'last_name' => $admission->last_name,
+                'gender' => $admission->gender,
+                'dob' => $admission->date_of_birth,
+                'class' => $admission->class,
+                'ad_paid' => $admission->ad_paid,
+                'interview_status' => $admission->interview_status,
+                'added_to_school' => $admission->added_to_school,
+                'child_photo_url' => $childPhotoUrl ? str_replace('/storage/storage', '/storage', $childPhotoUrl) : null,
+                'father_photo_url' => $fatherPhotoUrl ? str_replace('/storage/storage', '/storage', $fatherPhotoUrl) : null,
+                'mother_photo_url' => $motherPhotoUrl ? str_replace('/storage/storage', '/storage', $motherPhotoUrl) : null,
+                'birth_certificate_url' => $birthCertificateUrl ? str_replace('/storage/storage', '/storage', $birthCertificateUrl) : null,
+                'father_name' => $admission->father_name,
+                'mother_name' => $admission->mother_name,
+                'address' => $admission->address_1 . ' ' . $admission->address_2,
+                'city' => $admission->city,
+                'state' => $admission->state,
+                'country' => $admission->country,
+                'pincode' => $admission->pincode,
+                'attracted' => $admission->attracted,
+                'strengths' => $admission->strengths,
+                'remarks' => $admission->remarks,
+                'comments' => $admission->comments,
+                'printed' => $admission->printed,
+                'created_at' => $admission->created_at,
+                'updated_at' => $admission->updated_at,
+            ]
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'code' => 500,
+            'message' => 'Failed to fetch student data.',
             'error' => $e->getMessage(),
         ], 500);
     }
