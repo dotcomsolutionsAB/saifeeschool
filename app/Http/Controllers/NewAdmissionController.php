@@ -507,12 +507,13 @@ public function index(Request $request)
                             ->get();
 
         // Format the data
-        $formattedAdmissions = $admissions->map(function ($admission) {
+        $formattedAdmissions = $admissions->map(function ($admission,$index) {
             // Get the child photo URL from the uploads table
             $childPhotoUrl = $admission->child_photo_id ? UploadModel::find($admission->child_photo_id)->file_url : null;
 
             return [
-                'sn' => $admission->id,
+                'sn'=>$index+1,
+                'id' => $admission->id,
                 'application_no' => $admission->application_no,
                 'name' => $admission->first_name . ' ' . $admission->last_name,
                 'gender' => $admission->gender,
