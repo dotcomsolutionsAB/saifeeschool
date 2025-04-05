@@ -408,7 +408,7 @@ public function uploadFiles(Request $request, $st_id, $newAdmission)
                 'st_id' => $st_id,
                 'file_name' => $fileName,
                 'file_ext' => $file->getClientOriginalExtension(),
-                'file_url' => "https://saifeeschool.dotcombusiness.in/$filePath",
+                'file_url' => "https://saifeeschool.dotcombusiness.in/storage/$filePath",
                 'file_size' => $file->getSize(),
                 'created_at' => now(),
                 'updated_at' => now(),
