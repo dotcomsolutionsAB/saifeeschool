@@ -349,7 +349,7 @@ public function feeConfirmation(Request $request)
         return response()->json([
             'code' => 200,
             'status' => true,
-            'Payment Sucess'=>$response['response_code']=='E0000'?true:false,
+            'Payment_Sucess'=>$response['response_code']=='E000'?true:false,
             'message' => $response['desc'],  // This gives the description of the response code
             
         ]);
