@@ -568,7 +568,7 @@ Route::prefix('transactions')->group(function () {
 
 // Route for fetching house options
     Route::get('/house-options', [UserController::class, 'getHouseOptions']);
-    Route::post('class_group/view/{id?}', [ClassGroupController::class, 'index']);
+   
 
     Route::post('/pay-fees', [PaymentController::class, 'processFeePayment']);
     Route::post('/payment/confirmation', [PaymentController::class, 'paymentConfirmation']);
@@ -583,4 +583,5 @@ Route::prefix('transactions')->group(function () {
 
     Route::post('/admission', [NewAdmissionController::class, 'registerAdmission']);
     Route::post('/admission-file', [NewAdmissionController::class, 'uploadFiles']);
+    Route::post('class_group/view/{id?}', [ClassGroupController::class, 'index']);
 
