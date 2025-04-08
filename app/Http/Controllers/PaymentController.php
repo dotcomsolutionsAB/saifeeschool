@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Models\StudentModel;
 
 class PaymentController extends Controller
 {
@@ -345,6 +346,11 @@ public function feeConfirmation(Request $request)
             'updated_at'        => now(),
         ]);
 
+        if ($response['response_code'] == 'E000') {
+            // If the response code is 'E000' (success), call the processPaymentDetails method
+            $this->processPaymentDetails($parsed);
+        }
+
         // Return the response with status and description based on response_code..
         return response()->json([
             'code' => 200,
@@ -407,6 +413,142 @@ private function mapResponseCode($code)
             return ['status' => 'Failure', 'desc' => 'Bad Track Data.'];
         default:
             return ['status' => 'Failure', 'desc' => '---'];
+    }
+}
+public function processPaymentDetails($parsed)
+{
+    try {
+        // Match the reference_id from the t_pg_logs table to get st_id and fpp_ids
+        $pgLog = DB::table('t_pg_logs')->where('pg_reference_no', $parsed['ReferenceNo'])->first();
+
+        if (!$pgLog) {
+            return response()->json([
+                'code' => 400,
+                'status' => false,
+                'message' => 'No matching payment reference found.',
+            ]);
+        }
+
+        $st_id = $pgLog->st_id;  // Get student ID
+        $fpp_ids = explode(',', $pgLog->f_id);  // Get fee IDs, assuming they are comma-separated
+
+        // Get the student's current wallet balance
+        $student = StudentModel::findOrFail($st_id);
+        $walletBalance = $student->st_wallet;
+
+        // Calculate the total amount to be added to the wallet
+        $txnAmount = $parsed['Total_Amount'];
+        $newWalletBalance = $walletBalance + $txnAmount;
+
+        // Update the student's wallet balance
+        $student->st_wallet = $newWalletBalance;
+        $student->save();
+
+        // Add a transaction for the wallet deposit (txn_type = 1 for adding money)
+        DB::table('t_txns')->insert([
+            'st_id' => $st_id,
+            'sch_id' => 1,  // Assuming school ID is 1
+            'txn_type_id' => 1,  // Transaction type for adding money
+            'txn_date' => now()->toDateString(),
+            'txn_time' => now()->toTimeString(),
+            'txn_mode' => 'internal',  // Payment mode
+            'txn_amount' => $txnAmount,
+            'f_id' => null,  // No fee ID for wallet deposit
+            'f_normal' => 0,
+            'f_late' => 0,
+            'txn_tagged_to_id' => null,  // You can fill this if necessary
+            'txn_reason' => 'Wallet deposit',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Process transactions for each fee payment (fpp_id)
+        foreach ($fpp_ids as $fpp_id) {
+            // Retrieve the fee data based on fpp_id
+            $fee = DB::table('t_fees')
+                    ->where('fpp_id', $fpp_id)
+                    ->where('st_id', $st_id)
+                    ->first();
+
+            // Proceed if the fee exists
+            if ($fee) {
+                // Determine the transaction type (normal or late fee)
+                $txnTypeId = ($fee->f_late_fee_applicable == 1) ? 3 : 2;  // If late fee applicable, txn_type = 3
+
+                // Add a transaction entry for the fee payment (normal fee)
+                DB::table('t_txns')->insert([
+                    'st_id' => $st_id,
+                    'sch_id' => 1,  // Assuming school ID is 1
+                    'txn_type_id' => 2,  // Transaction type for normal fee
+                    'txn_date' => now()->toDateString(),
+                    'txn_time' => now()->toTimeString(),
+                    'txn_mode' => 'internal',  // Payment mode
+                    'txn_amount' => $fee->fpp_amount,
+                    'f_id' => $fpp_id,
+                    'f_normal' => 1,
+                    'f_late' => 0,
+                    'txn_tagged_to_id' => null,
+                    'txn_reason' => 'Fee Payment',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // If late fee is applicable, create another transaction for the late fee
+                if ($fee->f_late_fee_applicable == 1) {
+                    DB::table('t_txns')->insert([
+                        'st_id' => $st_id,
+                        'sch_id' => 1,  // Assuming school ID is 1
+                        'txn_type_id' => 3,  // Transaction type for late fee
+                        'txn_date' => now()->toDateString(),
+                        'txn_time' => now()->toTimeString(),
+                        'txn_mode' => 'internal',  // Payment mode
+                        'txn_amount' => $fee->f_late_fee,  // Only the late fee amount
+                        'f_id' => $fpp_id,
+                        'f_normal' => 0,
+                        'f_late' => 1,
+                        'txn_tagged_to_id' => null,
+                        'txn_reason' => 'Late Fee Payment',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                // Deduct wallet balance after the transaction
+                $newWalletBalanceAfterPayment = $newWalletBalance - $fee->fpp_amount - ($fee->f_late_fee_applicable ? $fee->f_late_fee : 0);
+                $student->st_wallet = $newWalletBalanceAfterPayment;
+                $student->save();
+
+                // Mark fee as paid
+                DB::table('t_fees')->where('id', $fee->id)->update(['f_paid' => 1]);
+            }
+        }
+
+        $pgLog = DB::table('t_pg_logs')->where('pg_reference_no', $parsed['ReferenceNo'])->first();
+
+if ($pgLog) {
+    // Process the payment logic (wallet addition, fee payment, etc.)
+    // Your payment processing code here...
+
+    // Update the payment status to 'completed'
+    DB::table('t_pg_logs')
+        ->where('pg_reference_no', $parsed['ReferenceNo'])
+        ->update(['status' => 'completed', 'updated_at' => now()]);
+}
+
+        // Response with success message
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'message' => 'Payment processed successfully, wallet updated, and fees paid.',
+        ]);
+    } catch (\Exception $e) {
+        // Handle any exceptions during the process
+        return response()->json([
+            'code' => 500,
+            'status' => false,
+            'message' => 'An error occurred while processing payment.',
+            'error' => $e->getMessage(),
+        ]);
     }
 }
 }
