@@ -73,7 +73,7 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
                 'total_unpaid_fees' => [
                     'amount' => $totalUnpaidAmount,
                     'query_key' => [
-                        'year' => $currentAcademicYear,
+                        'ay_id' => $currentAcademicYear,
                         'ay_name' => $academicYear->ay_name,
                         'status' => 'unpaid'
                     ]
@@ -82,7 +82,7 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
                 'current_month_unpaid_fees' => [
                     'amount' => $currentMonthUnpaidAmount,
                     'query_key' => [
-                        'year' => $currentYear,
+                        'ay_id' => $currentAcademicYear,
                         'ay_name' => $academicYear->ay_name,
                         'month_no' => $currentMonth,
                         'status' => 'unpaid',
@@ -199,7 +199,7 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
                 return \Carbon\Carbon::parse($item->fpp_due_date)->format('F Y');
             });
     
-            $formattedMonthlyFees = $groupedMonthlyFees->map(function ($items, $monthYear)use ($academicYear) {
+            $formattedMonthlyFees = $groupedMonthlyFees->map(function ($items, $monthYear)use ($aca) {
                 $totalAmount = $items->sum('fpp_amount');
                 $paidAmount = $items->sum('f_total_paid');
                 $dueAmount = $totalAmount - $paidAmount;
