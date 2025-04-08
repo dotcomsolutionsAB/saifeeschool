@@ -153,7 +153,7 @@ Route::middleware(['auth:sanctum', 'check-timeout'])->group(function () {
     Route::prefix('class_group')->group(function () {
         Route::post('/register', [ClassGroupController::class, 'createOrUpdate']);         // Add a new teacher (Admin only)
            // Update a teacher (Admin only)
-        Route::post('/view/{id?}', [ClassGroupController::class, 'index']);
+       // Route::post('/view/{id?}', [ClassGroupController::class, 'index']);
         Route::post('/view_all', [ClassGroupController::class, 'viewAll']);   // Fetch all or specific teacher
         Route::delete('/{id}', [ClassGroupController::class, 'destroy']); // Delete a teacher
 
@@ -568,6 +568,7 @@ Route::prefix('transactions')->group(function () {
 
 // Route for fetching house options
     Route::get('/house-options', [UserController::class, 'getHouseOptions']);
+    Route::post('class_group/view/{id?}', [ClassGroupController::class, 'index']);
 
     Route::post('/pay-fees', [PaymentController::class, 'processFeePayment']);
     Route::post('/payment/confirmation', [PaymentController::class, 'paymentConfirmation']);
