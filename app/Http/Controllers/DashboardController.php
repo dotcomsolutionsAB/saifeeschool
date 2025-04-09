@@ -213,7 +213,7 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
                     'late_fee_collected' => $lateFee,
                     
                     'query_key_unpaid' => [
-                        'ay_id' => $academicYear->ay_id,
+                        'ay_id' => $academicYear->id,
                         'ay_name' => $academicYear->ay_name,
                         'type' => 'monthly',
                         'status' => 'unpaid',
