@@ -209,7 +209,7 @@ class NewAdmissionController extends Controller
                 'class' => 'required|string|max:10',
                 'gender' => 'required|in:m,f',
                 'dob' => 'required|date',
-                'aadhaar' => 'required|digits:12|unique:t_new_admission,aadhaar_no',
+                'aadhaar' => 'nullable|digits:12|unique:t_new_admission,aadhaar_no',
                 'residential_address1' => 'required|string|max:1000',
                 'residential_address2' => 'nullable|string|max:1000',
                 'city' => 'required|string|max:255',
@@ -322,7 +322,8 @@ class NewAdmissionController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
-    }private function handleOccupationValidation($validated, $jsonData)
+    }
+    private function handleOccupationValidation($validated, $jsonData)
 {
     // Father's occupation validation
     if ($validated['father_occupation'] == 'business') {
