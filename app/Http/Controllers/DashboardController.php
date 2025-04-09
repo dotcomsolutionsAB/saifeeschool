@@ -199,7 +199,7 @@ $currentMonthEnd = now()->endOfMonth()->toDateString();     // e.g., 2025-03-31
                 return \Carbon\Carbon::parse($item->fpp_due_date)->format('F Y');
             });
     
-            $formattedMonthlyFees = $groupedMonthlyFees->map(function ($items, $monthYear)use ($aca) {
+            $formattedMonthlyFees = $groupedMonthlyFees->map(function ($items, $monthYear)use ($academicYear) {
                 $totalAmount = $items->sum('fpp_amount');
                 $paidAmount = $items->sum('f_total_paid');
                 $dueAmount = $totalAmount - $paidAmount;
