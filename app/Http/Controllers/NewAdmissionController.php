@@ -206,11 +206,10 @@ class NewAdmissionController extends Controller
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
                 'ay_id' => 'required|integer',
-                'class' => 'required|string|max:10',
+                'class' => 'required|string|max:100',
                 'gender' => 'required|in:m,f',
                 'dob' => 'required|date',
                 'aadhaar' => 'nullable|digits:12|unique:t_new_admission,aadhaar_no',
-               
                 'city' => 'required|string|max:255',
                 'state' => 'required|string|max:255',
                 'pincode' => 'required|digits:6',
