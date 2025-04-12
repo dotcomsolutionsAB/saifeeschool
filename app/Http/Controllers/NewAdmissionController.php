@@ -27,7 +27,8 @@ class NewAdmissionController extends Controller
             'gender' => 'required|in:m,f',
             'dob' => 'required|date',
             'aadhaar' => 'required|digits:12|unique:t_new_admission,aadhaar_no',
-            
+            'residential_address1' => 'required|string|max:1000',
+            'residential_address2' => 'nullable|string|max:1000',
             'city' => 'required|string|max:255',
             'state' => 'required|string|max:255',
             'pincode' => 'required|digits:6',
@@ -236,10 +237,10 @@ class NewAdmissionController extends Controller
                 'attracted' => 'nullable|string',
                 'strengths' => 'nullable|string',
                 'remarks' => 'nullable|string',
-                'interview_status' => 'required|in:0,1',
-                'added_to_school' => 'required|in:0,1',
+                'interview_status' => 'nullable|in:0,1',
+                'added_to_school' => 'nullable|in:0,1',
                 'comments' => 'nullable|string',
-                'printed' => 'required|in:0,1',
+                'printed' => 'nullable|in:0,1',
             ])->validate();
     
             // Handle occupation-based validation (father and mother)
