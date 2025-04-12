@@ -265,110 +265,111 @@ class PaymentController extends Controller
 }
 public function feeConfirmation(Request $request)
 {
-    try {
-        $raw = file_get_contents('php://input');
-        $parsed = [];
+    echo " Hello";
+    // try {
+    //     $raw = file_get_contents('php://input');
+    //     $parsed = [];
         
-        // Manually parse the data
-        parse_str($raw, $parsed);
+    //     // Manually parse the data
+    //     parse_str($raw, $parsed);
 
-        // Use parsed data to create response array
-        $response = [
-            'response_code'       => $parsed['Response_Code'] ?? null,
-            'unique_ref_number'   => $parsed['Unique_Ref_Number'] ?? null,
-            'transaction_datetime'=> $parsed['Transaction_Date'] ?? null,
-            'total_amount'        => $parsed['Total_Amount'] ?? null,
-            'interchange_value'   => $parsed['Interchange_Value'] ?? null,
-            'tdr'                 => $parsed['TDR'] ?? null,
-            'payment_mode'        => $parsed['Payment_Mode'] ?? null,
-            'submerchant_id'      => $parsed['SubMerchantId'] ?? null,
-            'reference_no'        => $parsed['ReferenceNo'] ?? null,
-            'icid'                => $parsed['ID'] ?? null,
-            'rs'                  => $parsed['RS'] ?? null,
-            'tps'                 => $parsed['TPS'] ?? null,
-            'mandatory_fields'    => $parsed['mandatory_fields'] ?? null,
-            'optional_fields'     => $parsed['optional_fields'] ?? null,
-            'rsv'                 => $parsed['RSV'] ?? null,
-        ];
+    //     // Use parsed data to create response array
+    //     $response = [
+    //         'response_code'       => $parsed['Response_Code'] ?? null,
+    //         'unique_ref_number'   => $parsed['Unique_Ref_Number'] ?? null,
+    //         'transaction_datetime'=> $parsed['Transaction_Date'] ?? null,
+    //         'total_amount'        => $parsed['Total_Amount'] ?? null,
+    //         'interchange_value'   => $parsed['Interchange_Value'] ?? null,
+    //         'tdr'                 => $parsed['TDR'] ?? null,
+    //         'payment_mode'        => $parsed['Payment_Mode'] ?? null,
+    //         'submerchant_id'      => $parsed['SubMerchantId'] ?? null,
+    //         'reference_no'        => $parsed['ReferenceNo'] ?? null,
+    //         'icid'                => $parsed['ID'] ?? null,
+    //         'rs'                  => $parsed['RS'] ?? null,
+    //         'tps'                 => $parsed['TPS'] ?? null,
+    //         'mandatory_fields'    => $parsed['mandatory_fields'] ?? null,
+    //         'optional_fields'     => $parsed['optional_fields'] ?? null,
+    //         'rsv'                 => $parsed['RSV'] ?? null,
+    //     ];
 
-        // Validate required fields
-        if (empty($response['mandatory_fields'])) {
-            return response()->json([
-                'code' => 400,
-                'status' => false,
-                'message' => 'Missing required field: mandatory fields',
-                'data' => $response
-            ]);
-        }
+    //     // Validate required fields
+    //     if (empty($response['mandatory_fields'])) {
+    //         return response()->json([
+    //             'code' => 400,
+    //             'status' => false,
+    //             'message' => 'Missing required field: mandatory fields',
+    //             'data' => $response
+    //         ]);
+    //     }
 
-        // Parse the transaction date (dd-mm-yyyy hh:ii:ss to Y-m-d H:i:s)
-        $response['transaction_date'] = null;
-        $response['transaction_time'] = null;
-        if (!empty($response['transaction_datetime'])) {
-            $dt = \DateTime::createFromFormat('d-m-Y H:i:s', $response['transaction_datetime']);
-            if ($dt) {
-                $response['transaction_date'] = $dt->format('Y-m-d');
-                $response['transaction_time'] = $dt->format('H:i:s');
-            }
-        }
+    //     // Parse the transaction date (dd-mm-yyyy hh:ii:ss to Y-m-d H:i:s)
+    //     $response['transaction_date'] = null;
+    //     $response['transaction_time'] = null;
+    //     if (!empty($response['transaction_datetime'])) {
+    //         $dt = \DateTime::createFromFormat('d-m-Y H:i:s', $response['transaction_datetime']);
+    //         if ($dt) {
+    //             $response['transaction_date'] = $dt->format('Y-m-d');
+    //             $response['transaction_time'] = $dt->format('H:i:s');
+    //         }
+    //     }
 
-        // Remove unneeded key before insert
-        unset($response['transaction_datetime']);
+    //     // Remove unneeded key before insert
+    //     unset($response['transaction_datetime']);
 
-        // Use the mapResponseCode function to get status and description based on response_code
-        $responseCodeDetails = $this->mapResponseCode($response['response_code']);
+    //     // Use the mapResponseCode function to get status and description based on response_code
+    //     $responseCodeDetails = $this->mapResponseCode($response['response_code']);
         
-        // Add response status and description to the response
-        $response['status'] = $responseCodeDetails['status'];
-        $response['desc'] = $responseCodeDetails['desc'];
+    //     // Add response status and description to the response
+    //     $response['status'] = $responseCodeDetails['status'];
+    //     $response['desc'] = $responseCodeDetails['desc'];
 
-        // Save the response to `t_pg_responses` table
-        DB::table('t_pg_responses')->insert([
-            'response_code'     => $response['response_code'],
-            'unique_ref_number' => $response['unique_ref_number'],
-            'transaction_date'  => $response['transaction_date'],
-            'transaction_time'  => $response['transaction_time'],
-            'total_amount'      => $response['total_amount'],
-            'interchange_value' => $response['interchange_value'],
-            'tdr'               => $response['tdr'],
-            'payment_mode'      => $response['payment_mode'],
-            'submerchant_id'    => $response['submerchant_id'],
-            'reference_no'      => $response['reference_no'],
-            'icid'              => $response['icid'],
-            'rs'                => $response['rs'],
-            'tps'               => $response['tps'],
-            'mandatory_fields'  => $response['mandatory_fields'],
-            'optional_fields'   => $response['optional_fields'],
-            'rsv'               => $response['rsv'],
-            //'status'            => $response['status'],
-            //'desc'              => $response['desc'],
-            'created_at'        => now(),
-            'updated_at'        => now(),
-        ]);
+    //     // Save the response to `t_pg_responses` table
+    //     DB::table('t_pg_responses')->insert([
+    //         'response_code'     => $response['response_code'],
+    //         'unique_ref_number' => $response['unique_ref_number'],
+    //         'transaction_date'  => $response['transaction_date'],
+    //         'transaction_time'  => $response['transaction_time'],
+    //         'total_amount'      => $response['total_amount'],
+    //         'interchange_value' => $response['interchange_value'],
+    //         'tdr'               => $response['tdr'],
+    //         'payment_mode'      => $response['payment_mode'],
+    //         'submerchant_id'    => $response['submerchant_id'],
+    //         'reference_no'      => $response['reference_no'],
+    //         'icid'              => $response['icid'],
+    //         'rs'                => $response['rs'],
+    //         'tps'               => $response['tps'],
+    //         'mandatory_fields'  => $response['mandatory_fields'],
+    //         'optional_fields'   => $response['optional_fields'],
+    //         'rsv'               => $response['rsv'],
+    //         //'status'            => $response['status'],
+    //         //'desc'              => $response['desc'],
+    //         'created_at'        => now(),
+    //         'updated_at'        => now(),
+    //     ]);
 
-        if ($response['response_code'] == 'E000') {
-            // If the response code is 'E000' (success), call the processPaymentDetails method
-            $this->processPaymentDetails($parsed);
-        }
+    //     if ($response['response_code'] == 'E000') {
+    //         // If the response code is 'E000' (success), call the processPaymentDetails method
+    //         $this->processPaymentDetails($parsed);
+    //     }
 
-        // Return the response with status and description based on response_code..
-        return response()->json([
-            'code' => 200,
-            'status' => true,
-            'Payment_Sucess'=>$response['response_code']=='E000'?true:false,
-            'message' => $response['desc'],  // This gives the description of the response code
+    //     // Return the response with status and description based on response_code..
+    //     return response()->json([
+    //         'code' => 200,
+    //         'status' => true,
+    //         'Payment_Sucess'=>$response['response_code']=='E000'?true:false,
+    //         'message' => $response['desc'],  // This gives the description of the response code
             
-        ]);
+    //     ]);
         
-    } catch (\Exception $e) {
-        return response()->json([
-            'code' => 500,
-            'status' => false,
-            'message' => 'Failed to save payment response.',
-            'error' => $e->getMessage(),
-            'data' => $response
-        ]);
-    }
+    // } catch (\Exception $e) {
+    //     return response()->json([
+    //         'code' => 500,
+    //         'status' => false,
+    //         'message' => 'Failed to save payment response.',
+    //         'error' => $e->getMessage(),
+    //         'data' => $response
+    //     ]);
+    // }
 }
 private function mapResponseCode($code)
 {
