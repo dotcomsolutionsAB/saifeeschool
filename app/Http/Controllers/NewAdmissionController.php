@@ -210,8 +210,7 @@ class NewAdmissionController extends Controller
                 'gender' => 'required|in:m,f',
                 'dob' => 'required|date',
                 'aadhaar' => 'nullable|digits:12|unique:t_new_admission,aadhaar_no',
-                'residential_address1' => 'required|string|max:1000',
-                'residential_address2' => 'nullable|string|max:1000',
+               
                 'city' => 'required|string|max:255',
                 'state' => 'required|string|max:255',
                 'pincode' => 'required|digits:6',
