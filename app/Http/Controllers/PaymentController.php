@@ -415,8 +415,8 @@ public function processPaymentDetails($parsed)
             'txn_mode' => 'internal',  // Payment mode
             'txn_amount' => $txnAmount,
             'f_id' => null,  // No fee ID for wallet deposit
-            'f_normal' => 0,
-            'f_late' => 0,
+            'f_normal' => '0',
+            'f_late' => '0',
             'txn_tagged_to_id' => null,  // You can fill this if necessary
             'txn_reason' => 'Wallet deposit',
             'created_at' => now(),
@@ -445,9 +445,9 @@ public function processPaymentDetails($parsed)
                     'txn_time' => now()->toTimeString(),
                     'txn_mode' => 'internal',  // Payment mode
                     'txn_amount' => $fee->fpp_amount,
-                    'f_id' => $fpp_id,
-                    'f_normal' => 1,
-                    'f_late' => 0,
+                    'f_id' => $fee->id,
+                    'f_normal' => '1',
+                    'f_late' => '0',
                     'txn_tagged_to_id' => null,
                     'txn_reason' => 'Fee Payment',
                     'created_at' => now(),
@@ -455,7 +455,7 @@ public function processPaymentDetails($parsed)
                 ]);
 
                 // If late fee is applicable, create another transaction for the late fee
-                if ($fee->f_late_fee_applicable == 1) {
+                if ($fee->f_late_fee_applicable == '1') {
                     DB::table('t_txns')->insert([
                         'st_id' => $st_id,
                         'sch_id' => 1,  // Assuming school ID is 1
@@ -463,10 +463,10 @@ public function processPaymentDetails($parsed)
                         'txn_date' => now()->toDateString(),
                         'txn_time' => now()->toTimeString(),
                         'txn_mode' => 'internal',  // Payment mode
-                        'txn_amount' => $fee->f_late_fee,  // Only the late fee amount
-                        'f_id' => $fpp_id,
-                        'f_normal' => 0,
-                        'f_late' => 1,
+                        'txn_amount' => $fee->fpp_late_fee,  // Only the late fee amount
+                        'f_id' => $fee->id,
+                        'f_normal' => '0',
+                        'f_late' => '1',
                         'txn_tagged_to_id' => null,
                         'txn_reason' => 'Late Fee Payment',
                         'created_at' => now(),
