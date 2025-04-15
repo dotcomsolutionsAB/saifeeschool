@@ -346,9 +346,10 @@ public function feeConfirmation(Request $request)
             'created_at'        => now(),
             'updated_at'        => now(),
         ]);
-
+        $name="husain";
         if ($response['response_code'] === 'E000') {
             echo " hello";
+            $name="kool";
             // If the response code is 'E000' (success), call the processPaymentDetails method
             $this->processPaymentDetails($parsed);
         }
@@ -359,6 +360,7 @@ public function feeConfirmation(Request $request)
             'status' => true,
             'Payment_Sucess'=>$response['response_code']=='E000'?true:false,
             'message' => $response['desc'],  // This gives the description of the response code
+            'name'=>$name
             
         ]);
         
