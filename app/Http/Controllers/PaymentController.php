@@ -351,7 +351,7 @@ public function feeConfirmation(Request $request)
             echo " hello";
             $name="kool";
             // If the response code is 'E000' (success), call the processPaymentDetails method
-            $this->processPaymentDetails($parsed);
+            $responseFromProcess = $this->processPaymentDetails($parsed);
         }
 
         // Return the response with status and description based on response_code..
@@ -360,7 +360,8 @@ public function feeConfirmation(Request $request)
             'status' => true,
             'Payment_Sucess'=>$response['response_code']=='E000'?true:false,
             'message' => $response['desc'],  // This gives the description of the response code
-            'name'=>$name
+            'name'=>$name,
+            'response'=$responseFromProcess
             
         ]);
         
@@ -374,51 +375,7 @@ public function feeConfirmation(Request $request)
         ]);
     }
 }
-private function mapResponseCode($code)
-{
-    switch ($code) {
-        case 'E000':
-            return ['status' => 'Success', 'desc' => 'Received successfully.'];
-        case 'E008':
-            return ['status' => 'Failure', 'desc' => 'Failure from Third Party due to Technical Error.'];
-        case 'E0803':
-            return ['status' => 'Failure', 'desc' => 'Canceled by user.'];
-        case 'E0823':
-            return ['status' => 'Failure', 'desc' => 'Invalid 3D Secure values.'];
-        case 'E0812':
-            return ['status' => 'Failure', 'desc' => 'Do not honor.'];
-        case 'E0830':
-            return ['status' => 'Failure', 'desc' => 'Issuer or switch is inoperative.'];
-        case 'E0801':
-            return ['status' => 'Failure', 'desc' => 'FAIL.'];
-        case 'E0805':
-            return ['status' => 'Failure', 'desc' => 'Checkout page rendered Card function not supported.'];
-        case 'E0832':
-            return ['status' => 'Failure', 'desc' => 'Restricted card.'];
-        case 'E0035':
-            return ['status' => 'Failure', 'desc' => 'Sub merchant id coming from merchant is empty.'];
-        case 'E0820':
-            return ['status' => 'Failure', 'desc' => 'ECI 1 and ECI6 Error for Debit Cards and Credit Cards.'];
-        case 'E006':
-            return ['status' => 'Failure', 'desc' => 'Transaction is already paid.'];
-        case 'E0807':
-            return ['status' => 'Failure', 'desc' => 'PG Fwd Fail / Issuer Authentication Server failure.'];
-        case 'E00335':
-            return ['status' => 'Failure', 'desc' => 'Transaction Cancelled By User.'];
-        case 'E0821':
-            return ['status' => 'Failure', 'desc' => 'ECI 7 for Debit Cards and Credit Cards.'];
-        case 'E0816':
-            return ['status' => 'Failure', 'desc' => 'No Match with the card number.'];
-        case 'E0842':
-            return ['status' => 'Failure', 'desc' => 'Invalid expiration date.'];
-        case 'E0841':
-            return ['status' => 'Failure', 'desc' => 'SYSTEM ERROR.'];
-        case 'E0824':
-            return ['status' => 'Failure', 'desc' => 'Bad Track Data.'];
-        default:
-            return ['status' => 'Failure', 'desc' => '---'];
-    }
-}
+
 public function processPaymentDetails($parsed)
 {
     try {
@@ -553,6 +510,51 @@ if ($pgLog) {
             'message' => 'An error occurred while processing payment.',
             'error' => $e->getMessage(),
         ]);
+    }
+}
+private function mapResponseCode($code)
+{
+    switch ($code) {
+        case 'E000':
+            return ['status' => 'Success', 'desc' => 'Received successfully.'];
+        case 'E008':
+            return ['status' => 'Failure', 'desc' => 'Failure from Third Party due to Technical Error.'];
+        case 'E0803':
+            return ['status' => 'Failure', 'desc' => 'Canceled by user.'];
+        case 'E0823':
+            return ['status' => 'Failure', 'desc' => 'Invalid 3D Secure values.'];
+        case 'E0812':
+            return ['status' => 'Failure', 'desc' => 'Do not honor.'];
+        case 'E0830':
+            return ['status' => 'Failure', 'desc' => 'Issuer or switch is inoperative.'];
+        case 'E0801':
+            return ['status' => 'Failure', 'desc' => 'FAIL.'];
+        case 'E0805':
+            return ['status' => 'Failure', 'desc' => 'Checkout page rendered Card function not supported.'];
+        case 'E0832':
+            return ['status' => 'Failure', 'desc' => 'Restricted card.'];
+        case 'E0035':
+            return ['status' => 'Failure', 'desc' => 'Sub merchant id coming from merchant is empty.'];
+        case 'E0820':
+            return ['status' => 'Failure', 'desc' => 'ECI 1 and ECI6 Error for Debit Cards and Credit Cards.'];
+        case 'E006':
+            return ['status' => 'Failure', 'desc' => 'Transaction is already paid.'];
+        case 'E0807':
+            return ['status' => 'Failure', 'desc' => 'PG Fwd Fail / Issuer Authentication Server failure.'];
+        case 'E00335':
+            return ['status' => 'Failure', 'desc' => 'Transaction Cancelled By User.'];
+        case 'E0821':
+            return ['status' => 'Failure', 'desc' => 'ECI 7 for Debit Cards and Credit Cards.'];
+        case 'E0816':
+            return ['status' => 'Failure', 'desc' => 'No Match with the card number.'];
+        case 'E0842':
+            return ['status' => 'Failure', 'desc' => 'Invalid expiration date.'];
+        case 'E0841':
+            return ['status' => 'Failure', 'desc' => 'SYSTEM ERROR.'];
+        case 'E0824':
+            return ['status' => 'Failure', 'desc' => 'Bad Track Data.'];
+        default:
+            return ['status' => 'Failure', 'desc' => '---'];
     }
 }
 }
