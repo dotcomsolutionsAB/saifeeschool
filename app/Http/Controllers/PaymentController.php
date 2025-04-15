@@ -472,17 +472,23 @@ public function processPaymentDetails($parsed)
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
-                    DB::table('t_fees')->where('id', $fee->id)->update(['f_paid' => '1','f_late_fee_paid'=>$fee->fpp_late_fee]);
-                }
+                       }
 
                 // Deduct wallet balance after the transaction
-                $newWalletBalanceAfterPayment = $newWalletBalance - $fee->fpp_amount + ($fee->f_late_fee_applicable ='1' ? $fee->fpp_late_fee : 0);
+                $newWalletBalanceAfterPayment = $newWalletBalance - ($fee->fpp_amount) - ($fee->f_late_fee_applicable =='1' ? $fee->fpp_late_fee : 0);
                 $student->st_wallet = $newWalletBalanceAfterPayment;
                 $student->save();
 
                 // Mark fee as paid
-                DB::table('t_fees')->where('id', $fee->id)->update(['f_paid' => '1','f_total_paid'=>$fee->fpp_amount-$fee->f_concession+$fee->f_late_fee_paid]);
-            }
+                $totalPaid = ($fee->fpp_amount - $fee->f_concession) + 
+             ($fee->f_late_fee_applicable == '1' ? $fee->fpp_late_fee : 0);
+
+DB::table('t_fees')->where('id', $fee->id)->update([
+    'f_paid' => '1',
+    'f_total_paid' => $totalPaid,
+    'f_late_fee_paid' => ($fee->f_late_fee_applicable == '1' ? $fee->fpp_late_fee : 0),
+]);
+}
         }
 
         $pgLog = DB::table('t_pg_logs')->where('pg_reference_no', $parsed['ReferenceNo'])->first();
