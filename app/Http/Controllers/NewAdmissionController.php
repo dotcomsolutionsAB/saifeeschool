@@ -529,7 +529,7 @@ public function index(Request $request)
             'code' => 200,
             'message' => 'New admissions retrieved successfully.',
             'data' => $formattedAdmissions,
-            'total_entries' => $totalEntries,
+            'count' => $totalEntries,
             'offset'=>$offset,
             'limit'=>$limit
         ], 200);
