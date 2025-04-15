@@ -472,6 +472,7 @@ public function processPaymentDetails($parsed)
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
+                    DB::table('t_fees')->where('id', $fee->id)->update(['f_paid' => '1','f_late_fee_paid'=>$fee->fpp_late_fee]);
                 }
 
                 // Deduct wallet balance after the transaction
@@ -480,7 +481,7 @@ public function processPaymentDetails($parsed)
                 $student->save();
 
                 // Mark fee as paid
-                DB::table('t_fees')->where('id', $fee->id)->update(['f_paid' => 1]);
+                DB::table('t_fees')->where('id', $fee->id)->update(['f_paid' => '1','f_total_paid'=>$fee->fpp_amount-$fee->f_concession+$fee->f_late_fee_paid]);
             }
         }
 
