@@ -476,7 +476,7 @@ public function processPaymentDetails($parsed)
                 }
 
                 // Deduct wallet balance after the transaction
-                $newWalletBalanceAfterPayment = $newWalletBalance - $fee->fpp_amount - ($fee->f_late_fee_applicable ? $fee->f_late_fee : 0);
+                $newWalletBalanceAfterPayment = $newWalletBalance - $fee->fpp_amount + ($fee->f_late_fee_applicable ='1' ? $fee->f_late_fee : 0);
                 $student->st_wallet = $newWalletBalanceAfterPayment;
                 $student->save();
 
