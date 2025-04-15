@@ -493,7 +493,7 @@ if ($pgLog) {
     // Update the payment status to 'completed'
     DB::table('t_pg_logs')
         ->where('pg_reference_no', $parsed['ReferenceNo'])
-        ->update(['status' => 'completed', 'updated_at' => now()]);
+        ->update(['status' => 'completed']);
 }
 
         // Response with success message
