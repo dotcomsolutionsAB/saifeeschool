@@ -361,7 +361,7 @@ public function feeConfirmation(Request $request)
             'Payment_Sucess'=>$response['response_code']=='E000'?true:false,
             'message' => $response['desc'],  // This gives the description of the response code
             'name'=>$name,
-            'response'=$responseFromProcess
+            'response'=>$responseFromProcess
             
         ]);
         
