@@ -215,7 +215,7 @@ class PaymentController extends Controller
     $ref_no = time() . mt_rand(10000, 99999);
     $sub_merchant_id = "11";
     $amount = $balance;
-    $return_url = "https://saifeeschool.dotcombusiness.in/api/fee/confirmation";
+    $return_url = "https://new.saifeeschool.in/fees/pending-fees/payment-status";
     $paymode = "9";
     $mandatory_fields = "{$ref_no}|{$sub_merchant_id}|{$amount}";
     $optional_fields = "";
