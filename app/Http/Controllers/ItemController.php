@@ -7,13 +7,15 @@ use League\Csv\Reader;
 use League\Csv\Statement;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Auth;
+use Carbon\Carbon;
 
 
 class ItemController extends Controller
 {
     //
-    puse Illuminate\Support\Facades\Auth;
-    use Carbon\Carbon;
+    
+    
     
     public function register(Request $request)
     {
