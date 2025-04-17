@@ -7,8 +7,8 @@ use League\Csv\Reader;
 use League\Csv\Statement;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Auth;
 use Carbon\Carbon;
+use App\Http\Controllers\Auth\AuthController;
 
 
 class ItemController extends Controller
