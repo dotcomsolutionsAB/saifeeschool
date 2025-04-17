@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Log;
 class ItemController extends Controller
 {
     //
+    puse Illuminate\Support\Facades\Auth;
+    use Carbon\Carbon;
+    
     public function register(Request $request)
     {
         $validated = $request->validate([
@@ -24,10 +27,15 @@ class ItemController extends Controller
             'discount' => 'nullable|string|max:100',
             'tax' => 'required|string|max:100',
             'hsn' => 'required|string|max:100',
-            'log_user' => 'required|string|max:100',
-            'log_date' => 'required|date',
+            // Removed: 'log_user' and 'log_date' validation
         ]);
-
+    
+        // Automatically get the current logged-in user's name or ID
+        $log_user = Auth::user()->name ?? 'System'; // or use ->id if storing ID
+    
+        // Automatically get the current date
+        $log_date = Carbon::now()->toDateString(); // format: YYYY-MM-DD
+    
         $item = ItemModel::create([
             'name' => $validated['name'],
             'description' => $validated['description'],
@@ -38,12 +46,15 @@ class ItemController extends Controller
             'discount' => $validated['discount'] ?? '',
             'tax' => $validated['tax'],
             'hsn' => $validated['hsn'],
-            'log_user' => $validated['log_user'],
-            'log_date' => $validated['log_date'],
+            'log_user' => $log_user,
+            'log_date' => $log_date,
         ]);
-
+    
         if ($item) {
-            return response()->json(['message' => 'Item created successfully.', 'item' => $item->makeHidden(['id', 'created_at', 'updated_at'])], 201);
+            return response()->json([
+                'message' => 'Item created successfully.',
+                'item' => $item->makeHidden(['id', 'created_at', 'updated_at'])
+            ], 201);
         } else {
             return response()->json(['message' => 'Failed to create item.'], 500);
         }
