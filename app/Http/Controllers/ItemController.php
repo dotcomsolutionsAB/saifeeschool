@@ -63,7 +63,7 @@ class ItemController extends Controller
         }
     }
 
-    public function index($id = null)
+    public function index(Request $request, $id = null)
     {
         try {
             if ($id) {
@@ -74,10 +74,29 @@ class ItemController extends Controller
                     return response()->json(['message' => 'Item not found.'], 404);
                 }
             } else {
-                $items = ItemModel::all()->makeHidden(['id', 'created_at', 'updated_at']);
+                $query = ItemModel::query();
+    
+                // Search by name or any other column you want
+                if ($request->has('search') && !empty($request->search)) {
+                    $searchTerm = $request->search;
+                    $query->where(function ($q) use ($searchTerm) {
+                        $q->where('name', 'LIKE', "%$searchTerm%")
+                          ->orWhere('description', 'LIKE', "%$searchTerm%"); // adjust column names as needed
+                    });
+                }
+    
+                // Apply offset and limit
+                $offset = $request->get('offset', 0);
+                $limit = $request->get('limit', 10);
+                $query->offset($offset)->limit($limit);
+    
+                $items = $query->get()->makeHidden(['created_at', 'updated_at']);
+                $total = $query->toBase()->getCountForPagination(); // total after filters, before limit
+    
                 return response()->json([
                     'item_record' => $items,
-                    'count' => $items->count()
+                    'count' => $items->count(),
+                    'total' => $total
                 ]);
             }
         } catch (\Exception $e) {
