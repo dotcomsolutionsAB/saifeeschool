@@ -674,8 +674,8 @@ public function importAdmissions()
                     'address_1' => $address['address'] ?? '',
                     'address_2' => $address['landmark'] ?? '',
 
-                    'last_school' => $rowData['last_school'] ?? '',
-                    'last_school_address' => $rowData['last_school_address'] ?? '',
+                    'last_school' => $rowData['last_school'] ?? 'Not Updated',
+                    'last_school_address' => $rowData['last_school_address'] ?? 'Not Updated',
 
                     'attracted' => $otherInfo['attracted'] ?? '',
                     'strengths' => $otherInfo['strengths'] ?? '',
