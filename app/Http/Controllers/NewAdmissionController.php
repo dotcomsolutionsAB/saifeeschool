@@ -317,6 +317,8 @@ class NewAdmissionController extends Controller
             return response()->json([
                 'code'=>'500',
                 'message' => 'Registration failed',
+                'trace' => $e->getTraceAsString(), // helpful for local dev
+    'line' => $e->getLine(),
                 'error' => $e->getMessage(),
             ], 500);
         }
