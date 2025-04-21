@@ -625,17 +625,18 @@ public function importAdmissions()
         if (!file_exists($filePath)) {
             return response()->json(['success' => false, 'message' => 'CSV file not found.'], 404);
         }
+
         $imported = 0;
         $errors = [];
 
         $csv = [];
-$handle = fopen($filePath, 'r');
-$headers = fgetcsv($handle, 0, ',', '"'); // Properly respects quoted fields
+        $handle = fopen($filePath, 'r');
+        $headers = fgetcsv($handle, 0, ',', '"'); // quoted values safe
 
-while (($data = fgetcsv($handle, 0, ',', '"')) !== false) {
-    $csv[] = $data;
-}
-fclose($handle);
+        while (($data = fgetcsv($handle, 0, ',', '"')) !== false) {
+            $csv[] = $data;
+        }
+        fclose($handle);
 
         foreach ($csv as $index => $row) {
             if (count($row) !== count($headers)) {
@@ -645,89 +646,139 @@ fclose($handle);
                 ];
                 continue;
             }
-        
+
             try {
                 $rowData = array_combine($headers, $row);
-        
-                // Decode JSON fields safely
+
+                // Decode nested fields
                 $fatherDetails = json_decode($rowData['father_details'] ?? '{}', true);
                 $motherDetails = json_decode($rowData['mother_details'] ?? '{}', true);
                 $siblings = json_decode($rowData['siblings'] ?? '[]', true);
                 $address = json_decode($rowData['address'] ?? '{}', true);
                 $otherInfo = json_decode($rowData['other_info'] ?? '{}', true);
-        
-                // Prepare structured data...
+
+                // Build JSON structure as expected by registerAdmission()
                 $jsonData = [
-                    "first_name" => explode(' ', $rowData['name'])[0] ?? '',
-                    "last_name" => $rowData['last_name'] ?? '',
-                    "ay_id" => (int) $rowData['ay_id'],
-                    "class" => $rowData['class'] ?? '',
-                    "gender" => strtolower($rowData['gender']) === 'female' ? 'f' : 'm',
-                    "dob" => $rowData['date_of_birth'] ?? '',
-                    "aadhaar" => preg_replace('/[^0-9]/', '', $rowData['aadhaar_no'] ?? ''),
-                    "city" => $address['city'] ?? '',
-                    "state" => $address['state'] ?? '',
-                    "pincode" => $address['pincode'] ?? '',
-                    "country" => $address['country'] ?? 'India',
-                    "address_1" => $address['address'] ?? '',
-                    "address_2" => $address['landmark'] ?? '',
-                    "last_school" => $rowData['last_school'] ?? 'NA',
-                    "last_school_address" => $rowData['last_school_address'] ?? 'NA',
-                    "father_name" => $rowData['father_name'] ?? '',
-                    "father_surname" => $rowData['father_surname'] ?? '',
-                    "father_occupation" => $rowData['father_occupation'] ?? 'no-occupation',
-                    "father_mobile" => $rowData['father_mobile'] ?? '',
-                    "father_email" => $rowData['father_email'] ?? '',
-                    "father_monthly_income" => $rowData['father_monthly_income'] ?? '',
-                    "mother_first_name" => $rowData['mother_first_name'] ?? '',
-                    "mother_last_name" => $rowData['mother_last_name'] ?? '',
-                    "mother_occupation" => $rowData['mother_occupation'] ?? 'not-applicable',
-                    "mother_mobile" => $rowData['mother_mobile'] ?? '',
-                    "mother_email" => $rowData['mother_email'] ?? '',
-                    "mother_monthly_income" => $rowData['mother_monthly_income'] ?? '',
-                    "attracted" => $otherInfo['attracted'] ?? '',
-                    "strengths" => $otherInfo['strengths'] ?? '',
-                    "remarks" => $otherInfo['remarks'] ?? '',
-                    "siblings" => $siblings,
-                    "interview_status" => $rowData['interview_status'] ?? '0',
-                    "added_to_school" => $rowData['added_to_school'] ?? '0',
-                    "comments" => $rowData['comments'] ?? '',
-                    "printed" => $rowData['printed'] ?? '0'
+                    'first_name' => $rowData['first_name'] ?? explode(' ', $rowData['name'])[0] ?? '',
+                    'last_name' => $rowData['last_name'] ?? '',
+                    'ay_id' => (int) $rowData['ay_id'],
+                    'class' => $rowData['class'] ?? '',
+                    'gender' => strtolower($rowData['gender']) === 'female' ? 'f' : 'm',
+                    'dob' => $rowData['date_of_birth'] ?? '',
+                    'aadhaar' => preg_replace('/[^0-9]/', '', $rowData['aadhaar_no'] ?? ''),
+
+                    'city' => $address['city'] ?? '',
+                    'state' => $address['state'] ?? '',
+                    'country' => $address['country'] ?? 'India',
+                    'pincode' => $address['pincode'] ?? '',
+                    'address_1' => $address['address'] ?? '',
+                    'address_2' => $address['landmark'] ?? '',
+
+                    'last_school' => $rowData['last_school'] ?? '',
+                    'last_school_address' => $rowData['last_school_address'] ?? '',
+
+                    'attracted' => $otherInfo['attracted'] ?? '',
+                    'strengths' => $otherInfo['strengths'] ?? '',
+                    'remarks' => $otherInfo['remarks'] ?? '',
+
+                    'siblings' => $siblings,
+
+                    'interview_status' => $rowData['interview_status'] ?? '0',
+                    'added_to_school' => $rowData['added_to_school'] ?? '0',
+                    'comments' => $rowData['comments'] ?? '',
+                    'printed' => $rowData['printed'] ?? '0'
                 ];
-        
-                // Merge optional father/mother fields
-                $jsonData = array_merge($jsonData, $fatherDetails, $motherDetails);
-        
-                // Internal request to registerAdmission
+
+                // Father fields (handle occupation)
+                if (is_array($fatherDetails)) {
+                    $jsonData['father_name'] = $fatherDetails['name'] ?? '';
+                    $jsonData['father_surname'] = $fatherDetails['surname'] ?? '';
+                    $jsonData['father_occupation'] = $fatherDetails['occupation'] ?? 'no-occupation';
+                    $jsonData['father_mobile'] = $fatherDetails['mobile'] ?? '';
+                    $jsonData['father_email'] = $fatherDetails['email'] ?? '';
+                    $jsonData['father_monthly_income'] = $fatherDetails['monthly_income'] ?? '';
+
+                    if ($jsonData['father_occupation'] === 'business') {
+                        $jsonData['father_business_name'] = $fatherDetails['business'] ?? '';
+                        $jsonData['father_business_nature'] = $fatherDetails['business_nature'] ?? '';
+                        $jsonData['father_work_business_address'] = $fatherDetails['business_address'] ?? '';
+                        $jsonData['father_business_city'] = $fatherDetails['business_city'] ?? '';
+                        $jsonData['father_business_state'] = $fatherDetails['business_state'] ?? '';
+                        $jsonData['father_business_country'] = $fatherDetails['business_country'] ?? '';
+                        $jsonData['father_business_pincode'] = $fatherDetails['business_pincode'] ?? '';
+                    } elseif ($jsonData['father_occupation'] === 'employed') {
+                        $jsonData['father_employer_name'] = $fatherDetails['employer'] ?? '';
+                        $jsonData['father_designation'] = $fatherDetails['designation'] ?? '';
+                        $jsonData['father_work_business_address'] = $fatherDetails['work_address'] ?? '';
+                        $jsonData['father_work_city'] = $fatherDetails['work_city'] ?? '';
+                        $jsonData['father_work_state'] = $fatherDetails['work_state'] ?? '';
+                        $jsonData['father_work_country'] = $fatherDetails['work_country'] ?? '';
+                        $jsonData['father_work_pincode'] = $fatherDetails['work_pincode'] ?? '';
+                    }
+                }
+
+                // Mother fields (handle occupation)
+                if (is_array($motherDetails)) {
+                    $jsonData['mother_first_name'] = $motherDetails['first_name'] ?? '';
+                    $jsonData['mother_last_name'] = $motherDetails['last_name'] ?? '';
+                    $jsonData['mother_occupation'] = $motherDetails['occupation'] ?? 'not-applicable';
+                    $jsonData['mother_mobile'] = $motherDetails['mobile'] ?? '';
+                    $jsonData['mother_email'] = $motherDetails['email'] ?? '';
+                    $jsonData['mother_monthly_income'] = $motherDetails['monthly_income'] ?? '';
+
+                    if ($jsonData['mother_occupation'] === 'business') {
+                        $jsonData['mother_business_name'] = $motherDetails['business'] ?? '';
+                        $jsonData['mother_business_nature'] = $motherDetails['business_nature'] ?? '';
+                        $jsonData['mother_work_business_address'] = $motherDetails['business_address'] ?? '';
+                        $jsonData['mother_business_city'] = $motherDetails['business_city'] ?? '';
+                        $jsonData['mother_business_state'] = $motherDetails['business_state'] ?? '';
+                        $jsonData['mother_business_country'] = $motherDetails['business_country'] ?? '';
+                        $jsonData['mother_business_pincode'] = $motherDetails['business_pincode'] ?? '';
+                    } elseif ($jsonData['mother_occupation'] === 'employed') {
+                        $jsonData['mother_employer_name'] = $motherDetails['employer'] ?? '';
+                        $jsonData['mother_designation'] = $motherDetails['designation'] ?? '';
+                        $jsonData['mother_work_business_address'] = $motherDetails['work_address'] ?? '';
+                        $jsonData['mother_work_city'] = $motherDetails['work_city'] ?? '';
+                        $jsonData['mother_work_state'] = $motherDetails['work_state'] ?? '';
+                        $jsonData['mother_work_country'] = $motherDetails['work_country'] ?? '';
+                        $jsonData['mother_work_pincode'] = $motherDetails['work_pincode'] ?? '';
+                    }
+                }
+
+                // Create new request and call registerAdmission
                 $fakeRequest = new Request(['json_data' => json_encode($jsonData)]);
                 $response = $this->registerAdmission($fakeRequest);
-        
+
+                $decoded = json_decode($response->getContent(), true);
                 if ($response->getStatusCode() === 200) {
                     $imported++;
                 } else {
-                    $decoded = json_decode($response->getContent(), true);
                     $msg = $decoded['message'] ?? 'Unknown error';
-                    
                     if (isset($decoded['error'])) {
                         $msg .= ' | Error: ' . $decoded['error'];
                     }
-                    if (isset($decoded['line'])) {
-                        $msg .= ' (Line ' . $decoded['line'] . ')';
+                    if (isset($decoded['errors']) && is_array($decoded['errors'])) {
+                        foreach ($decoded['errors'] as $field => $err) {
+                            $msg .= " | $field: " . (is_array($err) ? implode(', ', $err) : $err);
+                        }
                     }
-                    
                     $errors[] = ['row' => $index + 2, 'message' => $msg];
                 }
+
             } catch (\Exception $e) {
-                $errors[] = ['row' => $index + 2, 'message' => $e->getMessage()];
+                $errors[] = [
+                    'row' => $index + 2,
+                    'message' => 'Exception: ' . $e->getMessage() . ' (Line ' . $e->getLine() . ')'
+                ];
             }
         }
-        
 
         return response()->json([
             'success' => true,
             'message' => "Imported $imported records.",
             'errors' => $errors
         ]);
+
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
