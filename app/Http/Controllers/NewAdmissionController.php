@@ -628,17 +628,25 @@ public function importAdmissions()
         $errors = [];
 
         foreach ($csv as $index => $row) {
+            if (count($row) !== count($headers)) {
+                $errors[] = [
+                    'row' => $index + 2,
+                    'message' => "Header and row column count mismatch. Expected " . count($headers) . " but got " . count($row)
+                ];
+                continue;
+            }
+        
             try {
                 $rowData = array_combine($headers, $row);
-
+        
                 // Decode JSON fields safely
                 $fatherDetails = json_decode($rowData['father_details'] ?? '{}', true);
                 $motherDetails = json_decode($rowData['mother_details'] ?? '{}', true);
                 $siblings = json_decode($rowData['siblings'] ?? '[]', true);
                 $address = json_decode($rowData['address'] ?? '{}', true);
                 $otherInfo = json_decode($rowData['other_info'] ?? '{}', true);
-
-                // Prepare structured data for admission
+        
+                // Prepare structured data...
                 $jsonData = [
                     "first_name" => explode(' ', $rowData['name'])[0] ?? '',
                     "last_name" => $rowData['last_name'] ?? '',
@@ -676,14 +684,14 @@ public function importAdmissions()
                     "comments" => $rowData['comments'] ?? '',
                     "printed" => $rowData['printed'] ?? '0'
                 ];
-
-                // Merge optional father/mother details
+        
+                // Merge optional father/mother fields
                 $jsonData = array_merge($jsonData, $fatherDetails, $motherDetails);
-
-                // Make internal request
+        
+                // Internal request to registerAdmission
                 $fakeRequest = new Request(['json_data' => json_encode($jsonData)]);
                 $response = $this->registerAdmission($fakeRequest);
-
+        
                 if ($response->getStatusCode() === 200) {
                     $imported++;
                 } else {
@@ -694,18 +702,6 @@ public function importAdmissions()
                 $errors[] = ['row' => $index + 2, 'message' => $e->getMessage()];
             }
         }
-
-        return response()->json([
-            'success' => true,
-            'message' => "Imported $imported records.",
-            'errors' => $errors
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Import process failed.',
-            'error' => $e->getMessage()
-        ]);
     }
-}
+    }
 }
