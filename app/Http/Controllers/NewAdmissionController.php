@@ -626,7 +626,6 @@ public function importAdmissions()
 
         $imported = 0;
         $errors = [];
-
         foreach ($csv as $index => $row) {
             if (count($row) !== count($headers)) {
                 $errors[] = [
@@ -702,6 +701,19 @@ public function importAdmissions()
                 $errors[] = ['row' => $index + 2, 'message' => $e->getMessage()];
             }
         }
+        
+
+        return response()->json([
+            'success' => true,
+            'message' => "Imported $imported records.",
+            'errors' => $errors
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Import process failed.',
+            'error' => $e->getMessage()
+        ]);
     }
-    }
+}
 }
