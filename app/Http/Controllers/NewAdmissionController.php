@@ -620,6 +620,8 @@ public function importAdmissions()
         if (!file_exists($filePath)) {
             return response()->json(['success' => false, 'message' => 'CSV file not found.'], 404);
         }
+        $imported = 0;
+        $errors = [];
 
         $csv = [];
 $handle = fopen($filePath, 'r');
