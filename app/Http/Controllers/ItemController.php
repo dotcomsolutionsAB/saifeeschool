@@ -55,11 +55,13 @@ class ItemController extends Controller
     
         if ($item) {
             return response()->json([
+                'code'=>200,
                 'message' => 'Item created successfully.',
                 'item' => $item->makeHidden(['id', 'created_at', 'updated_at'])
             ], 201);
         } else {
-            return response()->json(['message' => 'Failed to create item.'], 500);
+            
+            return response()->json([ 'code'=>500,'message' => 'Failed to create item.'], 500);
         }
     }
 
@@ -94,6 +96,7 @@ class ItemController extends Controller
                 $total = $query->toBase()->getCountForPagination(); // total after filters, before limit
     
                 return response()->json([
+                    'code'=>200,
                     'item_record' => $items,
                     'count' => $items->count(),
                     'total' => $total
@@ -101,6 +104,7 @@ class ItemController extends Controller
             }
         } catch (\Exception $e) {
             return response()->json([
+                'code'=>500,
                 'message' => 'An error occurred while fetching item records.',
                 'error' => $e->getMessage(),
             ], 500);
@@ -138,9 +142,9 @@ class ItemController extends Controller
                 'log_user' => $validated['log_user'],
                 'log_date' => $validated['log_date'],
             ]);
-            return response()->json(['message' => 'Item updated successfully.', 'item' => $item->makeHidden(['id', 'created_at', 'updated_at'])]);
+            return response()->json([ 'code'=>200,'message' => 'Item updated successfully.', 'item' => $item->makeHidden(['id', 'created_at', 'updated_at'])]);
         } else {
-            return response()->json(['message' => 'Item not found.'], 404);
+            return response()->json([ 'code'=>404,'message' => 'Item not found.'], 404);
         }
     }
 
@@ -149,9 +153,9 @@ class ItemController extends Controller
         $item = ItemModel::find($id);
         if ($item) {
             $item->delete();
-            return response()->json(['message' => 'Item deleted successfully.']);
+            return response()->json([ 'code'=>200,'message' => 'Item deleted successfully.']);
         } else {
-            return response()->json(['message' => 'Item not found.'], 404);
+            return response()->json([ 'code'=>404,'message' => 'Item not found.'], 404);
         }
     }
 
