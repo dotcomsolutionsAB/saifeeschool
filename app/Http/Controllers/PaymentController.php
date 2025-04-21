@@ -359,6 +359,7 @@ public function feeConfirmation(Request $request)
             'code' => 200,
             'status' => true,
             'Payment_Sucess'=>$response['response_code']=='E000'?true:false,
+            'url'=>"https://new.saifeeschool.in/fees/pending-fees/payment-status",
             'message' => $response['desc'],  // This gives the description of the response code
             'name'=>$name,
             'response'=>$responseFromProcess
