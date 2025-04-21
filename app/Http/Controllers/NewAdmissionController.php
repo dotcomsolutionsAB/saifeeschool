@@ -621,11 +621,15 @@ public function importAdmissions()
             return response()->json(['success' => false, 'message' => 'CSV file not found.'], 404);
         }
 
-        $csv = array_map('str_getcsv', file($filePath));
-        $headers = array_map('trim', array_shift($csv)); // Extract headers
+        $csv = [];
+$handle = fopen($filePath, 'r');
+$headers = fgetcsv($handle, 0, ',', '"'); // Properly respects quoted fields
 
-        $imported = 0;
-        $errors = [];
+while (($data = fgetcsv($handle, 0, ',', '"')) !== false) {
+    $csv[] = $data;
+}
+fclose($handle);
+
         foreach ($csv as $index => $row) {
             if (count($row) !== count($headers)) {
                 $errors[] = [
