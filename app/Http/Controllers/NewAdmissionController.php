@@ -191,6 +191,9 @@ class NewAdmissionController extends Controller
             return response()->json([
                 'message' => 'Registration failed',
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(), // helpful for local dev
+    'line' => $e->getLine(),
+                'error' => $e->getMessage()
             ], 500);
         }
     }
@@ -702,7 +705,16 @@ fclose($handle);
                 if ($response->getStatusCode() === 200) {
                     $imported++;
                 } else {
-                    $msg = json_decode($response->getContent(), true)['message'] ?? 'Unknown error';
+                    $decoded = json_decode($response->getContent(), true);
+                    $msg = $decoded['message'] ?? 'Unknown error';
+                    
+                    if (isset($decoded['error'])) {
+                        $msg .= ' | Error: ' . $decoded['error'];
+                    }
+                    if (isset($decoded['line'])) {
+                        $msg .= ' (Line ' . $decoded['line'] . ')';
+                    }
+                    
                     $errors[] = ['row' => $index + 2, 'message' => $msg];
                 }
             } catch (\Exception $e) {
