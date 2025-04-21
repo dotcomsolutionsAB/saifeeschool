@@ -631,7 +631,7 @@ public function importAdmissions()
 
         $csv = [];
         $handle = fopen($filePath, 'r');
-        $headers = fgetcsv($handle, 0, ',', '"'); // quoted values safe
+        $headers = fgetcsv($handle, 0, ',', '"'); // for properly quoted fields
 
         while (($data = fgetcsv($handle, 0, ',', '"')) !== false) {
             $csv[] = $data;
@@ -650,20 +650,34 @@ public function importAdmissions()
             try {
                 $rowData = array_combine($headers, $row);
 
-                // Decode nested fields
-                $fatherDetails = json_decode($rowData['father_details'] ?? '{}', true);
-                $motherDetails = json_decode($rowData['mother_details'] ?? '{}', true);
-                $siblings = json_decode($rowData['siblings'] ?? '[]', true);
+                // Parse nested JSONs
+                $father = json_decode($rowData['father_details'] ?? '{}', true);
+                $mother = json_decode($rowData['mother_details'] ?? '{}', true);
                 $address = json_decode($rowData['address'] ?? '{}', true);
-                $otherInfo = json_decode($rowData['other_info'] ?? '{}', true);
+                $siblings_raw = json_decode($rowData['siblings'] ?? '{}', true);
+                $other_info = json_decode($rowData['other_info'] ?? '{}', true);
 
-                // Build JSON structure as expected by registerAdmission()
+                // Build siblings array from parallel arrays
+                $siblings = [];
+                if (isset($siblings_raw['name']) && is_array($siblings_raw['name'])) {
+                    foreach ($siblings_raw['name'] as $i => $name) {
+                        if (trim($name) !== '' && strtolower($name) !== 'no siblings in this school') {
+                            $siblings[] = [
+                                'name' => $name ?? '',
+                                'class' => $siblings_raw['class'][$i] ?? '',
+                                'roll_no' => $siblings_raw['roll_no'][$i] ?? ''
+                            ];
+                        }
+                    }
+                }
+
+                // Build the final JSON data
                 $jsonData = [
-                    'first_name' => $rowData['first_name'] ?? explode(' ', $rowData['name'])[0] ?? '',
+                    'first_name' => $rowData['name'] ?? '',
                     'last_name' => $rowData['last_name'] ?? '',
                     'ay_id' => (int) $rowData['ay_id'],
                     'class' => $rowData['class'] ?? '',
-                    'gender' => strtolower($rowData['gender']) === 'female' ? 'f' : 'm',
+                    'gender' => strtolower($rowData['gender'] ?? '') === 'female' ? 'f' : 'm',
                     'dob' => $rowData['date_of_birth'] ?? '',
                     'aadhaar' => preg_replace('/[^0-9]/', '', $rowData['aadhaar_no'] ?? ''),
 
@@ -671,82 +685,79 @@ public function importAdmissions()
                     'state' => $address['state'] ?? '',
                     'country' => $address['country'] ?? 'India',
                     'pincode' => $address['pincode'] ?? '',
-                    'address_1' => $address['address'] ?? '',
-                    'address_2' => $address['landmark'] ?? '',
+                    'address_1' => $address['address_1'] ?? '',
+                    'address_2' => $address['address_2'] ?? '',
 
-                    'last_school' => $rowData['last_school'] ?? 'Not Updated',
-                    'last_school_address' => $rowData['last_school_address'] ?? 'Not Updated',
+                    'last_school' => 'NA',
+                    'last_school_address' => 'NA',
 
-                    'attracted' => $otherInfo['attracted'] ?? '',
-                    'strengths' => $otherInfo['strengths'] ?? '',
-                    'remarks' => $otherInfo['remarks'] ?? '',
+                    // Father
+                    'father_name' => $father['first_name'] ?? '',
+                    'father_surname' => $father['last_name'] ?? '',
+                    'father_occupation' => strtolower($father['occupation'] ?? 'no-occupation'),
+                    'father_mobile' => $father['mobile'] ?? '',
+                    'father_email' => $father['email'] ?? '',
+                    'father_monthly_income' => $father['monthly_income'] ?? '',
 
+                    // Mother
+                    'mother_first_name' => $mother['first_name'] ?? '',
+                    'mother_last_name' => $mother['last_name'] ?? '',
+                    'mother_occupation' => strtolower($mother['occupation'] ?? 'not-applicable'),
+                    'mother_mobile' => $mother['mobile'] ?? '',
+                    'mother_email' => $mother['email'] ?? '',
+                    'mother_monthly_income' => $mother['monthly_income'] ?? '',
+
+                    // Others
                     'siblings' => $siblings,
-
+                    'attracted' => $other_info['attracted'] ?? '',
+                    'strengths' => $other_info['strengths'] ?? '',
+                    'remarks' => $other_info['remarks'] ?? '',
                     'interview_status' => $rowData['interview_status'] ?? '0',
                     'added_to_school' => $rowData['added_to_school'] ?? '0',
                     'comments' => $rowData['comments'] ?? '',
-                    'printed' => $rowData['printed'] ?? '0'
+                    'printed' => $rowData['printed'] ?? '0',
                 ];
 
-                // Father fields (handle occupation)
-                if (is_array($fatherDetails)) {
-                    $jsonData['father_name'] = $fatherDetails['name'] ?? '';
-                    $jsonData['father_surname'] = $fatherDetails['surname'] ?? '';
-                    $jsonData['father_occupation'] = $fatherDetails['occupation'] ?? 'no-occupation';
-                    $jsonData['father_mobile'] = $fatherDetails['mobile'] ?? '';
-                    $jsonData['father_email'] = $fatherDetails['email'] ?? '';
-                    $jsonData['father_monthly_income'] = $fatherDetails['monthly_income'] ?? '';
-
-                    if ($jsonData['father_occupation'] === 'business') {
-                        $jsonData['father_business_name'] = $fatherDetails['business'] ?? '';
-                        $jsonData['father_business_nature'] = $fatherDetails['business_nature'] ?? '';
-                        $jsonData['father_work_business_address'] = $fatherDetails['business_address'] ?? '';
-                        $jsonData['father_business_city'] = $fatherDetails['business_city'] ?? '';
-                        $jsonData['father_business_state'] = $fatherDetails['business_state'] ?? '';
-                        $jsonData['father_business_country'] = $fatherDetails['business_country'] ?? '';
-                        $jsonData['father_business_pincode'] = $fatherDetails['business_pincode'] ?? '';
-                    } elseif ($jsonData['father_occupation'] === 'employed') {
-                        $jsonData['father_employer_name'] = $fatherDetails['employer'] ?? '';
-                        $jsonData['father_designation'] = $fatherDetails['designation'] ?? '';
-                        $jsonData['father_work_business_address'] = $fatherDetails['work_address'] ?? '';
-                        $jsonData['father_work_city'] = $fatherDetails['work_city'] ?? '';
-                        $jsonData['father_work_state'] = $fatherDetails['work_state'] ?? '';
-                        $jsonData['father_work_country'] = $fatherDetails['work_country'] ?? '';
-                        $jsonData['father_work_pincode'] = $fatherDetails['work_pincode'] ?? '';
-                    }
+                // Handle father occupation details
+                if ($jsonData['father_occupation'] === 'business') {
+                    $jsonData['father_business_name'] = $father['business'] ?? '';
+                    $jsonData['father_business_nature'] = $father['nature'] ?? '';
+                    $jsonData['father_work_business_address'] = $father['address_1'] ?? '';
+                    $jsonData['father_business_city'] = $address['city'] ?? '';
+                    $jsonData['father_business_state'] = $address['state'] ?? '';
+                    $jsonData['father_business_country'] = $address['country'] ?? '';
+                    $jsonData['father_business_pincode'] = $address['pincode'] ?? '';
+                } elseif ($jsonData['father_occupation'] === 'employed') {
+                    $jsonData['father_employer_name'] = $father['employer'] ?? '';
+                    $jsonData['father_designation'] = $father['designation'] ?? '';
+                    $jsonData['father_work_business_address'] = $father['address_1'] ?? '';
+                    $jsonData['father_work_city'] = $address['city'] ?? '';
+                    $jsonData['father_work_state'] = $address['state'] ?? '';
+                    $jsonData['father_work_country'] = $address['country'] ?? '';
+                    $jsonData['father_work_pincode'] = $address['pincode'] ?? '';
                 }
 
-                // Mother fields (handle occupation)
-                if (is_array($motherDetails)) {
-                    $jsonData['mother_first_name'] = $motherDetails['first_name'] ?? '';
-                    $jsonData['mother_last_name'] = $motherDetails['last_name'] ?? '';
-                    $jsonData['mother_occupation'] = $motherDetails['occupation'] ?? 'not-applicable';
-                    $jsonData['mother_mobile'] = $motherDetails['mobile'] ?? '';
-                    $jsonData['mother_email'] = $motherDetails['email'] ?? '';
-                    $jsonData['mother_monthly_income'] = $motherDetails['monthly_income'] ?? '';
-
-                    if ($jsonData['mother_occupation'] === 'business') {
-                        $jsonData['mother_business_name'] = $motherDetails['business'] ?? '';
-                        $jsonData['mother_business_nature'] = $motherDetails['business_nature'] ?? '';
-                        $jsonData['mother_work_business_address'] = $motherDetails['business_address'] ?? '';
-                        $jsonData['mother_business_city'] = $motherDetails['business_city'] ?? '';
-                        $jsonData['mother_business_state'] = $motherDetails['business_state'] ?? '';
-                        $jsonData['mother_business_country'] = $motherDetails['business_country'] ?? '';
-                        $jsonData['mother_business_pincode'] = $motherDetails['business_pincode'] ?? '';
-                    } elseif ($jsonData['mother_occupation'] === 'employed') {
-                        $jsonData['mother_employer_name'] = $motherDetails['employer'] ?? '';
-                        $jsonData['mother_designation'] = $motherDetails['designation'] ?? '';
-                        $jsonData['mother_work_business_address'] = $motherDetails['work_address'] ?? '';
-                        $jsonData['mother_work_city'] = $motherDetails['work_city'] ?? '';
-                        $jsonData['mother_work_state'] = $motherDetails['work_state'] ?? '';
-                        $jsonData['mother_work_country'] = $motherDetails['work_country'] ?? '';
-                        $jsonData['mother_work_pincode'] = $motherDetails['work_pincode'] ?? '';
-                    }
+                // Handle mother occupation details
+                if ($jsonData['mother_occupation'] === 'business') {
+                    $jsonData['mother_business_name'] = $mother['business'] ?? '';
+                    $jsonData['mother_business_nature'] = $mother['nature'] ?? '';
+                    $jsonData['mother_work_business_address'] = $mother['address_1'] ?? '';
+                    $jsonData['mother_business_city'] = $address['city'] ?? '';
+                    $jsonData['mother_business_state'] = $address['state'] ?? '';
+                    $jsonData['mother_business_country'] = $address['country'] ?? '';
+                    $jsonData['mother_business_pincode'] = $address['pincode'] ?? '';
+                } elseif ($jsonData['mother_occupation'] === 'employed') {
+                    $jsonData['mother_employer_name'] = $mother['employer'] ?? '';
+                    $jsonData['mother_designation'] = $mother['designation'] ?? '';
+                    $jsonData['mother_work_business_address'] = $mother['address_1'] ?? '';
+                    $jsonData['mother_work_city'] = $address['city'] ?? '';
+                    $jsonData['mother_work_state'] = $address['state'] ?? '';
+                    $jsonData['mother_work_country'] = $address['country'] ?? '';
+                    $jsonData['mother_work_pincode'] = $address['pincode'] ?? '';
                 }
 
-                // Create new request and call registerAdmission
-                $fakeRequest = new Request(['json_data' => json_encode($jsonData)]);
+                // Send internal request
+                $fakeRequest = new \Illuminate\Http\Request(['json_data' => json_encode($jsonData)]);
                 $response = $this->registerAdmission($fakeRequest);
 
                 $decoded = json_decode($response->getContent(), true);
@@ -778,7 +789,6 @@ public function importAdmissions()
             'message' => "Imported $imported records.",
             'errors' => $errors
         ]);
-
     } catch (\Exception $e) {
         return response()->json([
             'success' => false,
