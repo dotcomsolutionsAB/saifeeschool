@@ -263,7 +263,7 @@ Route::middleware(['auth:sanctum', 'check-timeout'])->group(function () {
 
     // Items Routes
     Route::prefix('item')->group(function () {
-        Route::get('/view', [ItemController::class, 'index'])
+        Route::post('/view', [ItemController::class, 'index'])
                 ->middleware(['check-api-permission:inventory.full, inventory.view']);          // List all Items
 
         Route::get('/view/{id}', [ItemController::class, 'index'])
