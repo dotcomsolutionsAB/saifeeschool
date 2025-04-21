@@ -450,7 +450,7 @@ Route::middleware(['auth:sanctum', 'check-timeout'])->group(function () {
         Route::delete('/{id}', [NewAdmissionController::class, 'destroy'])
                 ->middleware(['check-api-permission:new_admissions.full']); // Delete a Purchase (Admin only)
     
-        Route::get('/import', [NewAdmissionController::class, 'importCsv'])
+        Route::get('/import', [NewAdmissionController::class, 'importAdmissions'])
                 ->middleware(['check-api-permission:new_admissions.full']); 
     });
 
