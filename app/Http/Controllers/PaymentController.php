@@ -357,16 +357,19 @@ public function feeConfirmation(Request $request)
         // Return the response with status and description based on response_code..
         
 
+        $reference = urlencode($response['unique_ref_number']);
+
         if ($response['response_code'] === 'E000') {
-            return redirect()->to('https://new.saifeeschool.in/fees/pending-fees/payment-status?status=success')
+            $successUrl = 'https://new.saifeeschool.in/fees/pending-fees/payment-status?status=success&reference=' . $reference;
+        
+            return redirect()->to($successUrl)
                 ->with('message', $response['desc'])
                 ->with('name', $name);
         } else {
-            $failureUrl = 'https://new.saifeeschool.in/fees/pending-fees/payment-status?status=failure&desc=' . urlencode($response['desc']);
+            $failureUrl = 'https://new.saifeeschool.in/fees/pending-fees/payment-status?status=failure&reference=' . $reference;
         
             return redirect()->to($failureUrl);
         }
-
 
         
         
