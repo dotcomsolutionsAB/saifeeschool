@@ -360,13 +360,13 @@ public function feeConfirmation(Request $request)
         $reference = urlencode($response['reference_number']);
 
         if ($response['response_code'] === 'E000') {
-            $successUrl = 'https://new.saifeeschool.in/fees/pending-fees/payment-status?status=success&reference=' . $reference;
+            $successUrl = 'https://new.saifeeschool.in/fees/pending-fees/payment-status?status=success&txn_id=' . $reference;
         
             return redirect()->to($successUrl)
                 ->with('message', $response['desc'])
                 ->with('name', $name);
         } else {
-            $failureUrl = 'https://new.saifeeschool.in/fees/pending-fees/payment-status?status=failure&reference=' . $reference;
+            $failureUrl = 'https://new.saifeeschool.in/fees/pending-fees/payment-status?status=failure&txn_id=' . $reference;
         
             return redirect()->to($failureUrl);
         }
@@ -551,7 +551,7 @@ public function getPaymentStatusDetails($reference=null)
     }
 
     if ($pgLog->status === 'pending') {
-        $pgResponse = DB::table('t_pg_responses')->where('reference_number', $reference)->latest()->first();
+        $pgResponse = DB::table('t_pg_responses')->where('reference_no', $reference)->latest()->first();
 
         if (!$pgResponse) {
             return response()->json([
