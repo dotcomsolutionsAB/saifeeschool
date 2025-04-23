@@ -236,4 +236,17 @@ class ItemController extends Controller
             return response()->json(['message' => 'Failed to import CSV.', 'error' => $e->getMessage()], 500);
         }
     }
+    public function getDistinctCategories()
+{
+    $categories = ItemModel::select('category')
+        ->distinct()
+        ->orderBy('category')
+        ->pluck('category');
+
+    return response()->json([
+        'code' => 200,
+        'message' => 'Distinct categories fetched successfully.',
+        'categories' => $categories
+    ]);
+}
 }

@@ -269,6 +269,9 @@ Route::middleware(['auth:sanctum', 'check-timeout'])->group(function () {
         Route::get('/view/{id}', [ItemController::class, 'index'])
                 ->middleware(['check-api-permission:inventory.full, inventory.view']);     // Get details of a single Items
 
+        Route::get('/category', [ItemController::class, 'getDistinctCategories'])
+                ->middleware(['check-api-permission:inventory.full, inventory.view']);
+
         Route::post('/register', [ItemController::class, 'register'])
                 ->middleware(['check-api-permission:inventory.full']);         // Add a new Items (Admin only)
 

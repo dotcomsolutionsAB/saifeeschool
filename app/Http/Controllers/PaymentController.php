@@ -355,16 +355,26 @@ public function feeConfirmation(Request $request)
         }
 
         // Return the response with status and description based on response_code..
-        return response()->json([
-            'code' => 200,
-            'status' => true,
-            'Payment_Sucess'=>$response['response_code']=='E000'?true:false,
-            'url'=>"https://new.saifeeschool.in/fees/pending-fees/payment-status",
-            'message' => $response['desc'],  // This gives the description of the response code
-            'name'=>$name,
-            'response'=>$responseFromProcess
-            
-        ]);
+        
+
+        if ($response['response_code'] === 'E000') {
+            return redirect()->to('https://new.saifeeschool.in/fees/pending-fees/payment-status')
+                ->with('message', $response['desc'])
+                ->with('name', $name);
+        } else {
+            return response()->json([
+                'code' => 200,
+                'status' => true,
+                'Payment_Sucess'=>$response['response_code']=='E000'?true:false,
+                'url'=>"https://new.saifeeschool.in/fees/pending-fees/payment-status",
+                'message' => $response['desc'],  // This gives the description of the response code
+                'name'=>$name,
+                'response'=>$responseFromProcess
+            ]);
+        }
+
+
+        
         
     } catch (\Exception $e) {
         return response()->json([
