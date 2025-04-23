@@ -527,6 +527,75 @@ if ($pgLog) {
         ]);
     }
 }
+
+public function getPaymentStatusDetails($reference=null)
+{
+    
+
+    if (empty($reference)) {
+        return response()->json([
+            'code' => 400,
+            'status' => false,
+            'message' => 'Reference number is required.'
+        ]);
+    }
+
+    $pgLog = DB::table('t_pg_logs')->where('pg_reference_no', $reference)->first();
+
+    if (!$pgLog) {
+        return response()->json([
+            'code' => 404,
+            'status' => false,
+            'message' => 'No payment log found for the given reference number.'
+        ]);
+    }
+
+    if ($pgLog->status === 'pending') {
+        $pgResponse = DB::table('t_pg_responses')->where('unique_ref_number', $reference)->latest()->first();
+
+        if (!$pgResponse) {
+            return response()->json([
+                'code' => 404,
+                'status' => false,
+                'message' => 'No payment response found for the given reference number.'
+            ]);
+        }
+
+        $mapped = $this->mapResponseCode($pgResponse->response_code);
+
+        return response()->json([
+            'code' => 200,
+            'status' => false,
+            'payment_status' => 'Failed',
+            'response_code' => $pgResponse->response_code,
+            'description' => $mapped['desc']
+        ]);
+    }
+
+    if ($pgLog->status === 'completed') {
+        $fpp_ids = explode(',', $pgLog->f_id);
+        $st_id = $pgLog->st_id;
+    
+        $fees = DB::table('t_fees')
+            ->whereIn('fpp_id', $fpp_ids)
+            ->where('st_id', $st_id)
+            ->get();
+    
+        return response()->json([
+            'code' => 200,
+            'status' => true,
+            'payment_status' => 'Completed',
+            'student_id' => $st_id,
+            'fees_paid' => $fees
+        ]);
+    }
+
+    return response()->json([
+        'code' => 500,
+        'status' => false,
+        'message' => 'Unknown status.'
+    ]);
+}
 private function mapResponseCode($code)
 {
     switch ($code) {
