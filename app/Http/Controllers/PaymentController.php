@@ -551,7 +551,7 @@ public function getPaymentStatusDetails($reference=null)
     }
 
     if ($pgLog->status === 'pending') {
-        $pgResponse = DB::table('t_pg_responses')->where('unique_ref_number', $reference)->latest()->first();
+        $pgResponse = DB::table('t_pg_responses')->where('reference_number', $reference)->latest()->first();
 
         if (!$pgResponse) {
             return response()->json([
