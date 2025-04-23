@@ -357,7 +357,7 @@ public function feeConfirmation(Request $request)
         // Return the response with status and description based on response_code..
         
 
-        $reference = urlencode($response['unique_ref_number']);
+        $reference = urlencode($response['reference_number']);
 
         if ($response['response_code'] === 'E000') {
             $successUrl = 'https://new.saifeeschool.in/fees/pending-fees/payment-status?status=success&reference=' . $reference;
