@@ -45,6 +45,7 @@ Route::post('/terms', [MarksController::class, 'getTermsByClass']);
 Route::post('/register', [UserController::class, 'register']);
 
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('fee/print/{id}', [FeeController::class, 'printFeeReceipt']);
 
 Route::middleware(['auth:sanctum', 'check-timeout'])->get('/debug-timeout', function () {
         return response()->json(['message' => 'You are still active!'], 200);
@@ -189,7 +190,7 @@ Route::middleware(['auth:sanctum', 'check-timeout'])->group(function () {
 
         Route::get('/import', [FeeController::class, 'importCsv'])
                 ->middleware(['check-api-permission:fee.full']); 
-        Route::get('/print/{id}', [FeeController::class, 'printFeeReceipt']);
+       
 
         Route::post('/one_time', [FeeController::class, 'getOneTimeFeePlans']);
 
