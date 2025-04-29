@@ -4,7 +4,7 @@ namespace App\Utils;
 
 use Illuminate\Support\Facades\Http;
 
-class sendSaifeeHalWhatsAppUtility
+class sendWhatsAppUtility
 {
     public static function sendWhatsApp($customer, $params, $media, $campaignName)
     {
