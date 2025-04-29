@@ -567,7 +567,7 @@ public function getPaymentStatusDetails($reference = null)
 
         $mapped = $this->mapResponseCode($pgResponse->response_code);
 
-        $student = DB::table('t_students')->where('st_id', $pgLog->st_id)->first();
+        $student = DB::table('t_students')->where('id', $pgLog->st_id)->first();
 
         if ($student) {
             $templateParams = [
@@ -577,8 +577,8 @@ public function getPaymentStatusDetails($reference = null)
                     [
                         'type' => 'body',
                         'parameters' => [
-                            ['type' => 'text', 'text' => $student->name],
-                            ['type' => 'text', 'text' => $student->roll_no],
+                            ['type' => 'text', 'text' => $student->st_first_name],
+                            ['type' => 'text', 'text' => $student->st_roll_no],
                             ['type' => 'text', 'text' => $pgLog->pg_reference_no],
                             ['type' => 'text', 'text' => $pgResponse ->payment_mode ?? 'Online'],
                             ['type' => 'text', 'text' => $pgLog->amount],
@@ -641,8 +641,8 @@ public function getPaymentStatusDetails($reference = null)
                     [
                         'type' => 'body',
                         'parameters' => [
-                            ['type' => 'text', 'text' => $student->name],
-                            ['type' => 'text', 'text' => $student->roll_no],
+                            ['type' => 'text', 'text' => $student->st_first_name],
+                            ['type' => 'text', 'text' => $student->st_roll_no],
                             ['type' => 'text', 'text' => $pgResponse ->payment_mode ?? 'Online'],
                             ['type' => 'text', 'text' => $pgLog->amount],
                         ],
