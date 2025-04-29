@@ -611,17 +611,18 @@ public function getPaymentStatusDetails($reference = null)
         $fees = DB::table('t_fees')
             ->whereIn('fpp_id', $fpp_ids)
             ->where('st_id', $st_id)
+            ->select('id', 'st_id', 'st_roll_no', 'fpp_id', 'cg_id', 'ay_id', 'fpp_name', 'f_total_paid', 'fpp_due_date', 'f_paid_date')
             ->get();
 
         $student = DB::table('t_students')->where('id', $st_id)->first();
 
         $pdfUrls = [];
-        $rcpt_url=[];
+        //rcpt_url=[];
         // Fetch PDFs for each fee paid
         foreach ($fees as $fee) {
             // Construct the receipt API URL using f_id
             $receiptApiUrl = "https://saifeeschool.dotcombusiness.in/api/fee/print/" . $fee->id;
-        $rcpt_url[]=$receiptApiUrl;
+        //$rcpt_url[]=$receiptApiUrl;
             try {
                 // Send GET request to the API
                 $apiResponse = Http::get($receiptApiUrl);
@@ -671,7 +672,7 @@ public function getPaymentStatusDetails($reference = null)
             'student_id' => $st_id,
             'fees_paid' => $fees,
             'pdf_receipts' => $pdfUrls,
-            'pdf_apis'=>$rcpt_url,
+            //'pdf_apis'=>$rcpt_url,
             'whatsapp_response' => $whatsappResponses,
             'whatsapp_data'=> $templateParams
         ]);
