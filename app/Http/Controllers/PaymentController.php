@@ -657,7 +657,7 @@ public function getPaymentStatusDetails($reference = null)
                 
                 
             }
-        }
+        
 
         return response()->json([
             'code' => 200,
@@ -669,12 +669,14 @@ public function getPaymentStatusDetails($reference = null)
             'whatsapp_response' => $whatsappResponses
         ]);
     }
+    
 
     return response()->json([
         'code' => 500,
         'status' => false,
         'message' => 'Unknown status.'
     ]);
+
 }
 private function mapResponseCode($code)
 {
