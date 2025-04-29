@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use App\Models\StudentModel;
+use App\Utils\sendWhatsAppUtility;
+use Illuminate\Support\Facades\Http;
 
 class PaymentController extends Controller
 {
@@ -528,10 +530,8 @@ if ($pgLog) {
     }
 }
 
-public function getPaymentStatusDetails($reference=null)
+public function getPaymentStatusDetails($reference = null)
 {
-    
-
     if (empty($reference)) {
         return response()->json([
             'code' => 400,
@@ -550,7 +550,11 @@ public function getPaymentStatusDetails($reference=null)
         ]);
     }
 
+    $whatsappUtility = new sendWhatsAppUtility();
+    $whatsappResponses = [];
+
     if ($pgLog->status === 'pending') {
+
         $pgResponse = DB::table('t_pg_responses')->where('reference_no', $reference)->latest()->first();
 
         if (!$pgResponse) {
@@ -563,30 +567,106 @@ public function getPaymentStatusDetails($reference=null)
 
         $mapped = $this->mapResponseCode($pgResponse->response_code);
 
+        $student = DB::table('t_students')->where('st_id', $pgLog->st_id)->first();
+
+        if ($student) {
+            $templateParams = [
+                'name' => 'fee_payment_failure',
+                'language' => ['code' => 'en'],
+                'components' => [
+                    [
+                        'type' => 'body',
+                        'parameters' => [
+                            ['type' => 'text', 'text' => $student->name],
+                            ['type' => 'text', 'text' => $student->roll_no],
+                            ['type' => 'text', 'text' => $pgLog->pg_reference_no],
+                            ['type' => 'text', 'text' => $pgResponse ->payment_mode ?? 'Online'],
+                            ['type' => 'text', 'text' => $pgLog->amount],
+                            ['type' => 'text', 'text' => $mapped['desc']],
+                        ],
+                    ],
+                ],
+            ];
+
+            if (!empty($student->mobile)) {
+                $whatsappResponses['failure'] = $whatsappUtility->sendWhatsApp('917439515253', $templateParams, null, 'Fee Payment Failure');
+            }
+        }
+
         return response()->json([
             'code' => 200,
             'status' => false,
             'payment_status' => 'Failed',
             'response_code' => $pgResponse->response_code,
-            'description' => $mapped['desc']
+            'description' => $mapped['desc'],
+            'whatsapp_response' => $whatsappResponses
         ]);
     }
 
     if ($pgLog->status === 'completed') {
         $fpp_ids = explode(',', $pgLog->f_id);
         $st_id = $pgLog->st_id;
-    
+
         $fees = DB::table('t_fees')
             ->whereIn('fpp_id', $fpp_ids)
             ->where('st_id', $st_id)
             ->get();
-    
+
+        $student = DB::table('t_students')->where('st_id', $st_id)->first();
+
+        $pdfUrls = [];
+
+        // Fetch PDFs for each fee paid
+        foreach ($fpp_ids as $fpp_id) {
+            $receiptApiUrl = "https://saifeeschool.dotcombusiness.in/api/fee/print/" . $fpp_id;
+
+            try {
+                $apiResponse = Http::get($receiptApiUrl);
+                $result = $apiResponse->json();
+
+                if (isset($result['data']['file_url'])) {
+                    $pdfUrls[] = $result['data']['file_url'];
+                }
+            } catch (\Exception $e) {
+                // In case of any API failure
+                $pdfUrls[] = null;
+            }
+        }
+
+        if ($student) {
+            $templateParams = [
+                'name' => 'fee_payment_success',
+                'language' => ['code' => 'en'],
+                'components' => [
+                    [
+                        'type' => 'body',
+                        'parameters' => [
+                            ['type' => 'text', 'text' => $student->name],
+                            ['type' => 'text', 'text' => $student->roll_no],
+                            ['type' => 'text', 'text' => $pgResponse ->payment_mode ?? 'Online'],
+                            ['type' => 'text', 'text' => $pgLog->amount],
+                        ],
+                    ],
+                ],
+            ];
+
+           
+                $whatsappResponses['success'] = $whatsappUtility->sendWhatsApp('917439515253', $templateParams, null, 'Fee Payment Success');
+
+                // If you want to send each receipt URL separately as a new message
+                
+                
+            }
+        }
+
         return response()->json([
             'code' => 200,
             'status' => true,
             'payment_status' => 'Completed',
             'student_id' => $st_id,
-            'fees_paid' => $fees
+            'fees_paid' => $fees,
+            'pdf_receipts' => $pdfUrls,
+            'whatsapp_response' => $whatsappResponses
         ]);
     }
 
