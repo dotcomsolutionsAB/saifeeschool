@@ -18,9 +18,7 @@ class sendWhatsAppUtility
             $content['template'] = $params;
 
             // Add media if required
-            if ($media) {
-                $content['media'] = $media;
-            }
+           
 
             // Get API token from environment variables
             $token = "EAAXN2hZCQf8QBO9Y1AmZCXJKoi8YoSA4wtUaAXOCVD7vNOc7HeIFe9qiDBeDfuH0I9poQQ4kZBzbFKEQfFcggz6gUZCjbJM8IyTTbg5aYsHytkLDPzZCDV2gKOiJFd0ZBhXalLkUzMqDZAwpChMq1ErBLm5ft6iNdnHIPO8WzpZCJmC9BXcX9tIJ7gx6IWr79hWtxQZDZD";
@@ -45,7 +43,7 @@ class sendWhatsAppUtility
                 CURLOPT_POSTFIELDS => json_encode($content),
                 CURLOPT_HTTPHEADER => array(
                     'Content-Type: application/json',
-                    'Authorization: Bearer ' . $token
+                    'Authorization: Bearer '.$token
                 ),
             ));
 

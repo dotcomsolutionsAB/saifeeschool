@@ -617,18 +617,22 @@ public function getPaymentStatusDetails($reference = null)
         $pdfUrls = [];
 
         // Fetch PDFs for each fee paid
-        foreach ($fpp_ids as $fpp_id) {
-            $receiptApiUrl = "https://saifeeschool.dotcombusiness.in/api/fee/print/" . $fpp_id;
-
+        foreach ($fees->ids as $f_id) {
+            // Construct the receipt API URL using f_id
+            $receiptApiUrl = "https://saifeeschool.dotcombusiness.in/api/fee/print/" . $f_id;
+        
             try {
+                // Send GET request to the API
                 $apiResponse = Http::get($receiptApiUrl);
                 $result = $apiResponse->json();
-
+        
+                // Check if file_url is returned from the API response
                 if (isset($result['data']['file_url'])) {
+                    // Add the file URL to the pdfUrls array
                     $pdfUrls[] = $result['data']['file_url'];
                 }
             } catch (\Exception $e) {
-                // In case of any API failure
+                // In case of any API failure, add null to the pdfUrls array
                 $pdfUrls[] = null;
             }
         }
@@ -666,7 +670,8 @@ public function getPaymentStatusDetails($reference = null)
             'student_id' => $st_id,
             'fees_paid' => $fees,
             'pdf_receipts' => $pdfUrls,
-            'whatsapp_response' => $whatsappResponses
+            'whatsapp_response' => $whatsappResponses,
+            'whatsapp_data'=> $templateParams
         ]);
     }
     
