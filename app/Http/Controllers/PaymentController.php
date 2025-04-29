@@ -612,7 +612,7 @@ public function getPaymentStatusDetails($reference = null)
             ->where('st_id', $st_id)
             ->get();
 
-        $student = DB::table('t_students')->where('st_id', $st_id)->first();
+        $student = DB::table('t_students')->where('id', $st_id)->first();
 
         $pdfUrls = [];
 
