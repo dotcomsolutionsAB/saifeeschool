@@ -617,7 +617,7 @@ public function getPaymentStatusDetails($reference = null)
         $pdfUrls = [];
 
         // Fetch PDFs for each fee paid
-        foreach ($fees->ids as $f_id) {
+        foreach ($fees->id as $f_id) {
             // Construct the receipt API URL using f_id
             $receiptApiUrl = "https://saifeeschool.dotcombusiness.in/api/fee/print/" . $f_id;
         
