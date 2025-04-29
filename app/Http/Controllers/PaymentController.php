@@ -634,7 +634,7 @@ public function getPaymentStatusDetails($reference = null)
                 }
             } catch (\Exception $e) {
                 // In case of any API failure, add null to the pdfUrls array
-                $pdfUrls[] = null;
+                $pdfUrls[] = $e->getMessage();
             }
         }
 
