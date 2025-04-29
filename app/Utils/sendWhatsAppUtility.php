@@ -15,6 +15,7 @@ class sendWhatsAppUtility
             $content['messaging_product'] = "whatsapp";
             $content['to'] = $customer;
             $content['type'] = 'template';
+            $content['biz_opaque_callback_data'] = 'ace_commercial';
             $content['template'] = $params;
 
             // Add media if required

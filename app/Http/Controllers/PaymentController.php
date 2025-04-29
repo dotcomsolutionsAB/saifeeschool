@@ -588,9 +588,9 @@ public function getPaymentStatusDetails($reference = null)
                 ],
             ];
 
-            if (!empty($student->mobile)) {
+           
                 $whatsappResponses['failure'] = $whatsappUtility->sendWhatsApp('917439515253', $templateParams, null, 'Fee Payment Failure');
-            }
+            
         }
 
         return response()->json([
@@ -599,7 +599,8 @@ public function getPaymentStatusDetails($reference = null)
             'payment_status' => 'Failed',
             'response_code' => $pgResponse->response_code,
             'description' => $mapped['desc'],
-            'whatsapp_response' => $whatsappResponses
+            'whatsapp_response' => $whatsappResponses,
+            'whatsapp_data'=> $templateParams
         ]);
     }
 
