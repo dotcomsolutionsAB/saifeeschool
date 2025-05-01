@@ -22,7 +22,7 @@ class sendWhatsAppUtility
            
 
             // Get API token from environment variables
-            $token = "EAAXN2hZCQf8QBO9Y1AmZCXJKoi8YoSA4wtUaAXOCVD7vNOc7HeIFe9qiDBeDfuH0I9poQQ4kZBzbFKEQfFcggz6gUZCjbJM8IyTTbg5aYsHytkLDPzZCDV2gKOiJFd0ZBhXalLkUzMqDZAwpChMq1ErBLm5ft6iNdnHIPO8WzpZCJmC9BXcX9tIJ7gx6IWr79hWtxQZDZD";
+            $token = "EAAEqC1znq1MBOwsToIozZCB2QslimXlqLJO6xdRZC2x5PMTqKfPdZA7TtjBH6YTTh6jRS5mRV5JKoEkiQccjdGAx8kItaxeiJVzUe8fckCRZBZANu2sjzFiiKFvUAYZAwwGQza3ploD5heDHm3IduT9ZAFioRsUUaQsu8m8Ah2XimStQRMqBwCusecFJqUbesufjZBZAyZBlE6oZCfKKVZCSaiqs";
 
 
             // Initialize cURL request
@@ -33,7 +33,7 @@ class sendWhatsAppUtility
 
             // Set cURL options for the request
             curl_setopt_array($curl, array(
-                CURLOPT_URL => 'https://graph.facebook.com/v20.0/441136079088316/messages',  // Replace with the actual API endpoint
+                CURLOPT_URL => 'https://graph.facebook.com/v19.0/357370407455461/messages',  // Replace with the actual API endpoint
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_ENCODING => '',
                 CURLOPT_MAXREDIRS => 10,
