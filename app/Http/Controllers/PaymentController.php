@@ -652,7 +652,7 @@ public function getPaymentStatusDetails($reference = null)
                         'parameters' => [
                             ['type' => 'text', 'text' => $student->st_first_name],
                             ['type' => 'text', 'text' => $student->st_roll_no],
-                            ['type' => 'text', 'text' => $student->$pgLog->pg_reference_no],
+                            ['type' => 'text', 'text' => $pgLog->pg_reference_no],
                             ['type' => 'text', 'text' => $pgResponse ->payment_mode ?? 'Online'],
                             ['type' => 'text', 'text' => $pgLog->amount],
                         ],
