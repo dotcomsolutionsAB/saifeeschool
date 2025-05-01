@@ -590,6 +590,9 @@ public function getPaymentStatusDetails($reference = null)
 
            
                 $whatsappResponses['failure'] = $whatsappUtility->sendWhatsApp('917439515253', $templateParams, null, 'Fee Payment Failure');
+                $whatsappResponses['failure'] = $whatsappUtility->sendWhatsApp('918961043773', $templateParams, null, 'Fee Payment Failure');
+                $whatsappResponses['failure'] = $whatsappUtility->sendWhatsApp('919831037198', $templateParams, null, 'Fee Payment Failure');
+                $whatsappResponses['failure'] = $whatsappUtility->sendWhatsApp('919730248050', $templateParams, null, 'Fee Payment Failure');
             
         }
 
@@ -649,6 +652,7 @@ public function getPaymentStatusDetails($reference = null)
                         'parameters' => [
                             ['type' => 'text', 'text' => $student->st_first_name],
                             ['type' => 'text', 'text' => $student->st_roll_no],
+                            ['type' => 'text', 'text' => $student->$pgLog->pg_reference_no],
                             ['type' => 'text', 'text' => $pgResponse ->payment_mode ?? 'Online'],
                             ['type' => 'text', 'text' => $pgLog->amount],
                         ],
@@ -658,7 +662,10 @@ public function getPaymentStatusDetails($reference = null)
 
            
                 $whatsappResponses['success'] = $whatsappUtility->sendWhatsApp('917439515253', $templateParams, null, 'Fee Payment Success');
-
+                $whatsappResponses['success'] = $whatsappUtility->sendWhatsApp('918961043773', $templateParams, null, 'Fee Payment Success');
+                $whatsappResponses['success'] = $whatsappUtility->sendWhatsApp('919831037198', $templateParams, null, 'Fee Payment Success');
+                $whatsappResponses['success'] = $whatsappUtility->sendWhatsApp('919730248050', $templateParams, null, 'Fee Payment Success');
+               
                 // If you want to send each receipt URL separately as a new message
                 
                 
