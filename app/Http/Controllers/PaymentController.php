@@ -435,7 +435,10 @@ public function processPaymentDetails($parsed)
 
         // Process transactions for each fee payment (fpp_id)
         foreach ($fpp_ids as $fpp_id) {
-            $student->st_wallet = $newWalletBalance;
+            
+
+            
+
             // Retrieve the fee data based on fpp_id
             $fee = DB::table('t_fees')
                     ->where('fpp_id', $fpp_id)
@@ -489,6 +492,7 @@ public function processPaymentDetails($parsed)
                 $newWalletBalanceAfterPayment = $newWalletBalance - ($fee->fpp_amount) - ($fee->f_late_fee_applicable =='1' ? $fee->fpp_late_fee : 0);
                 $student->st_wallet = $newWalletBalanceAfterPayment;
                 $student->save();
+                $newWalletBalance=$newWalletBalanceAfterPayment;
 
                 // Mark fee as paid
                 $totalPaid = ($fee->fpp_amount - $fee->f_concession) + 
