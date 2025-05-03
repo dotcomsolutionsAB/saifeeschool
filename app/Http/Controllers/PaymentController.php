@@ -435,6 +435,7 @@ public function processPaymentDetails($parsed)
 
         // Process transactions for each fee payment (fpp_id)
         foreach ($fpp_ids as $fpp_id) {
+            $student->st_wallet = $newWalletBalance;
             // Retrieve the fee data based on fpp_id
             $fee = DB::table('t_fees')
                     ->where('fpp_id', $fpp_id)
@@ -592,8 +593,7 @@ public function getPaymentStatusDetails($reference = null)
                 $whatsappResponses['failure'] = $whatsappUtility->sendWhatsApp('917439515253', $templateParams, null, 'Fee Payment Failure');
                 $whatsappResponses['failure'] = $whatsappUtility->sendWhatsApp('918961043773', $templateParams, null, 'Fee Payment Failure');
                 $whatsappResponses['failure'] = $whatsappUtility->sendWhatsApp('919831037198', $templateParams, null, 'Fee Payment Failure');
-                $whatsappResponses['failure'] = $whatsappUtility->sendWhatsApp('919730248050', $templateParams, null, 'Fee Payment Failure');
-            
+                
         }
 
         return response()->json([
@@ -664,7 +664,6 @@ public function getPaymentStatusDetails($reference = null)
                 $whatsappResponses['success'] = $whatsappUtility->sendWhatsApp('917439515253', $templateParams, null, 'Fee Payment Success');
                 $whatsappResponses['success'] = $whatsappUtility->sendWhatsApp('918961043773', $templateParams, null, 'Fee Payment Success');
                 $whatsappResponses['success'] = $whatsappUtility->sendWhatsApp('919831037198', $templateParams, null, 'Fee Payment Success');
-                $whatsappResponses['success'] = $whatsappUtility->sendWhatsApp('919730248050', $templateParams, null, 'Fee Payment Success');
                
                 // If you want to send each receipt URL separately as a new message
                 
