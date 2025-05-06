@@ -550,15 +550,15 @@ public function index(Request $request)
 public function getStudentData($id)
 {
     try {
+        // Retrieve the admission record by student ID
         $admission = NewAdmissionModel::findOrFail($id);
 
-        // File URLs from UploadModel
-        $childPhotoUrl = $admission->child_photo_id ? optional(UploadModel::find($admission->child_photo_id))->file_url : null;
-        $fatherPhotoUrl = $admission->father_photo_id ? optional(UploadModel::find($admission->father_photo_id))->file_url : null;
-        $motherPhotoUrl = $admission->mother_photo_id ? optional(UploadModel::find($admission->mother_photo_id))->file_url : null;
-        $birthCertificateUrl = $admission->birth_certificate_id ? optional(UploadModel::find($admission->birth_certificate_id))->file_url : null;
+        // Fetch the file URLs based on the file IDs from the uploads table
+        $childPhotoUrl = $admission->child_photo_id ? UploadModel::find($admission->child_photo_id)->file_url : null;
+        $fatherPhotoUrl = $admission->father_photo_id ? UploadModel::find($admission->father_photo_id)->file_url : null;
+        $motherPhotoUrl = $admission->mother_photo_id ? UploadModel::find($admission->mother_photo_id)->file_url : null;
+        $birthCertificateUrl = $admission->birth_certificate_id ? UploadModel::find($admission->birth_certificate_id)->file_url : null;
 
-        // Combine sibling info into structured array
         $siblings = [];
         for ($i = 1; $i <= 3; $i++) {
             if ($admission["siblings_name{$i}"]) {
@@ -570,6 +570,7 @@ public function getStudentData($id)
             }
         }
 
+        // Prepare response data
         $data = [
             'id' => $admission->id,
             'application_no' => $admission->application_no,
@@ -585,41 +586,22 @@ public function getStudentData($id)
             'father_photo_url' => $fatherPhotoUrl ? str_replace('/storage/storage', '/storage', $fatherPhotoUrl) : null,
             'mother_photo_url' => $motherPhotoUrl ? str_replace('/storage/storage', '/storage', $motherPhotoUrl) : null,
             'birth_certificate_url' => $birthCertificateUrl ? str_replace('/storage/storage', '/storage', $birthCertificateUrl) : null,
-
-            'father' => [
-                'first_name' => $admission->father_first_name,
-                'last_name' => $admission->father_last_name,
-                'name' => $admission->father_name,
-                'education' => $admission->father_education,
-                'occupation' => $admission->father_occupation,
-                'employer' => $admission->father_employer,
-                'designation' => $admission->father_designation,
-                'business' => $admission->father_business,
-                'business_nature' => $admission->father_business_nature,
-                'monthly_income' => $admission->father_monthly_income,
-                'mobile' => $admission->father_mobile,
-                'email' => $admission->father_email,
-                'work_business_address' => $admission->father_work_business_address,
-            ],
-
-            'mother' => [
-                'first_name' => $admission->mother_first_name,
-                'last_name' => $admission->mother_last_name,
-                'name' => $admission->mother_name,
-                'education' => $admission->mother_education,
-                'occupation' => $admission->mother_occupation,
-                'employer' => $admission->mother_employer,
-                'designation' => $admission->mother_designation,
-                'business' => $admission->mother_business,
-                'business_nature' => $admission->mother_business_nature,
-                'monthly_income' => $admission->mother_monthly_income,
-                'mobile' => $admission->mother_mobile,
-                'email' => $admission->mother_email,
-                'work_business_address' => $admission->mother_work_business_address,
-            ],
-
+            'father_name' => $admission->father_name,
+            'father_surname' => $admission->father_surname,
+            'father_occupation' => $admission->father_occupation,
+            'father_mobile' => $admission->father_mobile,
+            'father_email' => $admission->father_email,
+            'father_monthly_income' => $admission->father_monthly_income,
+            'mother_first_name' => $admission->mother_first_name,
+            'mother_last_name' => $admission->mother_last_name,
+            'mother_name' => $admission->mother_name,
+            'mother_education' => $admission->mother_education,
+            'mother_occupation' => $admission->mother_occupation,
+            'mother_mobile' => $admission->mother_mobile,
+            'mother_email' => $admission->mother_email,
+            'mother_monthly_income' => $admission->mother_monthly_income,
             'siblings' => $siblings,
-            'address' => trim($admission->address_1 . ' ' . $admission->address_2),
+            'address' => $admission->address_1 . ' ' . $admission->address_2,
             'city' => $admission->city,
             'state' => $admission->state,
             'country' => $admission->country,
@@ -637,12 +619,12 @@ public function getStudentData($id)
             'code' => 200,
             'message' => 'Student data fetched successfully.',
             'data' => $data
-        ]);
+        ], 200);
     } catch (\Exception $e) {
         return response()->json([
             'code' => 500,
             'message' => 'Failed to fetch student data.',
-            'error' => $e->getMessage()
+            'error' => $e->getMessage(),
         ], 500);
     }
 }
