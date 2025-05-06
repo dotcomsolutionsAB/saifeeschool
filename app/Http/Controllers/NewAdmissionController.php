@@ -628,6 +628,49 @@ public function getStudentData($id)
         ], 500);
     }
 }
+// 1. Set Printed (0 or 1)
+public function setPrinted(Request $request, $id)
+{
+    $request->validate(['printed' => 'required|in:0,1']);
+    $admission = NewAdmissionModel::findOrFail($id);
+    $admission->printed = $request->printed;
+    $admission->save();
+
+    return response()->json(['code' => 200, 'message' => 'Printed status updated.', 'data' => $admission]);
+}
+
+// 2. Set Interview Status (0 or 1)
+public function setInterviewStatus(Request $request, $id)
+{
+    $request->validate(['interview_status' => 'required|in:0,1']);
+    $admission = NewAdmissionModel::findOrFail($id);
+    $admission->interview_status = $request->interview_status;
+    $admission->save();
+
+    return response()->json(['code' => 200, 'message' => 'Interview status updated.', 'data' => $admission]);
+}
+
+// 3. Set Interview Date
+public function setInterviewDate(Request $request, $id)
+{
+    $request->validate(['interview_date' => 'required|date']);
+    $admission = NewAdmissionModel::findOrFail($id);
+    $admission->interview_date = $request->interview_date;
+    $admission->save();
+
+    return response()->json(['code' => 200, 'message' => 'Interview date updated.', 'data' => $admission]);
+}
+
+// 4. Set Added to School (0 or 1)
+public function setAddedToSchool(Request $request, $id)
+{
+    $request->validate(['added_to_school' => 'required|in:0,1']);
+    $admission = NewAdmissionModel::findOrFail($id);
+    $admission->added_to_school = $request->added_to_school;
+    $admission->save();
+
+    return response()->json(['code' => 200, 'message' => 'Added to school status updated.', 'data' => $admission]);
+}
 public function importAdmissions()
 {
     try {
