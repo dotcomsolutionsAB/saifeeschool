@@ -602,6 +602,7 @@ public function printPdf($id)
         ];
 
         // Load Blade View and Generate PDF
+        ini_set('memory_limit', '1024M'); // or '1024M'
         $pdf = Pdf::loadView('pdf.transfer_certificate', $data)->setPaper('a4', 'portrait');
 
         // Define storage path in public storage

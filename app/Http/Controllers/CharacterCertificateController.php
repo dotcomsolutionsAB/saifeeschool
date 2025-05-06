@@ -465,6 +465,7 @@ public function printPdf($id_list)
         });
 
         // Load Blade View and Generate PDF
+        ini_set('memory_limit', '1024M'); // or '1024M'
         $pdf = Pdf::loadView('pdf.character_certificate', compact('data'))
             ->setPaper('a4', 'portrait');
 

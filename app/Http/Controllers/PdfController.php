@@ -21,6 +21,7 @@ class PdfController extends Controller
         $data->dob_words = $this->convertDateToWords($data->dob);
 
         // Load Blade and Generate PDF
+        ini_set('memory_limit', '1024M'); // or '1024M'
         $pdf = Pdf::loadView('pdf.transfer_certificate', (array) $data)
                   ->setPaper('a4', 'portrait');
 
