@@ -446,8 +446,8 @@ public function printPdf($id_list)
             $dob = $record->dob ? Carbon::parse($record->dob)->format('d-m-Y') : 'N/A';
 
             // Calculate years in school
-            $joining_year = Carbon::parse($record->joining_date)->year ?? 'N/A';
-            $leaving_year = Carbon::parse($record->leaving_date)->year ?? 'N/A';
+            $joining_year = $record->joining_date ? Carbon::parse($record->joining_date)->year : 'N/A';
+            $leaving_year = $record->leaving_date? Carbon::parse($record->leaving_date)->year : 'N/A';
             $years = is_numeric($joining_year) && is_numeric($leaving_year) ? $leaving_year - $joining_year : 'N/A';
 
             return [
