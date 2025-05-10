@@ -14,7 +14,7 @@ class DebitNoteController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->input('limit', 10);
-        $debitNotes = DebitNote::orderBy('date', 'desc')->paginate($perPage);
+        $debitNotes = DebitNote::orderBy('date', 'desc');
         return response()->json([
             'code' => 200,
             'success' => true,

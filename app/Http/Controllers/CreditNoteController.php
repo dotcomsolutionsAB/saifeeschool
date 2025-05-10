@@ -13,7 +13,7 @@ class CreditNoteController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->input('limit', 10);
-        $creditNotes = CreditNote::orderBy('date', 'desc')->paginate($perPage);
+        $creditNotes = CreditNote::orderBy('date', 'desc');
         return response()->json([
             'code' => 200,
             'success' => true,
