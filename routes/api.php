@@ -32,7 +32,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CSVUploadController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\Api\BankController;
+use App\Http\Controllers\BankController;
 use App\Http\Controllers\CreditNoteController;
 use App\Http\Controllers\DebitNoteController;
 
