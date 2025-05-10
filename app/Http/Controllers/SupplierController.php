@@ -1,16 +1,12 @@
 <?php
-
 namespace App\Http\Controllers;
+
 use App\Models\SuppliersModel;
 use Illuminate\Http\Request;
-use League\Csv\Reader;
-use League\Csv\Statement;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class SupplierController extends Controller
 {
-    //
     public function register(Request $request)
     {
         $validated = $request->validate([
@@ -27,9 +23,11 @@ class SupplierController extends Controller
             'gstin' => 'required|string|max:15',
             'gstin_type' => 'required|string|max:100',
             'notification' => 'nullable|string|max:256',
-            'log_user' => 'required|string|max:100',
-            'log_date' => 'required|date',
+            // Remove log_user and log_date validation
         ]);
+
+        // Add the log_user from the authenticated user
+        $log_user = auth()->user()->name;
 
         $supplier = SuppliersModel::create([
             'company' => $validated['company'],
@@ -45,14 +43,23 @@ class SupplierController extends Controller
             'gstin' => $validated['gstin'],
             'gstin_type' => $validated['gstin_type'],
             'notification' => $validated['notification'] ?? null,
-            'log_user' => $validated['log_user'],
-            'log_date' => $validated['log_date'],
+            'log_user' => $log_user,  // Use the authenticated user's name
+            'log_date' => now(),
         ]);
 
         if ($supplier) {
-            return response()->json(['message' => 'Suppliers created successfully.', 'company' => $supplier->makeHidden(['id', 'created_at', 'updated_at'])], 201);
+            return response()->json([
+                'code' => 200,
+                'success' => true,
+                'message' => 'Supplier created successfully.',
+                'company' => $supplier->makeHidden(['id', 'created_at', 'updated_at']),
+            ], 201);
         } else {
-            return response()->json(['message' => 'Failed to create company.'], 500);
+            return response()->json([
+                'code' => 500,
+                'success' => false,
+                'message' => 'Failed to create supplier.',
+            ]);
         }
     }
 
@@ -62,20 +69,30 @@ class SupplierController extends Controller
             if ($id) {
                 $supplier = SuppliersModel::find($id);
                 if ($supplier) {
-                    return response()->json($supplier->makeHidden(['id', 'created_at', 'updated_at']));
+                    return response()->json([
+                        'code' => 200,
+                        'success' => true,
+                        'data' => $supplier->makeHidden(['id', 'created_at', 'updated_at']),
+                    ]);
                 } else {
-                    return response()->json(['message' => 'Supplier not found.'], 404);
+                    return response()->json([
+                        'code' => 404,
+                        'success' => false,
+                        'message' => 'Supplier not found.',
+                    ], 404);
                 }
             } else {
                 $suppliers = SuppliersModel::all()->makeHidden(['id', 'created_at', 'updated_at']);
                 return response()->json([
-                    // 'supplier_record' => $suppliers,
-                    'supplier_record' => array_slice($suppliers->toArray(), 0, 10),
-                    // 'count' => $suppliers->count()
+                    'code' => 200,
+                    'success' => true,
+                    'data' => array_slice($suppliers->toArray(), 0, 10),
                 ]);
             }
         } catch (\Exception $e) {
             return response()->json([
+                'code' => 500,
+                'success' => false,
                 'message' => 'An error occurred while fetching supplier records.',
                 'error' => $e->getMessage(),
             ], 500);
@@ -98,12 +115,14 @@ class SupplierController extends Controller
             'gstin' => 'required|string|max:15',
             'gstin_type' => 'required|string|max:100',
             'notification' => 'nullable|string|max:256',
-            'log_user' => 'required|string|max:100',
-            'log_date' => 'required|date',
+            // Remove log_user and log_date validation
         ]);
 
         $supplier = SuppliersModel::find($id);
         if ($supplier) {
+            // Add the log_user from the authenticated user
+            $log_user = auth()->user()->name;
+
             $supplier->update([
                 'company' => $validated['company'],
                 'name' => $validated['name'],
@@ -118,12 +137,22 @@ class SupplierController extends Controller
                 'gstin' => $validated['gstin'],
                 'gstin_type' => $validated['gstin_type'],
                 'notification' => $validated['notification'] ?? null,
-                'log_user' => $validated['log_user'],
-                'log_date' => $validated['log_date'],
+                'log_user' => $log_user, // Use the authenticated user's name
+                'log_date' => now(),
             ]);
-            return response()->json(['message' => 'Supplier updated successfully.', 'supplier' => $supplier->makeHidden(['id', 'created_at', 'updated_at'])]);
+
+            return response()->json([
+                'code' => 200,
+                'success' => true,
+                'message' => 'Supplier updated successfully.',
+                'supplier' => $supplier->makeHidden(['id', 'created_at', 'updated_at']),
+            ]);
         } else {
-            return response()->json(['message' => 'Supplier not found.'], 404);
+            return response()->json([
+                'code' => 404,
+                'success' => false,
+                'message' => 'Supplier not found.',
+            ], 404);
         }
     }
 
@@ -132,11 +161,21 @@ class SupplierController extends Controller
         $supplier = SuppliersModel::find($id);
         if ($supplier) {
             $supplier->delete();
-            return response()->json(['message' => 'Supplier deleted successfully.']);
+            return response()->json([
+                'code' => 200,
+                'success' => true,
+                'message' => 'Supplier deleted successfully.',
+            ]);
         } else {
-            return response()->json(['message' => 'Supplier not found.'], 404);
+            return response()->json([
+                'code' => 404,
+                'success' => false,
+                'message' => 'Supplier not found.',
+            ], 404);
         }
     }
+
+
 
     public function importCsv(Request $request)
     {

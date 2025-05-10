@@ -496,6 +496,8 @@ public function index2(Request $request)
 }
 public function export(Request $request)
 {
+    ini_set('memory_limit', '1024M');
+
     try {
         // Validate request parameters
         $validated = $request->validate([
