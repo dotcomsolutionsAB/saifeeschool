@@ -584,6 +584,30 @@ Route::prefix('transactions')->group(function () {
     //testEazypayEncryption
     Route::post('/fee/confirmation', [PaymentController::class, 'feeConfirmation']);
     Route::get('/fee/confirmation/{reference?}', [PaymentController::class, 'getPaymentStatusDetails']);
+
+    Route::prefix('bank')->controller(BankController::class)->group(function () {
+    Route::get('/', 'index');
+    Route::post('/', 'store');
+    Route::get('/{id}', 'show');
+    Route::post('/{id}', 'update');
+    Route::delete('/{id}', 'destroy');
+});
+
+Route::prefix('credit-note')->controller(CreditNoteController::class)->group(function () {
+    Route::get('/', 'index');
+    Route::post('/', 'store');
+    Route::get('/{id}', 'show');
+    Route::post('/{id}', 'update');
+    Route::delete('/{id}', 'destroy');
+});
+
+Route::prefix('debit-note')->controller(DebitNoteController::class)->group(function () {
+    Route::get('/', 'index');
+    Route::post('/', 'store');
+    Route::get('/{id}', 'show');
+    Route::post('/{id}', 'update');
+    Route::delete('/{id}', 'destroy');
+});
    
 
     });
