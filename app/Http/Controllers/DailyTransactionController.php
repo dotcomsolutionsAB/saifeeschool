@@ -80,7 +80,7 @@ class DailyTransactionController extends Controller
                     'SN' => $offset + $index + 1,
                     'Name' => $student ? "{$student->st_first_name} {$student->st_last_name}" : 'N/A',
                     'Roll No' => $student ? $student->st_roll_no : 'N/A',
-                    'Date' => "{$transaction->transaction_date} {$transaction->transaction_time}",
+                    'Date' => $transaction->transaction_date,
                     'Unique_Ref_No' => $transaction->unique_ref_number,
                     'Total_Amount' => $transaction->total_amount,
                     'Status' => $this->mapResponseCode($transaction->response_code),

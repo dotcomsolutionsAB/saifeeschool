@@ -459,7 +459,7 @@ public function index2(Request $request)
                 'Name' => $transaction->student_name,
                 'Roll No' => $transaction->st_roll_no,
                 'Class' => $transaction->class_name,
-                'Date' => "{$transaction->transaction_date} {$transaction->transaction_time}",
+                'Date' => $transaction->transaction_date,
                 'Unique_Ref_No' => $transaction->unique_ref_number,
                 'Total_Amount' => $transaction->total_amount,
                 'Status' => $transaction->response_code === 'E000' ? 'Success' : 'Pending',
